@@ -7,13 +7,11 @@ using IdentityAPI.Domain.Identity;
 using IdentityAPI.Services;
 using IdentityAPI.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
-using Mediator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,7 +77,6 @@ var mongoDbIdentityConfig = new MongoDbIdentityConfiguration
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;
         options.Password.RequireLowercase = false;
-        
         options.User.RequireUniqueEmail = true;
     }
 };

@@ -1,5 +1,6 @@
 using IdentityAPI.Features.Auth.Commands.Login;
 using IdentityAPI.Features.Auth.Commands.Register;
+using IdentityAPI.Features.Auth.Models;
 using Mediator;
 using Microsoft.AspNetCore.Mvc;
 

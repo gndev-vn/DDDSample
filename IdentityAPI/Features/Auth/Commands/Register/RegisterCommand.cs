@@ -1,16 +1,11 @@
 using IdentityAPI.Domain.Identity;
+using IdentityAPI.Features.Auth.Models;
 using Mediator;
 using Microsoft.AspNetCore.Identity;
 
 namespace IdentityAPI.Features.Auth.Commands.Register;
 
-public record RegisterCommand(
-    string Username,
-    string Email,
-    string Password,
-    string FirstName,
-    string LastName
-) : IRequest<RegisterResponse>;
+public record RegisterCommand(RegisterRequest Request) : IRequest<RegisterResponse>;
 
 public class RegisterHandler(UserManager<ApplicationUser> userManager)
     : IRequestHandler<RegisterCommand, RegisterResponse>
@@ -19,15 +14,15 @@ public class RegisterHandler(UserManager<ApplicationUser> userManager)
     {
         var user = new ApplicationUser
         {
-            UserName = request.Username,
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
+            UserName = request.Request.Username,
+            Email = request.Request.Email,
+            FirstName = request.Request.FirstName,
+            LastName = request.Request.LastName,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        var result = await userManager.CreateAsync(user, request.Password);
+        var result = await userManager.CreateAsync(user, request.Request.Password);
 
         if (!result.Succeeded)
         {

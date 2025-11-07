@@ -1,4 +1,4 @@
-namespace IdentityAPI.Features.Auth.Commands.Register;
+namespace IdentityAPI.Features.Auth.Models;
 
 public record RegisterResponse(
     bool Success,

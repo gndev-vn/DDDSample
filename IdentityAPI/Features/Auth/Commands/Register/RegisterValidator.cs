@@ -1,8 +1,9 @@
 using FluentValidation;
+using IdentityAPI.Features.Auth.Models;
 
 namespace IdentityAPI.Features.Auth.Commands.Register;
 
-public class RegisterValidator : AbstractValidator<RegisterCommand>
+public class RegisterValidator : AbstractValidator<RegisterRequest>
 {
     public RegisterValidator()
     {
