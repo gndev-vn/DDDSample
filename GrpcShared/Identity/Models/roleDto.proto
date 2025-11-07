@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+message RoleDto {
+  string id = 1;
+  string name = 2;
+  bool isActive = 6;
+}

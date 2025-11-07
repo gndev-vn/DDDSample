@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message CategoryDto {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string description = 4;
+  string parentId = 5;
+  bool isActive = 6;
+}

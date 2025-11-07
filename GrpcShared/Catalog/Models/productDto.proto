@@ -1,0 +1,14 @@
+syntax = "proto3";
+import "Common/moneyDto.proto";
+import "Catalog/Models/productVariantDto.proto";
+
+message ProductDto {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string description = 4;
+  MoneyDto basePrice = 5;
+  repeated ProductVariantDto variants = 6;
+  string imageUrl = 7;
+  bool isActive = 8;
+}

@@ -1,0 +1,64 @@
+syntax = "proto3";
+import "Common/addressDto.proto";
+import "Order/Models/orderLineDto.proto";
+import "Order/Models/orderDto.proto";
+
+option csharp_namespace = "GrpcShared.Order.Services";
+
+message GetOrderRequest {
+  string id = 1;
+}
+
+message GetOrderResponse {
+  OrderDto order = 1;
+}
+
+message GetOrdersRequest {
+}
+
+message GetOrdersResponse {
+  repeated OrderDto orders = 1;
+}
+
+message CreateOrderRequest {
+  string id = 1;
+  string customerId = 2;
+  string customerEmail = 3;
+  string customerName = 4;
+  AddressDto shippingAddress = 5;
+  AddressDto billingAddress = 6;
+  string currency = 7;
+  repeated OrderLineDto lines = 8;
+}
+
+message CreateOrderResponse {
+  string id = 1;
+  string status = 2;
+}
+
+message UpdateOrderRequest {
+  string id = 1;
+  AddressDto shippingAddress = 5;
+  AddressDto billingAddress = 6;
+}
+
+message UpdateOrderResponse {
+  string id = 1;
+  string status = 2;
+}
+
+message DeleteOrderRequest {
+  string id = 1;
+}
+
+message DeleteOrderResponse {
+  bool success = 1;
+}
+
+service OrderSvc {
+  rpc GetById(GetOrderRequest) returns (GetOrderResponse);
+  rpc GetOrders(GetOrdersRequest) returns (GetOrdersResponse);
+  rpc Create (CreateOrderRequest) returns (CreateOrderResponse);
+  rpc Update (UpdateOrderRequest) returns (UpdateOrderResponse);
+  rpc Delete (DeleteOrderRequest) returns (DeleteOrderResponse);
+}

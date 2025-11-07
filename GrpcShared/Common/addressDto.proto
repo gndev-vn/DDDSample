@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+message AddressDto {
+  string receiverName = 1;
+  string phone = 2;
+  string line1 = 3;
+  string line2 = 4;
+  string ward = 5;
+  string district = 6;
+  string city = 7;
+  string province = 8;
+}

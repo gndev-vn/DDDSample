@@ -1,0 +1,58 @@
+using OrderingAPI.Features.ProductCache.Models;
+
+namespace OrderingAPI.Services.Grpc;
+
+public interface IProductGrpcClientService
+{
+    Task<ProductCacheModel> GetProductAsync(Guid id);
+    Task<IEnumerable<ProductCacheModel>> GetProductsAsync(IEnumerable<Guid> productIds);
+    Task<IEnumerable<ProductCacheModel>> GetProductsAsync();
+}
+
+public class ProductGrpcClientClientService(ProductSvc.ProductSvcClient client) : IProductGrpcClientService
+{
+    public async Task<ProductCacheModel> GetProductAsync(Guid id)
+    {
+        var productResponse = await client.GetByIdAsync(new GetProductRequest
+        {
+            Id = id.ToString()
+        });
+        return new ProductCacheModel
+        {
+            Id = Guid.Parse(productResponse.Product.Id),
+            Name = productResponse.Product.Name,
+            CurrentPrice = productResponse.Product.BasePrice.Amount,
+            Currency = productResponse.Product.BasePrice.Currency,
+            IsActive = productResponse.Product.IsActive,
+            ImageUrl = productResponse.Product.ImageUrl
+        };
+    }
+
+    public async Task<IEnumerable<ProductCacheModel>> GetProductsAsync()
+    {
+        var productsResponse = await client.GetProductsAsync(new GetProductsRequest());
+        return productsResponse.Products.Select(x => new ProductCacheModel
+        {
+            Id = Guid.Parse(x.Id),
+            Name = x.Name,
+            CurrentPrice = x.BasePrice.Amount,
+            Currency = x.BasePrice.Currency,
+            ImageUrl = x.ImageUrl,
+            IsActive = x.IsActive
+        });
+    }
+
+    public async Task<IEnumerable<ProductCacheModel>> GetProductsAsync(IEnumerable<Guid> productIds)
+    {
+        var productsResponse = await client.GetProductsByIdsAsync(new GetProductsByIdsRequest());
+        return productsResponse.Products.Select(x => new ProductCacheModel
+        {
+            Id = Guid.Parse(x.Id),
+            Name = x.Name,
+            CurrentPrice = x.BasePrice.Amount,
+            Currency = x.BasePrice.Currency,
+            ImageUrl = x.ImageUrl,
+            IsActive = x.IsActive
+        });
+    }
+}

@@ -1,0 +1,153 @@
+﻿services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${SA_PASSWORD}
+      MSSQL_PID: "Developer"
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssqldata:/var/opt/mssql
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/1433'" ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin_password}
+      MONGO_INITDB_DATABASE: identitydb
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    command: ["--auth", "--bind_ip_all"]
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: always
+    networks:
+      - microservices-net
+
+  mongodb-setup:
+    image: mongo:6.0
+    restart: "no"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: >
+      mongosh --host mongodb:27017 -u ${MONGO_ROOT_USERNAME:-admin} -p ${MONGO_ROOT_PASSWORD:-admin_password} --authenticationDatabase admin --eval '
+      db = db.getSiblingDB("identitydb");
+      db.createUser({
+        user: "${MONGO_USER:-identity_user}",
+        pwd: "${MONGO_PASSWORD:-identity_password}",
+        roles: [{ role: "readWrite", db: "identitydb" }]
+      });'
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # UI
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit loopback_users []"
+    networks:
+      - microservices-net
+
+  redis:
+    image: redis:7
+    ports: [ "6379:6379" ]
+    networks:
+      - microservices-net
+
+  catalog-api:
+    image: catalog-api
+    ports:
+      - "8080:8080" # REST API
+      - "8081:8081" # gRPC internal
+    build:
+      context: .
+      dockerfile: CatalogAPI/Dockerfile
+    environment:
+      - ConnectionStrings__Default=Server=sqlserver,1433;Database=CatalogAPI;User Id=sa;Password=051093@Galvin;TrustServerCertificate=True
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBITMQ_USERNAME}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD}
+      - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long
+      - JwtSettings__Issuer=IdentityAPI
+      - JwtSettings__Audience=IdentityAPI-Users
+      - ASPNETCORE_URLS=http://+:8080;http://+:8081;
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    networks:
+      - microservices-net
+
+  ordering-api:
+    image: ordering-api
+    ports:
+      - "8084:8084" # REST API  
+      - "8085:8085" # gRPC internal
+    build:
+      context: .
+      dockerfile: OrderingAPI/Dockerfile
+    environment:
+      - ConnectionStrings__Default=Server=sqlserver,1433;Database=OrderingAPI;User Id=sa;Password=051093@Galvin;TrustServerCertificate=True
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBITMQ_USERNAME}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD}
+      - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long
+      - JwtSettings__Issuer=IdentityAPI
+      - JwtSettings__Audience=IdentityAPI-Users
+      - ASPNETCORE_URLS=http://+:8084;http://+:8085
+      - Redis__Host=redis
+    depends_on:
+      - sqlserver
+      - rabbitmq
+      - redis
+      - catalog-api
+    networks:
+      - microservices-net
+
+  identity-api:
+    image: identity-api
+    ports:
+      - "8088:8088" # REST API  
+      - "8089:8089" # gRPC internal
+    build:
+      context: .
+      dockerfile: IdentityAPI/Dockerfile
+    environment:
+      - MongoDB__ConnectionString=mongodb://${MONGO_USER:-identity_user}:${MONGO_PASSWORD:-identity_password}@mongodb:27017/identitydb?authSource=identitydb
+      - MongoDB__DatabaseName=identitydb
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBITMQ_USERNAME}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD}
+      - ASPNETCORE_URLS=http://+:8088;http://+:8089
+    depends_on:
+      - mongodb
+      - mongodb-setup
+      - rabbitmq
+    networks:
+      - microservices-net
+volumes:
+  mssqldata:
+  mongodb_data:
+  mongodb_config:
+
+networks:
+  microservices-net:
