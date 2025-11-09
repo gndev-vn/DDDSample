@@ -1,5 +1,5 @@
-using CatalogAPI.Features.Category.Models;
-using CatalogAPI.Features.Category.Queries;
+using CatalogAPI.Features.Categories.Models;
+using CatalogAPI.Features.Categories.Queries;
 using Mediator;
 
 namespace CatalogAPI.GraphQL;

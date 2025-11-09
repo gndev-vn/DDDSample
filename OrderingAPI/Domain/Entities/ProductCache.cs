@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using Shared.Common;
+using Shared.Models;
 
 namespace OrderingAPI.Domain.Entities;
 

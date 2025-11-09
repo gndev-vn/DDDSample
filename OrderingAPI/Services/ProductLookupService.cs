@@ -3,7 +3,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using OrderingAPI.Database;
 using OrderingAPI.Domain;
 using OrderingAPI.Domain.Entities;
-using OrderingAPI.Features.ProductCache.Models;
+using OrderingAPI.Features.ProductsCache.Models;
 using OrderingAPI.Services.Grpc;
 
 namespace OrderingAPI.Services;

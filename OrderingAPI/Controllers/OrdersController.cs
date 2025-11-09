@@ -1,8 +1,9 @@
 using Mediator;
 using Microsoft.AspNetCore.Mvc;
-using OrderingAPI.Features.Order.Commands;
-using OrderingAPI.Features.Order.Models;
-using OrderingAPI.Features.Order.Queries;
+using OrderingAPI.Features.Orders.Commands;
+using OrderingAPI.Features.Orders.Models;
+using OrderingAPI.Features.Orders.Queries;
+using Shared.Models;
 
 namespace OrderingAPI.Controllers;
 
@@ -14,7 +15,7 @@ public class OrdersController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var orders = await mediator.Send(new GetOrdersQuery());
-        return Ok(orders);
+        return Ok(ApiResponse.Success(orders, "Orders retrieved successfully"));
     }
 
     [HttpGet("{id:guid}")]
@@ -24,10 +25,10 @@ public class OrdersController(IMediator mediator) : ControllerBase
 
         if (order == null)
         {
-            return NotFound();
+            return NotFound(ApiResponse.Error("Order not found"));
         }
 
-        return Ok(order);
+        return Ok(ApiResponse.Success(order, "Order retrieved successfully"));
     }
 
     [HttpPost]
@@ -40,27 +41,27 @@ public class OrdersController(IMediator mediator) : ControllerBase
             request.BillingAddress
         ));
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse.Success(result, "Order created successfully"));
     }
 
     [HttpPost("{id:guid}/pay")]
     public async Task<IActionResult> Pay(Guid id)
     {
         var result = await mediator.Send(new PayOrderCommand(id));
-        return Ok(result);
+        return Ok(ApiResponse.Success(result, "Order paid successfully"));
     }
 
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id)
     {
         var result = await mediator.Send(new CancelOrderCommand(id));
-        return Ok(result);
+        return Ok(ApiResponse.Success(result, "Order cancelled successfully"));
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await mediator.Send(new DeleteOrderCommand(id));
-        return NoContent();
+        return Ok(ApiResponse.Success("Order deleted successfully"));
     }
 }

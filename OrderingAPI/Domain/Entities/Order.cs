@@ -1,7 +1,7 @@
 using OrderingAPI.Domain.Events;
-using Shared.Common;
 using Shared.Enums;
 using Shared.Exceptions;
+using Shared.Models;
 using Shared.ValueObjects;
 
 namespace OrderingAPI.Domain.Entities;

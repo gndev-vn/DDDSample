@@ -1,8 +1,9 @@
 using FluentValidation;
+using IdentityAPI.Features.Auth.Models;
 
 namespace IdentityAPI.Features.Auth.Commands.Login;
 
-public class LoginValidator : AbstractValidator<LoginCommand>
+public class LoginValidator : AbstractValidator<LoginRequest>
 {
     public LoginValidator()
     {

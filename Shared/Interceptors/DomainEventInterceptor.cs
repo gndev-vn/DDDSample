@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Shared.Common;
+using Shared.Models;
 using Wolverine;
 
 namespace Shared.Interceptors;

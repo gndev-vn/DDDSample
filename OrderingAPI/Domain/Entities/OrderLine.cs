@@ -1,5 +1,5 @@
-using Shared.Common;
 using Shared.Exceptions;
+using Shared.Models;
 using Shared.ValueObjects;
 
 namespace OrderingAPI.Domain.Entities;

@@ -1,13 +1,13 @@
 using CatalogAPI.Domain.Events;
-using Shared.Common;
+using Shared.Models;
 
 namespace CatalogAPI.Domain.Entities;
 
 public class Category : EntityWithEvents
 {
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public string Slug { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public Guid? ParentId { get; set; }
     public Category? Parent { get; set; }

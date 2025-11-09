@@ -1,4 +1,4 @@
-using OrderingAPI.Features.ProductCache.Models;
+using OrderingAPI.Features.ProductsCache.Models;
 
 namespace OrderingAPI.Services.Grpc;
 

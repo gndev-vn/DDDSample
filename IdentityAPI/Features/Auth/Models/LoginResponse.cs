@@ -1,4 +1,4 @@
-namespace IdentityAPI.Features.Auth.Commands.Login;
+namespace IdentityAPI.Features.Auth.Models;
 
 public record LoginResponse(
     bool Success,

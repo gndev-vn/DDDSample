@@ -5,13 +5,16 @@ using AspNetCore.Identity.MongoDbCore.Infrastructure;
 using FluentValidation;
 using IdentityAPI.Domain.Identity;
 using IdentityAPI.Services;
-using IdentityAPI.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using Shared.Middleware;
+using Shared.Models;
+using ITokenBlacklistService = Shared.Services.ITokenBlacklistService;
+using TokenBlacklistService = Shared.Services.TokenBlacklistService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,6 +81,10 @@ var mongoDbIdentityConfig = new MongoDbIdentityConfiguration
         options.Password.RequireUppercase = false;
         options.Password.RequireLowercase = false;
         options.User.RequireUniqueEmail = true;
+        
+        // Disable default sign-in scheme (we use JWT)
+        options.SignIn.RequireConfirmedEmail = false;
+        options.SignIn.RequireConfirmedPhoneNumber = false;
     }
 };
 
@@ -106,14 +113,25 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Redis for token blacklist
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+});
+
 // Services
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 
 var app = builder.Build();
+
+// Global exception handler
+app.UseGlobalExceptionHandler();
 
 // Configure the HTTP request pipeline.
 app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 app.MapOpenApi();
 app.MapControllers();

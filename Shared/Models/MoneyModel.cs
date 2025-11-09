@@ -1,5 +1,3 @@
-using Shared.Common;
-
 namespace Shared.Models;
 
 public class MoneyModel : ModelBase

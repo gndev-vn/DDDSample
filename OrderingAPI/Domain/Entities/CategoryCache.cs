@@ -1,4 +1,4 @@
-using Shared.Common;
+using Shared.Models;
 
 namespace OrderingAPI.Domain.Entities;
 

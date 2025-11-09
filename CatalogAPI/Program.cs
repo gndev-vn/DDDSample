@@ -1,12 +1,13 @@
-using CatalogAPI.Database;
 using CatalogAPI.Domain;
 using CatalogAPI.GraphQL;
-using CatalogAPI.Services.Grpc;
+using CatalogAPI.Services;
 using Mapster;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
-using Shared.Interceptors;
 using Shared.Authentication;
+using Shared.Interceptors;
+using Shared.Middleware;
+using Shared.Services;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -48,10 +49,17 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
+// Redis for token blacklist
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+});
+
 // JWT Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 
 builder.Services.AddMediator(options =>
     {
@@ -65,8 +73,6 @@ var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?
 builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 {
     opt.UseSqlServer(sqlConnectionString);
-
-    // Add DomainEventInterceptor with CAP
     var domainEventInterceptor = new DomainEventInterceptor(
         sp.GetRequiredService<IMessageBus>(), localEventsQueue,
         sp.GetRequiredService<ILogger<DomainEventInterceptor>>());
@@ -95,6 +101,9 @@ builder.Host.UseWolverine(opts =>
 
 var app = builder.Build();
 
+// Global exception handler
+app.UseGlobalExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -104,6 +113,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 
 // REST API endpoints

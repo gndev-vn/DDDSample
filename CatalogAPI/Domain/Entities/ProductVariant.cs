@@ -1,4 +1,4 @@
-using Shared.Common;
+using Shared.Models;
 using Shared.ValueObjects;
 
 namespace CatalogAPI.Domain.Entities;
@@ -50,7 +50,7 @@ public sealed class ProductVariant : Entity
     // Expose as read-only collection to protect invariants
     public IReadOnlyCollection<VariantAttribute> Attributes => _attributes;
 
-    public Product Product { get; set; }
+    public Product? Product { get; set; }
     public Guid ProductId { get; set; }
 
     // Domain operations

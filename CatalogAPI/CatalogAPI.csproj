@@ -8,6 +8,8 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <PackageReference Include="FluentValidation" Version="12.1.0" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
         <PackageReference Include="HotChocolate.AspNetCore" Version="15.1.11" />
         <PackageReference Include="Mediator.SourceGenerator" Version="3.0.1">
             <PrivateAssets>all</PrivateAssets>
@@ -27,10 +29,12 @@
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.9" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.9" />
-        <PackageReference Include="WolverineFx" Version="4.12.3" />
-        <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="4.12.3" />
-        <PackageReference Include="WolverineFx.RabbitMQ" Version="4.12.3" />
-        <PackageReference Include="WolverineFx.SqlServer" Version="4.12.3" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.10" />
+        <PackageReference Include="StackExchange.Redis" Version="2.9.32" />
+        <PackageReference Include="WolverineFx" Version="5.1.0" />
+        <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.1.0" />
+        <PackageReference Include="WolverineFx.RabbitMQ" Version="5.1.0" />
+        <PackageReference Include="WolverineFx.SqlServer" Version="5.1.0" />
     </ItemGroup>
 
     <ItemGroup>

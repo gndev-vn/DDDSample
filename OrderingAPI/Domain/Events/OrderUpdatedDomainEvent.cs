@@ -1,5 +1,5 @@
-using Shared.Common;
 using Shared.Messaging.Order;
+using Shared.Models;
 using Wolverine;
 
 namespace OrderingAPI.Domain.Events;

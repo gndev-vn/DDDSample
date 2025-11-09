@@ -1,4 +1,4 @@
-using Shared.Common;
+using Shared.Models;
 
 namespace Shared.ValueObjects;
 
@@ -22,7 +22,7 @@ public sealed class Money : ValueObject
 
     public decimal Amount { get; }
 
-    public string Currency { get; }
+    public string Currency { get; } = string.Empty;
 
     public override string ToString() => $"{Amount} {Currency}";
 

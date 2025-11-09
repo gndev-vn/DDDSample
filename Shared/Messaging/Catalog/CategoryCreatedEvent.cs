@@ -6,7 +6,7 @@ namespace Shared.Messaging.Catalog;
 public class CategoryCreatedEvent
 {
     public Guid Id { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public Guid ParentId { get; set; }
-    public string ParentName { get; set; }
+    public string ParentName { get; set; } = string.Empty;
 }

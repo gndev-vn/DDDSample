@@ -1,13 +1,13 @@
-using CatalogAPI.Features.Product.Commands;
-using CatalogAPI.Features.Product.Models;
-using CatalogAPI.Features.Product.Queries;
+using CatalogAPI.Features.Products.Commands;
+using CatalogAPI.Features.Products.Models;
+using CatalogAPI.Features.Products.Queries;
 using Grpc.Core;
 using Mapster;
 using Mediator;
 using Shared.Extensions;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 
-namespace CatalogAPI.Services.Grpc;
+namespace CatalogAPI.Services;
 
 public class ProductGrpcService(IMediator mediator, ILogger<ProductGrpcService> logger)
     : ProductSvc.ProductSvcBase

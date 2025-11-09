@@ -2,10 +2,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using IdentityAPI.Domain.Identity;
-using IdentityAPI.Settings;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Models;
 
 namespace IdentityAPI.Services;
 
@@ -27,7 +27,7 @@ public class JwtTokenService(IOptions<JwtSettings> jwtSettings, UserManager<Appl
             new(ClaimTypes.Name, user.UserName ?? string.Empty),
             new(ClaimTypes.Email, user.Email ?? string.Empty),
             new("firstName", user.FirstName),
-            new("lastName", user.LastName)
+            new("lastname", user.LastName)
         };
 
         // Add roles to claims

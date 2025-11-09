@@ -1,8 +1,11 @@
 using IdentityAPI.Features.Auth.Commands.Login;
+using IdentityAPI.Features.Auth.Commands.Logout;
 using IdentityAPI.Features.Auth.Commands.Register;
 using IdentityAPI.Features.Auth.Models;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Models;
 
 namespace IdentityAPI.Controllers;
 
@@ -11,28 +14,30 @@ namespace IdentityAPI.Controllers;
 public class AuthController(IMediator mediator) : ControllerBase
 {
     [HttpPost("register")]
-    public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterCommand command)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var result = await mediator.Send(command);
-        
-        if (result.Success)
-        {
-            return Ok(result);
-        }
-
-        return BadRequest(result);
+        var result = await mediator.Send(new RegisterCommand(request));
+        return Ok(ApiResponse.Success(new { userId = result.UserId }, result.Message));
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginCommand command)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var result = await mediator.Send(command);
-        
-        if (result.Success)
+        var result = await mediator.Send(new LoginCommand(request));
+        return Ok(ApiResponse.Success(new
         {
-            return Ok(result);
-        }
+            token = result.Token,
+            expiresAt = result.ExpiresAt,
+            user = result.User
+        }, result.Message));
+    }
 
-        return Unauthorized(result);
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+        var result = await mediator.Send(new LogoutCommand(token));
+        return Ok(ApiResponse.Success(result.Message));
     }
 }

@@ -90,6 +90,7 @@
       - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long
       - JwtSettings__Issuer=IdentityAPI
       - JwtSettings__Audience=IdentityAPI-Users
+      - ConnectionStrings__Redis=redis:6379
       - ASPNETCORE_URLS=http://+:8080;http://+:8081;
     depends_on:
       - sqlserver
@@ -113,6 +114,7 @@
       - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long
       - JwtSettings__Issuer=IdentityAPI
       - JwtSettings__Audience=IdentityAPI-Users
+      - ConnectionStrings__Redis=redis:6379
       - ASPNETCORE_URLS=http://+:8084;http://+:8085
       - Redis__Host=redis
     depends_on:
@@ -134,6 +136,7 @@
     environment:
       - MongoDB__ConnectionString=mongodb://${MONGO_USER:-identity_user}:${MONGO_PASSWORD:-identity_password}@mongodb:27017/identitydb?authSource=identitydb
       - MongoDB__DatabaseName=identitydb
+      - ConnectionStrings__Redis=redis:6379
       - RabbitMq__Host=rabbitmq
       - RabbitMq__Username=${RABBITMQ_USERNAME}
       - RabbitMq__Password=${RABBITMQ_PASSWORD}
@@ -142,6 +145,7 @@
       - mongodb
       - mongodb-setup
       - rabbitmq
+      - redis
     networks:
       - microservices-net
 volumes:

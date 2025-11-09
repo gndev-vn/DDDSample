@@ -1,5 +1,5 @@
 using CatalogAPI.Domain.Events;
-using Shared.Common;
+using Shared.Models;
 using Shared.ValueObjects;
 
 namespace CatalogAPI.Domain.Entities;
@@ -34,12 +34,12 @@ public sealed class Product : EntityWithEvents
         });
     }
 
-    public Money BasePrice { get; private set; }
-    public bool IsActive { get; private set; } = true;
-    public string Slug { get; private set; } = string.Empty;
-    public string Name { get; private set; } = string.Empty;
-    public string Description { get; private set; } = string.Empty;
-    public string ImageUrl { get; private set; } = string.Empty;
+    public Money? BasePrice { get; set; }
+    public bool IsActive { get; set; } = true;
+    public string Slug { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
 
     public IReadOnlyList<ProductVariant> Variants => _variants;
     public Category? Category { get; set; }

@@ -1,9 +1,9 @@
 using Grpc.Core;
 using GrpcShared.Order.Services;
 using Mediator;
-using OrderingAPI.Features.Order.Commands;
-using OrderingAPI.Features.Order.Models;
-using OrderingAPI.Features.Order.Queries;
+using OrderingAPI.Features.Orders.Commands;
+using OrderingAPI.Features.Orders.Models;
+using OrderingAPI.Features.Orders.Queries;
 using Shared.Exceptions;
 using Shared.Models;
 

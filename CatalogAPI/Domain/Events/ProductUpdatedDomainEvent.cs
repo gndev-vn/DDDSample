@@ -1,5 +1,5 @@
-using Shared.Common;
 using Shared.Messaging.Catalog;
+using Shared.Models;
 using Wolverine;
 
 namespace CatalogAPI.Domain.Events;

@@ -2,6 +2,7 @@ using IdentityAPI.Domain.Identity;
 using IdentityAPI.Features.Auth.Models;
 using Mediator;
 using Microsoft.AspNetCore.Identity;
+using Shared.Exceptions;
 
 namespace IdentityAPI.Features.Auth.Commands.Register;
 
@@ -26,21 +27,23 @@ public class RegisterHandler(UserManager<ApplicationUser> userManager)
 
         if (!result.Succeeded)
         {
-            return new RegisterResponse(
-                Success: false,
-                Message: "Registration failed",
-                Errors: result.Errors.Select(e => e.Description)
-            );
+            // Convert IdentityResult errors to ValidationException
+            var errors = result.Errors.Select(e => e.Description);
+            throw new BusinessException("Registration failed", errors);
         }
 
         // Add default role
-        await userManager.AddToRoleAsync(user, "User");
+        var roleResult = await userManager.AddToRoleAsync(user, "User");
+        if (!roleResult.Succeeded)
+        {
+            var errors = roleResult.Errors.Select(e => e.Description);
+            throw new ValidationException("Registration failed", errors);
+        }
 
         return new RegisterResponse(
             Success: true,
             Message: "User registered successfully",
             UserId: user.Id.ToString()
         );
-
     }
 }

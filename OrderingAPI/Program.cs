@@ -6,6 +6,7 @@ using OrderingAPI.Domain;
 using OrderingAPI.Services.Grpc;
 using Shared.Authentication;
 using Shared.Interceptors;
+using Shared.Middleware;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -53,6 +54,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<Shared.Services.ITokenBlacklistService, Shared.Services.TokenBlacklistService>();
 builder.Services.AddStackExchangeRedisCache(o =>
 {
     o.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379";
@@ -124,9 +126,13 @@ builder.Services.AddGrpcClient<ProductSvc.ProductSvcClient>(o =>
 
 var app = builder.Build();
 
+// Global exception handler
+app.UseGlobalExceptionHandler();
+
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
