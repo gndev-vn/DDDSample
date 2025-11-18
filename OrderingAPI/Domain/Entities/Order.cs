@@ -11,9 +11,9 @@ public class Order : EntityWithEvents
     private readonly List<OrderLine> _lines = [];
     public IReadOnlyCollection<OrderLine> Lines => _lines.AsReadOnly();
     public OrderStatus Status { get; private set; }
-    public Address ShippingAddress { get; private set; }
-    public Address BillingAddress { get; private set; }
-    public Money Total => _lines.Aggregate(Money.Zero("VND"), (sum, l) => sum + l.Price);
+    public Address? ShippingAddress { get; private set; }
+    public Address? BillingAddress { get; private set; }
+    public Money Total => _lines.Aggregate(Money.Zero("VND"), (sum, l) => sum + l.Total);
     public Guid CustomerId { get; set; }
 
     public Order()
@@ -43,7 +43,7 @@ public class Order : EntityWithEvents
             Total = Total.Amount,
             Currency = Total.Currency,
             ShippingAddress = ShippingAddress.ToString(),
-            BillingAddress = BillingAddress.ToString()
+            BillingAddress = BillingAddress != null ? BillingAddress.ToString() :  string.Empty
         });
     }
 
@@ -52,7 +52,7 @@ public class Order : EntityWithEvents
         EnsureModifiable();
         foreach (var line in lines)
         {
-            AddLine(line.Sku, line.Quantity, line.Price);
+            AddLine(line.Sku, line.Quantity, line.Total);
         }
     }
 
@@ -70,13 +70,9 @@ public class Order : EntityWithEvents
         }
     }
 
-    public void Pay(Money amount)
+    public void Pay()
     {
         EnsureModifiable();
-        if (amount.Currency != Total.Currency || amount.Amount < Total.Amount)
-        {
-            throw new DomainException("Insufficient or wrong currency");
-        }
 
         Status = OrderStatus.Paid;
         AddDomainEvent(new OrderPaidDomainEvent
@@ -114,4 +110,15 @@ public class Order : EntityWithEvents
     public static Order Create(Guid customerId, IEnumerable<OrderLine> orderLines, Address shippingAddress,
         Address? billingAddress = null) =>
         new Order(shippingAddress, orderLines);
+
+    public void Cancel()
+    {
+        EnsureModifiable();
+
+        Status = OrderStatus.Cancelled;
+        AddDomainEvent(new OrderCanceledDomainEvent
+        {
+            Id = Id
+        });
+    }
 }

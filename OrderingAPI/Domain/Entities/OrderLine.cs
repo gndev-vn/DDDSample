@@ -6,23 +6,23 @@ namespace OrderingAPI.Domain.Entities;
 
 public sealed class OrderLine : Entity
 {
-    public Sku Sku { get; }
+    public Sku Sku { get; set; }
     public Quantity Quantity { get; set; }
-    public Money Price { get; }
-    public Guid OrderId { get; }
+    public Money Total { get; set; }
+    public Guid OrderId { get; set; }
     
-    public Guid ProductId { get; }
-    public Order Order { get; }
+    public Guid ProductId { get; set; }
+    public Order? Order { get; set; }
 
-    private OrderLine()
+    public OrderLine()
     {
     }
 
-    public OrderLine(Sku sku, Quantity qty, Money price)
+    public OrderLine(Sku sku, Quantity qty, Money total)
     {
         Sku = sku;
         Quantity = qty;
-        Price = price;
+        Total = total;
     }
 
     public void ChangeQuantity(Quantity newQty)

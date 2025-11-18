@@ -4,15 +4,8 @@ using Shared.Services;
 
 namespace Shared.Middleware;
 
-public class JwtBlacklistMiddleware
+public class JwtBlacklistMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public JwtBlacklistMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
@@ -38,6 +31,6 @@ public class JwtBlacklistMiddleware
             }
         }
 
-        await _next(context);
+        await next(context);
     }
 }

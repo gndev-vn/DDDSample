@@ -1,17 +1,16 @@
 using CatalogAPI.Features.Products.Commands;
-using CatalogAPI.Features.Products.Models;
 using CatalogAPI.Features.Products.Queries;
+using Mapster;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shared.Authentication;
 using Shared.Models;
 
 namespace CatalogAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(IMediator mediator, ICurrentUser currentUser) : ControllerBase
+public class ProductsController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -34,18 +33,22 @@ public class ProductsController(IMediator mediator, ICurrentUser currentUser) : 
 
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> Create([FromBody] ProductModel product)
+    public async Task<IActionResult> Create([FromBody] ProductCreateRequest model)
     {
-        var result = await mediator.Send(new CreateProductCommand(product));
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse.Success(result, "Product created successfully"));
+        var result = await mediator.Send(new CreateProductCommand(model.Adapt<Features.Products.Models.ProductCreateRequest>()));
+        return CreatedAtAction(nameof(GetById), new { id = result.Id },
+            ApiResponse.Success(result, "Product created successfully"));
     }
 
     [HttpPut("{id:guid}")]
     [Authorize]
-    public async Task<IActionResult> Update(Guid id, [FromBody] ProductModel model)
+    public async Task<IActionResult> Update(Guid id, [FromBody] Features.Products.Models.ProductDeleteRequest model)
     {
-        model.Id = id;
-        var result = await mediator.Send(new UpdateProductCommand(model));
+        if (model.Id != id)
+        {
+            return BadRequest("Id in route and model id not match");
+        }
+        var result = await mediator.Send(new UpdateProductCommand(model.Adapt<Features.Products.Models.ProductUpdateRequest>()));
         return Ok(ApiResponse.Success(result, "Product updated successfully"));
     }
 
@@ -55,22 +58,5 @@ public class ProductsController(IMediator mediator, ICurrentUser currentUser) : 
     {
         await mediator.Send(new DeleteProductCommand(id));
         return Ok(ApiResponse.Success("Product deleted successfully"));
-    }
-
-    [HttpGet("me")]
-    [Authorize]
-    public IActionResult GetCurrentUser()
-    {
-        var userData = new
-        {
-            UserId = currentUser.UserId,
-            Username = currentUser.Username,
-            Email = currentUser.Email,
-            FirstName = currentUser.FirstName,
-            LastName = currentUser.LastName,
-            Roles = currentUser.Roles,
-            IsAuthenticated = currentUser.IsAuthenticated
-        };
-        return Ok(ApiResponse.Success(userData, "Current user retrieved successfully"));
     }
 }

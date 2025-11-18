@@ -54,18 +54,18 @@ public class ProductGrpcService(IMediator mediator, ILogger<ProductGrpcService> 
         }
     }
 
-    public override async Task<CreateProductResponse?> Create(CreateProductRequest request, ServerCallContext context)
+    public override async Task<ProductCreateResponse?> Create(ProductCreateRequest request, ServerCallContext context)
     {
         var product =
-            await mediator.Send(new CreateProductCommand(request.Adapt<ProductModel>()), context.CancellationToken);
+            await mediator.Send(new CreateProductCommand(request.Adapt<Features.Products.Models.ProductCreateRequest>()), context.CancellationToken);
 
-        return new CreateProductResponse
+        return new ProductCreateResponse
         {
             Id = product.Id.ToString()
         };
     }
 
-    public override async Task<UpdateProductResponse> Update(UpdateProductRequest request, ServerCallContext context)
+    public override async Task<ProductUpdateResponse> Update(ProductUpdateRequest request, ServerCallContext context)
     {
         if (!Guid.TryParse(request.Id, out _))
         {
@@ -78,13 +78,13 @@ public class ProductGrpcService(IMediator mediator, ILogger<ProductGrpcService> 
             throw new KeyNotFoundException("Product not found");
         }
 
-        var cmd = new UpdateProductCommand(request.Adapt<ProductModel>());
+        var cmd = new UpdateProductCommand(request.Adapt<Features.Products.Models.ProductUpdateRequest>());
 
         var updated = await mediator.Send(cmd, context.CancellationToken);
-        return new UpdateProductResponse { Id = updated.Id.ToString() };
+        return new ProductUpdateResponse { Id = updated.Id.ToString() };
     }
 
-    public override async Task<DeleteProductResponse> Delete(DeleteProductRequest request, ServerCallContext context)
+    public override async Task<ProductDeleteResponse> Delete(ProductDeleteRequest request, ServerCallContext context)
     {
         if (!Guid.TryParse(request.Id, out _))
         {
@@ -94,7 +94,7 @@ public class ProductGrpcService(IMediator mediator, ILogger<ProductGrpcService> 
         var result = await mediator.Send(new DeleteProductCommand(Guid.Parse(request.Id)),
             context.CancellationToken);
 
-        return new DeleteProductResponse
+        return new ProductDeleteResponse
         {
             Success = result
         };

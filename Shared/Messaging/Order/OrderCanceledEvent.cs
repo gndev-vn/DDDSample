@@ -1,6 +1,6 @@
 namespace Shared.Messaging.Order;
 
-public class OrderDeletedEvent
+public class OrderCanceledEvent
 {
     public Guid Id { get; set; }
 }

@@ -17,7 +17,6 @@ public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<Get
             .Select(o => new OrderModel
             {
                 Id = o.Id,
-                Total = new MoneyModel { Amount = o.Total.Amount, Currency = o.Total.Currency },
                 ShippingAddress = new AddressModel(
                     o.ShippingAddress.Line1,
                     string.IsNullOrWhiteSpace(o.ShippingAddress.Line2)
@@ -31,11 +30,8 @@ public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<Get
                 {
                     Sku = l.Sku.Value,
                     Quantity = l.Quantity.Value,
-                    UnitPrice = new MoneyModel
-                    {
-                        Amount = l.Price.Amount,
-                        Currency = l.Price.Currency
-                    }
+                    UnitPrice = l.Total.Amount,
+                    Currency = l.Total.Currency
                 }).ToList()
             })
             .ToListAsync(cancellationToken: cancellationToken);

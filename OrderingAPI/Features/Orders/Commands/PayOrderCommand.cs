@@ -1,5 +1,7 @@
 using Mediator;
 using OrderingAPI.Domain;
+using Shared.Enums;
+using Shared.Exceptions;
 
 namespace OrderingAPI.Features.Orders.Commands;
 
@@ -9,6 +11,16 @@ public class PayOrderCommandHandler(AppDbContext dbContext) : IRequestHandler<Pa
 {
     public async ValueTask<bool> Handle(PayOrderCommand request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var order = await dbContext.Orders.FindAsync([request.Id, cancellationToken],
+            cancellationToken: cancellationToken);
+        if (order == null)
+        {
+            throw new NotFoundException("Order not found");
+        }
+
+        order.Pay();
+        dbContext.Update(order);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

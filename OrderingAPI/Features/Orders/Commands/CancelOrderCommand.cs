@@ -1,5 +1,6 @@
 using Mediator;
 using OrderingAPI.Domain;
+using Shared.Exceptions;
 
 namespace OrderingAPI.Features.Orders.Commands;
 
@@ -9,6 +10,16 @@ public class CancelOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
 {
     public async ValueTask<bool> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var order = await dbContext.Orders.FindAsync([request.Id, cancellationToken],
+            cancellationToken: cancellationToken);
+        if (order == null)
+        {
+            throw new NotFoundException("Order not found");
+        }
+
+        order.Cancel();
+        dbContext.Update(order);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

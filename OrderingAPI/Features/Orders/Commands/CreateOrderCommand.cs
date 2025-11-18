@@ -18,7 +18,7 @@ public class CreateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
 {
     public async ValueTask<OrderModel> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
     {
-        var newOrder = Domain.Entities.Order.Create(command.CustomerId, command.Lines.Adapt<List<OrderLine>>(),
+        var newOrder = Order.Create(command.CustomerId, command.Lines.Adapt<List<OrderLine>>(),
             command.ShippingAddress.Adapt<Address>()
         );
         await dbContext.Orders.AddAsync(newOrder, cancellationToken);

@@ -4,7 +4,7 @@ public abstract class ValueObject
 {
     protected abstract IEnumerable<object?> GetEqualityComponents();
 
-    protected static bool EqualOperator(ValueObject left, ValueObject right)
+    private static bool EqualOperator(ValueObject left, ValueObject right)
     {
         if (ReferenceEquals(left, null) ^ ReferenceEquals(right, null))
         {

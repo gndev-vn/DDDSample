@@ -77,8 +77,8 @@
   catalog-api:
     image: catalog-api
     ports:
-      - "8080:8080" # REST API
-      - "8081:8081" # gRPC internal
+      - "9080:9080" # REST API
+      - "9081:9081" # gRPC internal
     build:
       context: .
       dockerfile: CatalogAPI/Dockerfile
@@ -91,7 +91,7 @@
       - JwtSettings__Issuer=IdentityAPI
       - JwtSettings__Audience=IdentityAPI-Users
       - ConnectionStrings__Redis=redis:6379
-      - ASPNETCORE_URLS=http://+:8080;http://+:8081;
+      - ASPNETCORE_URLS=http://+:9080;http://+:9081;
     depends_on:
       - sqlserver
       - rabbitmq
@@ -101,8 +101,8 @@
   ordering-api:
     image: ordering-api
     ports:
-      - "8084:8084" # REST API  
-      - "8085:8085" # gRPC internal
+      - "9084:9084" # REST API
+      - "9085:9085" # gRPC internal
     build:
       context: .
       dockerfile: OrderingAPI/Dockerfile
@@ -115,7 +115,7 @@
       - JwtSettings__Issuer=IdentityAPI
       - JwtSettings__Audience=IdentityAPI-Users
       - ConnectionStrings__Redis=redis:6379
-      - ASPNETCORE_URLS=http://+:8084;http://+:8085
+      - ASPNETCORE_URLS=http://+:9084;http://+:9085
       - Redis__Host=redis
     depends_on:
       - sqlserver
@@ -128,8 +128,8 @@
   identity-api:
     image: identity-api
     ports:
-      - "8088:8088" # REST API  
-      - "8089:8089" # gRPC internal
+      - "9088:9088" # REST API
+      - "9089:9089" # gRPC internal
     build:
       context: .
       dockerfile: IdentityAPI/Dockerfile
@@ -140,7 +140,7 @@
       - RabbitMq__Host=rabbitmq
       - RabbitMq__Username=${RABBITMQ_USERNAME}
       - RabbitMq__Password=${RABBITMQ_PASSWORD}
-      - ASPNETCORE_URLS=http://+:8088;http://+:8089
+      - ASPNETCORE_URLS=http://+:9088;http://+:9089
     depends_on:
       - mongodb
       - mongodb-setup

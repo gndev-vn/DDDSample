@@ -1,4 +1,5 @@
 using CatalogAPI.Domain;
+using CatalogAPI.Domain.Entities;
 using CatalogAPI.Features.Products.Models;
 using Mapster;
 using Mediator;
@@ -6,7 +7,7 @@ using Shared.ValueObjects;
 
 namespace CatalogAPI.Features.Products.Commands;
 
-public record CreateProductCommand(ProductModel Product) : IRequest<ProductModel>;
+public record CreateProductCommand(Features.Products.Models.ProductCreateRequest Model) : IRequest<ProductModel>;
 
 public class CreateProductCommandHandler(AppDbContext dbContext) : IRequestHandler<CreateProductCommand, ProductModel>
 {
@@ -18,8 +19,8 @@ public class CreateProductCommandHandler(AppDbContext dbContext) : IRequestHandl
     /// <returns>A <see cref="ProductModel"/> representing the created product, or null if the creation fails.</returns>
     public async ValueTask<ProductModel> Handle(CreateProductCommand command, CancellationToken cancellationToken)
     {
-        var product = new Domain.Entities.Product(command.Product.Name, command.Product.Description, command.Product.Slug,
-            command.Product.BasePrice.Adapt<Money>());
+        var product = new Product(command.Model.Name, command.Model.Description, command.Model.Slug,
+            command.Model.BasePrice.Adapt<Money>());
         await dbContext.Products.AddAsync(product, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return product.Adapt<ProductModel>();

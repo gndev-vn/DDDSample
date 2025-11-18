@@ -1,11 +1,12 @@
 using CatalogAPI.Domain;
+using CatalogAPI.Domain.Entities;
 using CatalogAPI.Features.Categories.Models;
 using Mapster;
 using Mediator;
 
 namespace CatalogAPI.Features.Categories.Commands;
 
-public record CreateCategoryCommand(CategoryModel Category) : IRequest<CategoryModel>;
+public record CreateCategoryCommand(CategoryCreateRequest Model) : IRequest<CategoryModel>;
 
 public class CreateCategoryCommandHandler(AppDbContext dbContext)
     : IRequestHandler<CreateCategoryCommand, CategoryModel>
@@ -18,7 +19,7 @@ public class CreateCategoryCommandHandler(AppDbContext dbContext)
     /// <returns>A <see cref="CategoryModel"/> representing the created category, or null if the operation fails.</returns>
     public async ValueTask<CategoryModel> Handle(CreateCategoryCommand command, CancellationToken cancellationToken)
     {
-        var category = new Domain.Entities.Category(command.Category.Name, command.Category.Description, command.Category.Slug);
+        var category = new Category(command.Model.Name, command.Model.Description, command.Model.Slug);
         await dbContext.Categories.AddAsync(category, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return category.Adapt<CategoryModel>();

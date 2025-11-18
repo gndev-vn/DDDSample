@@ -1,6 +1,5 @@
 syntax = "proto3";
 import "Catalog/Models/categoryDto.proto";
-import "Catalog/Models/productDto.proto";
 
 message GetCategoryRequest {
   string id = 1;
@@ -26,7 +25,6 @@ message CreateCategoryRequest {
   string description = 2;
   string slug = 3;
   bool isActive = 4;
-  repeated ProductDto products = 5;
 }
 
 message CreateCategoryResponse {
@@ -39,7 +37,6 @@ message UpdateCategoryRequest {
   string description = 3;
   string slug = 4;
   bool isActive = 5;
-  repeated ProductDto variants = 6;
 }
 
 message UpdateCategoryResponse {

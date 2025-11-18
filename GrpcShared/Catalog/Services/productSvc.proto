@@ -1,5 +1,5 @@
 syntax = "proto3";
-import "Common/moneyDto.proto";
+import "Common/decimal.proto";
 import "Catalog/Models/productDto.proto";
 import "Catalog/Models/productVariantDto.proto";
 
@@ -29,38 +29,40 @@ message GetProductsByIdsResponse {
   repeated ProductDto products = 1;
 }
 
-message CreateProductRequest {
+message ProductCreateRequest {
   string name = 1;
   string description = 2;
   string slug = 3;
   bool isActive = 4;
-  MoneyDto basePrice = 5;
-  repeated ProductVariantDto variants = 6;
+  string currency = 5;
+  GrpcShared.Types.Decimal basePrice = 6;
+  repeated ProductVariantDto variants = 7;
 }
 
-message CreateProductResponse {
+message ProductCreateResponse {
   string id = 1;
 }
 
-message UpdateProductRequest {
+message ProductUpdateRequest {
   string id = 1;
   string name = 2;
   string description = 3;
   string slug = 4;
   bool isActive = 5;
-  MoneyDto basePrice = 6;
-  repeated ProductVariantDto variants = 7;
+  string currency = 6;
+  GrpcShared.Types.Decimal basePrice = 7;
+  repeated ProductVariantDto variants = 8;
 }
 
-message UpdateProductResponse {
+message ProductUpdateResponse {
   string id = 1;
 }
 
-message DeleteProductRequest {
+message ProductDeleteRequest {
   string id = 1;
 }
 
-message DeleteProductResponse {
+message ProductDeleteResponse {
   bool success = 1;
 }
 
@@ -68,7 +70,7 @@ service ProductSvc {
   rpc GetById(GetProductRequest) returns (GetProductResponse);
   rpc GetProducts(GetProductsRequest) returns (GetProductsResponse);
   rpc GetProductsByIds(GetProductsByIdsRequest) returns (GetProductsByIdsResponse);
-  rpc Create(CreateProductRequest) returns (CreateProductResponse);
-  rpc Update(UpdateProductRequest) returns (UpdateProductResponse);
-  rpc Delete(DeleteProductRequest) returns (DeleteProductResponse);
+  rpc Create(ProductCreateRequest) returns (ProductCreateResponse);
+  rpc Update(ProductUpdateRequest) returns (ProductUpdateResponse);
+  rpc Delete(ProductDeleteRequest) returns (ProductDeleteResponse);
 }

@@ -6,7 +6,7 @@ namespace CatalogAPI.GraphQL;
 
 public class Mutation
 {
-    public async Task<CategoryModel> CreateCategory(CategoryModel category, IMediator mediator)
+    public async Task<CategoryModel> CreateCategory(CategoryCreateRequest category, IMediator mediator)
     {
         var result = await mediator.Send(new CreateCategoryCommand(category));
         return result;

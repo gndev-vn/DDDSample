@@ -1,5 +1,6 @@
 using Grpc.Core;
 using GrpcShared.Order.Services;
+using Mapster;
 using Mediator;
 using OrderingAPI.Features.Orders.Commands;
 using OrderingAPI.Features.Orders.Models;
@@ -30,7 +31,7 @@ public class OrderGrpcService(IMediator mediator) : OrderSvc.OrderSvcBase
             {
                 OrderId = order.Id.ToString(),
                 Status = order.Status.ToString(),
-                Total = new MoneyDto { Amount = order.Total.Amount, Currency = order.Total.Currency },
+                Lines = { order.Lines.Adapt<List<OrderLineDto>>() },
                 CustomerId = order.CustomerId.ToString(),
             }
         };
@@ -47,7 +48,6 @@ public class OrderGrpcService(IMediator mediator) : OrderSvc.OrderSvcBase
                 {
                     OrderId = order.Id.ToString(),
                     Status = order.Status.ToString(),
-                    Total = new MoneyDto { Amount = order.Total.Amount, Currency = order.Total.Currency },
                     CustomerId = order.CustomerId.ToString(),
                 }).ToList()
             }
@@ -73,11 +73,8 @@ public class OrderGrpcService(IMediator mediator) : OrderSvc.OrderSvcBase
                 {
                     Sku = l.Sku,
                     Quantity = l.Quantity,
-                    UnitPrice = new MoneyModel
-                    {
-                        Amount = l.UnitPrice.Amount,
-                        Currency = l.UnitPrice.Currency
-                    }
+                    UnitPrice = l.UnitPrice.Amount,
+                    Currency = l.UnitPrice.Currency
                 }).ToList()
             };
 

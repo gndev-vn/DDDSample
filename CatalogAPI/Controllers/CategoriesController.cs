@@ -1,4 +1,3 @@
-using CatalogAPI.Database;
 using CatalogAPI.Domain;
 using CatalogAPI.Features.Categories.Commands;
 using CatalogAPI.Features.Categories.Models;
@@ -33,16 +32,20 @@ public class CategoriesController(IMediator mediator, AppDbContext dbContext) : 
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CategoryModel category)
+    public async Task<IActionResult> Create([FromBody] CategoryCreateRequest category)
     {
         var result = await mediator.Send(new CreateCategoryCommand(category));
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse.Success(result, "Category created successfully"));
+        return CreatedAtAction(nameof(GetById), new { id = result.Id },
+            ApiResponse.Success(result, "Category created successfully"));
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] CategoryModel model)
+    public async Task<IActionResult> Update(Guid id, [FromBody] CategoryUpdateRequest model)
     {
-        model.Id = id;
+        if (model.Id != id)
+        {
+            return BadRequest("Id in route and model id must match");
+        }
         var result = await mediator.Send(new UpdateCategoryCommand(model));
         return Ok(ApiResponse.Success(result, "Category updated successfully"));
     }

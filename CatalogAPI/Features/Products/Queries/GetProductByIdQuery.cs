@@ -27,7 +27,8 @@ public class GetProductByIdQueryQueryHandler(AppDbContext dbContext)
             {
                 Id = x.Id,
                 Name = x.Name,
-                BasePrice = new MoneyModel { Amount = x.BasePrice.Amount, Currency = x.BasePrice.Currency },
+                BasePrice = x.BasePrice.Amount,
+                Currency = x.BasePrice.Currency,
                 Description = x.Description,
                 Slug = x.Slug,
                 IsActive = x.IsActive,

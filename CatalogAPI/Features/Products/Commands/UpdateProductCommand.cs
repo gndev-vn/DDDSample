@@ -6,7 +6,7 @@ using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 
 namespace CatalogAPI.Features.Products.Commands;
 
-public record UpdateProductCommand(ProductModel Product) : IRequest<ProductModel>;
+public record UpdateProductCommand(Features.Products.Models.ProductUpdateRequest Product) : IRequest<ProductModel>;
 
 public class UpdateProductCommandHandler(AppDbContext dbContext) : IRequestHandler<UpdateProductCommand, ProductModel>
 {

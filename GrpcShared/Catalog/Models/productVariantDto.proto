@@ -1,8 +1,10 @@
 syntax = "proto3";
-import "Common/moneyDto.proto";
+import "Common/decimal.proto";
 
 message ProductVariantDto {
   string id = 1;
-  MoneyDto overridePrice = 2;
-  string kku = 3;
+  GrpcShared.Types.Decimal overridePrice = 2;
+  string currency = 3;
+  string sku = 4;
+  string description = 5;
 }

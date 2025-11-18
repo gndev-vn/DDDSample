@@ -34,7 +34,7 @@ public class OrderLineConfiguration : IEntityTypeConfiguration<OrderLine>
         }).Navigation(x => x.Sku).IsRequired();
 
         // Unit Price value object
-        builder.OwnsOne(x => x.Price, m =>
+        builder.OwnsOne(x => x.Total, m =>
         {
             m.Property(p => p.Amount)
                 .HasColumnName("PriceAmount")
@@ -46,7 +46,7 @@ public class OrderLineConfiguration : IEntityTypeConfiguration<OrderLine>
                 .HasColumnName("PriceCurrency")
                 .HasMaxLength(3)
                 .IsRequired();
-        }).Navigation(x => x.Price).IsRequired();
+        }).Navigation(x => x.Total).IsRequired();
 
         // Navigation and relationship configuration
         builder.Metadata

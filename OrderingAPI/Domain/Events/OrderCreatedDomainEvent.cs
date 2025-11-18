@@ -7,10 +7,10 @@ namespace OrderingAPI.Domain.Events;
 public class OrderCreatedDomainEvent : DomainEvent
 {
     public Guid Id { get; set; }
-    public string BillingAddress { get; set; }
+    public string BillingAddress { get; set; } = string.Empty;
     public decimal Total { get; set; }
-    public string Currency { get; set; }
-    public string ShippingAddress { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string ShippingAddress { get; set; } = string.Empty;
 }
 
 public class OrderCreatedDomainEventHandler

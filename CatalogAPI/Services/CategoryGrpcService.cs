@@ -58,7 +58,7 @@ public class CategoryGrpcService(IMediator mediator, ILogger<CategoryGrpcService
     public override async Task<CreateCategoryResponse?> Create(CreateCategoryRequest request, ServerCallContext context)
     {
         var category =
-            await mediator.Send(new CreateCategoryCommand(request.Adapt<CategoryModel>()),
+            await mediator.Send(new CreateCategoryCommand(request.Adapt<CategoryCreateRequest>()),
                 context.CancellationToken);
 
         return new CreateCategoryResponse
@@ -81,7 +81,7 @@ public class CategoryGrpcService(IMediator mediator, ILogger<CategoryGrpcService
             throw new KeyNotFoundException("Category not found");
         }
 
-        var cmd = new UpdateCategoryCommand(request.Adapt<CategoryModel>());
+        var cmd = new UpdateCategoryCommand(request.Adapt<CategoryUpdateRequest>());
 
         var updated = await mediator.Send(cmd, context.CancellationToken);
         return new UpdateCategoryResponse { Id = updated.Id.ToString() };

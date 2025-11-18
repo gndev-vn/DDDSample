@@ -94,6 +94,9 @@ namespace OrderingAPI.Database.Migrations
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -253,11 +256,9 @@ namespace OrderingAPI.Database.Migrations
                                 .HasForeignKey("OrderId");
                         });
 
-                    b.Navigation("BillingAddress")
-                        .IsRequired();
+                    b.Navigation("BillingAddress");
 
-                    b.Navigation("ShippingAddress")
-                        .IsRequired();
+                    b.Navigation("ShippingAddress");
                 });
 
             modelBuilder.Entity("OrderingAPI.Domain.Entities.OrderLine", b =>
@@ -268,7 +269,7 @@ namespace OrderingAPI.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("Shared.ValueObjects.Money", "Price", b1 =>
+                    b.OwnsOne("Shared.ValueObjects.Money", "Total", b1 =>
                         {
                             b1.Property<Guid>("OrderLineId")
                                 .HasColumnType("uniqueidentifier");
@@ -329,13 +330,13 @@ namespace OrderingAPI.Database.Migrations
 
                     b.Navigation("Order");
 
-                    b.Navigation("Price")
-                        .IsRequired();
-
                     b.Navigation("Quantity")
                         .IsRequired();
 
                     b.Navigation("Sku")
+                        .IsRequired();
+
+                    b.Navigation("Total")
                         .IsRequired();
                 });
 
