@@ -9,11 +9,11 @@ using OrderingAPI.Domain;
 
 #nullable disable
 
-namespace OrderingAPI.Database.Migrations
+namespace OrderingAPI.Domain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251031164312_UpdateEntities")]
-    partial class UpdateEntities
+    [Migration("20251111044508_UpdateMoreEntities")]
+    partial class UpdateMoreEntities
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -95,6 +95,9 @@ namespace OrderingAPI.Database.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("UpdatedAtUtc")
@@ -256,11 +259,9 @@ namespace OrderingAPI.Database.Migrations
                                 .HasForeignKey("OrderId");
                         });
 
-                    b.Navigation("BillingAddress")
-                        .IsRequired();
+                    b.Navigation("BillingAddress");
 
-                    b.Navigation("ShippingAddress")
-                        .IsRequired();
+                    b.Navigation("ShippingAddress");
                 });
 
             modelBuilder.Entity("OrderingAPI.Domain.Entities.OrderLine", b =>
@@ -271,7 +272,7 @@ namespace OrderingAPI.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("Shared.ValueObjects.Money", "Price", b1 =>
+                    b.OwnsOne("Shared.ValueObjects.Money", "Total", b1 =>
                         {
                             b1.Property<Guid>("OrderLineId")
                                 .HasColumnType("uniqueidentifier");
@@ -332,13 +333,13 @@ namespace OrderingAPI.Database.Migrations
 
                     b.Navigation("Order");
 
-                    b.Navigation("Price")
-                        .IsRequired();
-
                     b.Navigation("Quantity")
                         .IsRequired();
 
                     b.Navigation("Sku")
+                        .IsRequired();
+
+                    b.Navigation("Total")
                         .IsRequired();
                 });
 

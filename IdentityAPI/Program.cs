@@ -46,7 +46,6 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddGrpc();
 
 // Mediator
 builder.Services.AddMediator(options =>

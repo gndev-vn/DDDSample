@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace OrderingAPI.Database.Migrations
+namespace OrderingAPI.Domain.Migrations
 {
     /// <inheritdoc />
     public partial class UpdateMoreEntities : Migration
