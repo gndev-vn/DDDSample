@@ -2,13 +2,15 @@
 
 ## System Overview
 
+This repository currently contains the three backend services and shared libraries shown below. The gateway in the first diagram is conceptual only; there is no API gateway project in this solution today.
+
 ```mermaid
 graph TB
     subgraph "Client Layer"
         Browser[Browser/Mobile App]
     end
 
-    subgraph "API Gateway / Load Balancer"
+    subgraph "Optional Gateway / Load Balancer"
         Gateway[API Gateway]
     end
 
@@ -91,7 +93,18 @@ graph LR
     OA_gRPC_Client -.->|Product Info| CA_gRPC
 ```
 
-## Clean Architecture Layers
+## Service Layering
+
+Each microservice is implemented as a single deployable project with folder-based layering:
+
+- `Controllers`, gRPC services, and GraphQL resolvers form the presentation edge
+- `Features` contains CQRS-style commands, queries, handlers, and request models
+- `Domain` contains entities, value objects, domain events, EF mappings, and migrations
+- `Services` plus `Program.cs` wire infrastructure such as auth, caching, messaging, and database access
+
+This is a pragmatic layered microservice structure rather than a strict multi-assembly Clean Architecture implementation.
+
+## Layered View
 
 ```mermaid
 graph TB
@@ -144,6 +157,7 @@ sequenceDiagram
     participant Client
     participant Gateway
     participant Identity
+    participant Google as Google OAuth
     participant Redis
     participant Catalog
     participant Ordering
@@ -152,6 +166,14 @@ sequenceDiagram
     Identity->>Identity: Validate credentials
     Identity->>Redis: Check if token blacklisted
     Identity-->>Client: Return JWT Token
+
+    Client->>Google: Google Sign-In (web/mobile SDK)
+    Google-->>Client: Google ID Token
+    Client->>Identity: POST /api/auth/google-login { idToken }
+    Identity->>Google: Validate ID token (GoogleJsonWebSignature)
+    Google-->>Identity: Verified payload (email, sub, name)
+    Identity->>Identity: FindByEmail — existing user → link GoogleId if needed<br/>new user → provision account + assign "User" role
+    Identity-->>Client: Return JWT Token (same shape as password login)
 
     Client->>Catalog: GET /api/products (with JWT)
     Catalog->>Catalog: Validate JWT signature
@@ -283,7 +305,7 @@ graph TB
 mindmap
   root((Project))
     Backend
-      .NET 9.0
+      .NET 10.0
       ASP.NET Core
       C#
     Architecture
@@ -300,14 +322,13 @@ mindmap
       JWT
       ASP.NET Identity
       Redis Blacklist
+      Google OAuth (ID token)
     Databases
       SQL Server
       MongoDB
       Redis
     Patterns
       Mediator
-      Repository
-      Unit of Work
       Domain Events
     Libraries
       Mediator
@@ -366,6 +387,9 @@ graph TB
 - Token blacklist management
 - Role-based authorization
 - MongoDB for user storage
+- **Google OAuth login** — server-side ID token validation via `Google.Apis.Auth`; auto-provisions local accounts on first login; links Google identity to existing accounts by verified email
+
+  → See [Google Login](./google-login.md) for full documentation, configuration, and security details.
 
 ### CatalogAPI
 - Product & category management
@@ -387,3 +411,10 @@ graph TB
 - Token blacklist service
 - API response wrapper
 - Domain event interceptor
+- Shared request validation filter
+
+## Current Gaps
+
+- No dedicated API gateway project is included in this repository
+- Service boundaries are still enforced mostly by conventions and folder structure, not separate domain/application/infrastructure assemblies
+- Test coverage is present but currently focused on key regression paths rather than full end-to-end scenarios

@@ -1,7 +1,9 @@
 using CatalogAPI.Domain;
 using CatalogAPI.Features.Products.Models;
-using Mapster;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Shared.Exceptions;
+using Shared.ValueObjects;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 
 namespace CatalogAPI.Features.Products.Commands;
@@ -25,9 +27,30 @@ public class UpdateProductCommandHandler(AppDbContext dbContext) : IRequestHandl
             throw new KeyNotFoundException();
         }
 
-        command.Product.Adapt(product);
+        var category = await dbContext.Categories
+            .FirstOrDefaultAsync(x => x.Id == command.Product.CategoryId, cancellationToken);
+        if (category is null)
+        {
+            throw new NotFoundException("Category", command.Product.CategoryId);
+        }
+
+        product.UpdateDetails(
+            command.Product.Name,
+            command.Product.Description,
+            command.Product.Slug,
+            new Money(command.Product.BasePrice, command.Product.Currency));
+        product.Category = category;
         dbContext.Products.Update(product);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return product.Adapt<ProductModel>();
+        return new ProductModel
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Slug = product.Slug,
+            Description = product.Description,
+            BasePrice = product.BasePrice?.Amount ?? 0,
+            Currency = product.BasePrice?.Currency ?? string.Empty,
+            IsActive = product.IsActive
+        };
     }
 }

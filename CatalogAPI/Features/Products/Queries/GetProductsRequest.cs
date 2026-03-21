@@ -1,6 +1,5 @@
 using CatalogAPI.Domain;
 using CatalogAPI.Features.Products.Models;
-using Mapster;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces;
@@ -28,7 +27,16 @@ public class GetProductsQueryHandler(AppDbContext dbContext) : IRequestHandler<G
 
         var products = await productsQuery.Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .ProjectToType<ProductModel>()
+            .Select(product => new ProductModel
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Slug = product.Slug,
+                Description = product.Description,
+                BasePrice = product.BasePrice.Amount,
+                Currency = product.BasePrice.Currency,
+                IsActive = product.IsActive
+            })
             .ToListAsync(cancellationToken: cancellationToken);
         return products;
     }

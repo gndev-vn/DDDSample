@@ -13,16 +13,18 @@ public class Order : EntityWithEvents
     public OrderStatus Status { get; private set; }
     public Address? ShippingAddress { get; private set; }
     public Address? BillingAddress { get; private set; }
-    public Money Total => _lines.Aggregate(Money.Zero("VND"), (sum, l) => sum + l.Total);
+    public Money Total => _lines.Count == 0
+        ? Money.Zero("VND")
+        : _lines.Select(line => line.Total).Aggregate((sum, next) => sum + next);
     public Guid CustomerId { get; set; }
 
     public Order()
     {
     }
 
-    private Order(Address address, IEnumerable<OrderLine> lines)
+    private Order(Guid customerId, Address shippingAddress, IEnumerable<OrderLine> lines, Address? billingAddress)
     {
-        if (address == null)
+        if (shippingAddress == null)
         {
             throw new DomainException("Address required");
         }
@@ -33,7 +35,9 @@ public class Order : EntityWithEvents
             throw new DomainException("Order must have at least one line");
         }
 
-        ShippingAddress = address;
+        CustomerId = customerId;
+        ShippingAddress = shippingAddress;
+        BillingAddress = billingAddress;
         _lines.AddRange(list);
         Status = OrderStatus.Submitted;
 
@@ -95,7 +99,7 @@ public class Order : EntityWithEvents
             Total = Total.Amount,
             Currency = Total.Currency,
             ShippingAddress = ShippingAddress.ToString(),
-            BillingAddress = BillingAddress.ToString()
+            BillingAddress = BillingAddress?.ToString() ?? string.Empty
         });
     }
 
@@ -109,7 +113,7 @@ public class Order : EntityWithEvents
 
     public static Order Create(Guid customerId, IEnumerable<OrderLine> orderLines, Address shippingAddress,
         Address? billingAddress = null) =>
-        new Order(shippingAddress, orderLines);
+        new Order(customerId, shippingAddress, orderLines, billingAddress);
 
     public void Cancel()
     {

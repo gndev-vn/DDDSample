@@ -42,7 +42,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
 
     [HttpPut("{id:guid}")]
     [Authorize]
-    public async Task<IActionResult> Update(Guid id, [FromBody] Features.Products.Models.ProductDeleteRequest model)
+    public async Task<IActionResult> Update(Guid id, [FromBody] Features.Products.Models.ProductUpdateRequest model)
     {
         if (model.Id != id)
         {

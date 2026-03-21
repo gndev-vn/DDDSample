@@ -9,7 +9,7 @@ public interface IProductGrpcClientService
     Task<IEnumerable<ProductCacheModel>> GetProductsAsync();
 }
 
-public class ProductGrpcClientClientService(ProductSvc.ProductSvcClient client) : IProductGrpcClientService
+public class ProductGrpcClientService(ProductSvc.ProductSvcClient client) : IProductGrpcClientService
 {
     public async Task<ProductCacheModel> GetProductAsync(Guid id)
     {
@@ -44,7 +44,10 @@ public class ProductGrpcClientClientService(ProductSvc.ProductSvcClient client) 
 
     public async Task<IEnumerable<ProductCacheModel>> GetProductsAsync(IEnumerable<Guid> productIds)
     {
-        var productsResponse = await client.GetProductsByIdsAsync(new GetProductsByIdsRequest());
+        var request = new GetProductsByIdsRequest();
+        request.Ids.AddRange(productIds.Select(id => id.ToString()));
+
+        var productsResponse = await client.GetProductsByIdsAsync(request);
         return productsResponse.Products.Select(x => new ProductCacheModel
         {
             Id = Guid.Parse(x.Id),

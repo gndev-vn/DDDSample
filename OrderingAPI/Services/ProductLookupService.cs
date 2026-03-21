@@ -33,7 +33,7 @@ public sealed class ProductLookupService(
         var missingProductsInCache = new List<Guid>();
         foreach (var key in keys)
         {
-            var cachedProduct = await cache.GetOrCreateAsync<ProductCacheModel?>(key.ToString(),
+            var cachedProduct = await cache.GetOrCreateAsync<ProductCacheModel?>(Key(key),
                 async (token) => await GetFromDbAsync(key, token), cancellationToken: ct);
             if (cachedProduct == null)
             {

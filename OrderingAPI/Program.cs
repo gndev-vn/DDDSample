@@ -1,12 +1,15 @@
 using System.Net;
+using FluentValidation;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OrderingAPI.Domain;
+using OrderingAPI.Services;
 using OrderingAPI.Services.Grpc;
 using Shared.Authentication;
 using Shared.Interceptors;
 using Shared.Middleware;
+using Shared.Validation;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -46,9 +49,11 @@ builder.Services.AddMediator(options =>
 );
 
 builder.Services.AddGrpc();
-builder.Services.AddControllers();
+builder.Services.AddScoped<RequestValidationActionFilter>();
+builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // JWT Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -123,6 +128,8 @@ builder.Services.AddGrpcClient<ProductSvc.ProductSvcClient>(o =>
         EnableMultipleHttp2Connections = true,
         AutomaticDecompression = DecompressionMethods.All,
     });
+builder.Services.AddScoped<IProductGrpcClientService, ProductGrpcClientService>();
+builder.Services.AddScoped<IProductLookupService, ProductLookupService>();
 
 var app = builder.Build();
 

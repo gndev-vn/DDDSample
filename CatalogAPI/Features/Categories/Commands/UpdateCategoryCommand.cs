@@ -2,6 +2,8 @@ using CatalogAPI.Domain;
 using CatalogAPI.Features.Categories.Models;
 using Mapster;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Shared.Exceptions;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 
 namespace CatalogAPI.Features.Categories.Commands;
@@ -26,7 +28,17 @@ public class UpdateCategoryCommandHandler(AppDbContext dbContext)
             throw new KeyNotFoundException();
         }
 
+        if (command.Model.ParentId != Guid.Empty)
+        {
+            var parentExists = await dbContext.Categories.AnyAsync(x => x.Id == command.Model.ParentId, cancellationToken);
+            if (!parentExists)
+            {
+                throw new NotFoundException("Category", command.Model.ParentId);
+            }
+        }
+
         command.Model.Adapt(category);
+        category.ParentId = command.Model.ParentId == Guid.Empty ? null : command.Model.ParentId;
         dbContext.Categories.Update(category);
         await dbContext.SaveChangesAsync(cancellationToken);
         return category.Adapt<CategoryModel>();

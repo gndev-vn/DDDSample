@@ -8,6 +8,8 @@ using Shared.Authentication;
 using Shared.Interceptors;
 using Shared.Middleware;
 using Shared.Services;
+using Shared.Validation;
+using FluentValidation;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -45,9 +47,11 @@ builder.Services.AddGraphQLServer()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>();
 builder.Services.AddMapster();
-builder.Services.AddControllers();
+builder.Services.AddScoped<RequestValidationActionFilter>();
+builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Redis for token blacklist
 builder.Services.AddStackExchangeRedisCache(options =>

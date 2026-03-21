@@ -83,13 +83,13 @@
       context: .
       dockerfile: CatalogAPI/Dockerfile
     environment:
-      - ConnectionStrings__Default=Server=sqlserver,1433;Database=CatalogAPI;User Id=sa;Password=051093@Galvin;TrustServerCertificate=True
+      - ConnectionStrings__Default=Server=sqlserver,1433;Database=CatalogAPI;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True
       - RabbitMq__Host=rabbitmq
       - RabbitMq__Username=${RABBITMQ_USERNAME}
       - RabbitMq__Password=${RABBITMQ_PASSWORD}
-      - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long
-      - JwtSettings__Issuer=IdentityAPI
-      - JwtSettings__Audience=IdentityAPI-Users
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
       - ConnectionStrings__Redis=redis:6379
       - ASPNETCORE_URLS=http://+:9080;http://+:9081;
     depends_on:
@@ -107,13 +107,13 @@
       context: .
       dockerfile: OrderingAPI/Dockerfile
     environment:
-      - ConnectionStrings__Default=Server=sqlserver,1433;Database=OrderingAPI;User Id=sa;Password=051093@Galvin;TrustServerCertificate=True
+      - ConnectionStrings__Default=Server=sqlserver,1433;Database=OrderingAPI;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True
       - RabbitMq__Host=rabbitmq
       - RabbitMq__Username=${RABBITMQ_USERNAME}
       - RabbitMq__Password=${RABBITMQ_PASSWORD}
-      - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long
-      - JwtSettings__Issuer=IdentityAPI
-      - JwtSettings__Audience=IdentityAPI-Users
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
       - ConnectionStrings__Redis=redis:6379
       - ASPNETCORE_URLS=http://+:9084;http://+:9085
       - Redis__Host=redis
@@ -140,6 +140,9 @@
       - RabbitMq__Host=rabbitmq
       - RabbitMq__Username=${RABBITMQ_USERNAME}
       - RabbitMq__Password=${RABBITMQ_PASSWORD}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
       - ASPNETCORE_URLS=http://+:9088;http://+:9089
     depends_on:
       - mongodb
