@@ -2,7 +2,7 @@
 
 ## System Overview
 
-This repository currently contains the three backend services and shared libraries shown below. The gateway in the first diagram is conceptual only; there is no API gateway project in this solution today.
+This repository currently contains the four backend services and shared libraries shown below. The gateway in the first diagram is conceptual only; there is no API gateway project in this solution today.
 
 ```mermaid
 graph TB
@@ -18,12 +18,13 @@ graph TB
         Identity[IdentityAPI<br/>Port: 8088/8089]
         Catalog[CatalogAPI<br/>Port: 8080/8081]
         Ordering[OrderingAPI<br/>Port: 8084/8085]
+        Payment[PaymentAPI<br/>Port: 9092/9093]
     end
 
     subgraph "Infrastructure"
         Redis[(Redis<br/>Token Blacklist<br/>Cache)]
         MongoDB[(MongoDB<br/>Identity Data)]
-        SQLServer[(SQL Server<br/>Catalog & Orders)]
+        SQLServer[(SQL Server<br/>Catalog, Orders & Payments)]
         RabbitMQ[RabbitMQ<br/>Message Bus]
     end
 
@@ -31,6 +32,7 @@ graph TB
     Gateway --> Identity
     Gateway --> Catalog
     Gateway --> Ordering
+    Gateway --> Payment
 
     Identity -->|JWT Auth| Redis
     Identity -->|User Data| MongoDB
@@ -44,9 +46,15 @@ graph TB
     Ordering -->|gRPC| Catalog
     Ordering -->|Validate Token| Redis
 
+    Payment -->|Payment Data| SQLServer
+    Payment -->|Events| RabbitMQ
+    Payment -->|gRPC| Ordering
+    Payment -->|Validate Token| Redis
+
     style Identity fill:#e1f5ff
     style Catalog fill:#fff4e1
     style Ordering fill:#f0e1ff
+    style Payment fill:#e1ffe8
 ```
 
 ## Microservices Architecture
@@ -90,7 +98,21 @@ graph LR
         OA_Handler --> OA_gRPC_Client
     end
 
+    subgraph "PaymentAPI"
+        PA_Controller[Controllers]
+        PA_Handler[CQRS Handlers]
+        PA_Domain[Domain Models]
+        PA_EF[Entity Framework]
+        PA_gRPC_Client[gRPC Client]
+
+        PA_Controller --> PA_Handler
+        PA_Handler --> PA_Domain
+        PA_Domain --> PA_EF
+        PA_Handler --> PA_gRPC_Client
+    end
+
     OA_gRPC_Client -.->|Product Info| CA_gRPC
+    PA_gRPC_Client -.->|Order Info| OA_Controller
 ```
 
 ## Service Layering
@@ -203,28 +225,57 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    subgraph "CatalogAPI"
-        CA_Domain[Domain Events]
-        CA_Interceptor[Domain Event Interceptor]
-        CA_Wolverine[Wolverine]
+    subgraph "OrderingAPI"
+        OA_Domain[Order Domain Events]
+        OA_Wolverine[Wolverine]
+        OA_Handler[Payment Event Handler]
+    end
+
+    subgraph "PaymentAPI"
+        PA_Handler[Order Event Handler]
+        PA_Domain[Payment Domain Events]
+        PA_Wolverine[Wolverine]
     end
 
     subgraph "RabbitMQ"
-        Exchange[catalog.exchange]
-        Queue[ordering-catalog.queue]
+        OrderingExchange[ordering.exchange]
+        PaymentExchange[payment.exchange]
+        PaymentQueue[payment-ordering.queue]
+        OrderingQueue[ordering-payment.queue]
     end
 
-    subgraph "OrderingAPI"
-        OA_Wolverine[Wolverine]
-        OA_Handler[Event Handlers]
-    end
+    OA_Domain -->|ordering.order.created| OA_Wolverine
+    OA_Wolverine --> OrderingExchange
+    OrderingExchange --> PaymentQueue
+    PaymentQueue --> PA_Handler
 
-    CA_Domain -->|Save Changes| CA_Interceptor
-    CA_Interceptor -->|Publish| CA_Wolverine
-    CA_Wolverine -->|catalog.category.created| Exchange
-    Exchange --> Queue
-    Queue --> OA_Wolverine
-    OA_Wolverine --> OA_Handler
+    PA_Domain -->|payment.completed| PA_Wolverine
+    PA_Wolverine --> PaymentExchange
+    PaymentExchange --> OrderingQueue
+    OrderingQueue --> OA_Handler
+```
+
+## Payment Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Ordering
+    participant RabbitMQ
+    participant Payment
+    participant OrderingGrpc as Ordering gRPC
+
+    Client->>Ordering: Create order
+    Ordering->>RabbitMQ: ordering.order.created
+    RabbitMQ->>Payment: OrderCreatedEvent
+    Payment->>OrderingGrpc: GetById(orderId)
+    OrderingGrpc-->>Payment: Order snapshot
+    Payment->>Payment: Create pending payment
+
+    Client->>Payment: Complete payment
+    Payment->>RabbitMQ: payment.completed
+    RabbitMQ->>Ordering: PaymentCompletedEvent
+    Ordering->>Ordering: Mark order as paid
 ```
 
 ## Data Flow

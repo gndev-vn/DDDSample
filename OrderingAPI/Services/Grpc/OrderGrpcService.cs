@@ -33,6 +33,11 @@ public class OrderGrpcService(IMediator mediator) : OrderSvc.OrderSvcBase
                 Status = order.Status.ToString(),
                 Lines = { order.Lines.Adapt<List<OrderLineDto>>() },
                 CustomerId = order.CustomerId.ToString(),
+                Total = new MoneyDto
+                {
+                    Currency = order.Lines.FirstOrDefault()?.Currency ?? "VND",
+                    Amount = (GrpcShared.Types.Decimal)order.Lines.Sum(line => line.UnitPrice)
+                },
             }
         };
     }
@@ -49,6 +54,11 @@ public class OrderGrpcService(IMediator mediator) : OrderSvc.OrderSvcBase
                     OrderId = order.Id.ToString(),
                     Status = order.Status.ToString(),
                     CustomerId = order.CustomerId.ToString(),
+                    Total = new MoneyDto
+                    {
+                        Currency = order.Lines.FirstOrDefault()?.Currency ?? "VND",
+                        Amount = (GrpcShared.Types.Decimal)order.Lines.Sum(line => line.UnitPrice)
+                    },
                 }).ToList()
             }
         };

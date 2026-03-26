@@ -125,6 +125,33 @@
     networks:
       - microservices-net
 
+  payment-api:
+    image: payment-api
+    ports:
+      - "9092:9092" # REST API
+      - "9093:9093" # gRPC/internal HTTP2
+    build:
+      context: .
+      dockerfile: PaymentAPI/Dockerfile
+    environment:
+      - ConnectionStrings__Default=Server=sqlserver,1433;Database=PaymentAPI;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__Username=${RABBITMQ_USERNAME}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
+      - GrpcServices__Ordering=http://ordering-api:9085
+      - ASPNETCORE_URLS=http://+:9092;http://+:9093
+    depends_on:
+      - sqlserver
+      - rabbitmq
+      - redis
+      - ordering-api
+    networks:
+      - microservices-net
+
   identity-api:
     image: identity-api
     ports:

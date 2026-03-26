@@ -27,6 +27,7 @@
     <ProjectReference Include="..\OrderingAPI\OrderingAPI.csproj" />
     <ProjectReference Include="..\Shared\Shared.csproj" />
     <ProjectReference Include="..\IdentityAPI\IdentityAPI.csproj" />
+    <ProjectReference Include="..\PaymentAPI\PaymentAPI.csproj" />
   </ItemGroup>
 
 </Project>
