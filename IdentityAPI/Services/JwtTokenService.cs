@@ -12,6 +12,7 @@ namespace IdentityAPI.Services;
 public interface IJwtTokenService
 {
     Task<string> GenerateTokenAsync(ApplicationUser user);
+    Task<string> GenerateTokenAsync(ApplicationUser user, IEnumerable<string> roles);
 }
 
 public class JwtTokenService(IOptions<JwtSettings> jwtSettings, UserManager<ApplicationUser> userManager)
@@ -20,6 +21,12 @@ public class JwtTokenService(IOptions<JwtSettings> jwtSettings, UserManager<Appl
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
     public async Task<string> GenerateTokenAsync(ApplicationUser user)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        return await GenerateTokenAsync(user, roles);
+    }
+
+    public Task<string> GenerateTokenAsync(ApplicationUser user, IEnumerable<string> roles)
     {
         var claims = new List<Claim>
         {
@@ -30,8 +37,6 @@ public class JwtTokenService(IOptions<JwtSettings> jwtSettings, UserManager<Appl
             new("lastname", user.LastName)
         };
 
-        // Add roles to claims
-        var roles = await userManager.GetRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
@@ -45,6 +50,6 @@ public class JwtTokenService(IOptions<JwtSettings> jwtSettings, UserManager<Appl
             signingCredentials: credentials
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
     }
 }

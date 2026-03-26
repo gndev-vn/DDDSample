@@ -26,21 +26,26 @@ public interface IGoogleTokenValidator
     Task<GoogleUserInfo> ValidateAsync(string idToken, CancellationToken cancellationToken = default);
 }
 
-public class GoogleTokenValidator(IOptions<GoogleSettings> settings) : IGoogleTokenValidator
+public class GoogleTokenValidator : IGoogleTokenValidator
 {
-    private readonly GoogleSettings _settings = settings.Value;
+    private readonly GoogleSettings _settings;
+    private readonly GoogleJsonWebSignature.ValidationSettings _validationSettings;
 
-    public async Task<GoogleUserInfo> ValidateAsync(string idToken, CancellationToken cancellationToken = default)
+    public GoogleTokenValidator(IOptions<GoogleSettings> settings)
     {
-        var validationSettings = new GoogleJsonWebSignature.ValidationSettings
+        _settings = settings.Value;
+        _validationSettings = new GoogleJsonWebSignature.ValidationSettings
         {
             Audience = [_settings.ClientId]
         };
+    }
 
+    public async Task<GoogleUserInfo> ValidateAsync(string idToken, CancellationToken cancellationToken = default)
+    {
         GoogleJsonWebSignature.Payload payload;
         try
         {
-            payload = await GoogleJsonWebSignature.ValidateAsync(idToken, validationSettings);
+            payload = await GoogleJsonWebSignature.ValidateAsync(idToken, _validationSettings);
         }
         catch (InvalidJwtException ex)
         {

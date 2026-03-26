@@ -125,7 +125,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
-builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddSingleton<IValidateOptions<GoogleSettings>, GoogleSettingsValidator>();
 
 var app = builder.Build();

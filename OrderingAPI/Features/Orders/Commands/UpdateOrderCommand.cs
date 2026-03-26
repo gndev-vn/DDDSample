@@ -27,19 +27,7 @@ public class UpdateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
             ?? throw new ArgumentException("Shipping address is required");
         var lines = command.Model.Lines.Select(ToOrderLine).ToList();
 
-        var existingLines = order.Lines.ToList();
-        dbContext.OrderLines.RemoveRange(existingLines);
-        await dbContext.SaveChangesAsync(cancellationToken);
-        foreach (var existingLine in existingLines)
-        {
-            dbContext.Entry(existingLine).State = EntityState.Detached;
-        }
-
         order.Update(shippingAddress, lines);
-        foreach (var line in lines)
-        {
-            dbContext.Entry(line).State = EntityState.Added;
-        }
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ToOrderModel(order);

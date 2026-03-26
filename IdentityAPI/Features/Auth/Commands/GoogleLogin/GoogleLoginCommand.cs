@@ -52,8 +52,8 @@ public class GoogleLoginHandler(
             }
         }
 
-        var token = await jwtTokenService.GenerateTokenAsync(user);
-        var roles = await userManager.GetRolesAsync(user);
+        var roles = (await userManager.GetRolesAsync(user)).ToArray();
+        var token = await jwtTokenService.GenerateTokenAsync(user, roles);
 
         return new LoginResponse(
             Success: true,

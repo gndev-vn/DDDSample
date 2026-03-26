@@ -9,7 +9,7 @@ public class DeleteOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
 {
     public async ValueTask<bool> Handle(DeleteOrderCommand command, CancellationToken cancellationToken)
     {
-        var order = await dbContext.Orders.FindAsync([command.Id],
+        var order = await dbContext.Orders.FindAsync(command.Id,
             cancellationToken: cancellationToken);
         if (order == null)
         {

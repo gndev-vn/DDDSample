@@ -18,7 +18,7 @@ public class DeleteCategoryCommandHandler(AppDbContext dbContext) : IRequestHand
     /// <exception cref="KeyNotFoundException">Thrown if the category with the specified ID does not exist.</exception>
     public async ValueTask<bool> Handle(DeleteCategoryCommand command, CancellationToken cancellationToken)
     {
-        var category = await dbContext.Categories.FindAsync([command.Id], cancellationToken: cancellationToken);
+        var category = await dbContext.Categories.FindAsync(command.Id, cancellationToken: cancellationToken);
         if (category == null)
         {
             throw new KeyNotFoundException("Invalid category id");

@@ -22,7 +22,7 @@ public class UpdateCategoryCommandHandler(AppDbContext dbContext)
     /// <exception cref="KeyNotFoundException">Thrown when the specified category does not exist in the database.</exception>
     public async ValueTask<CategoryModel> Handle(UpdateCategoryCommand command, CancellationToken cancellationToken)
     {
-        var category = await dbContext.Categories.FindAsync([command.Model.Id], cancellationToken: cancellationToken);
+        var category = await dbContext.Categories.FindAsync(command.Model.Id, cancellationToken: cancellationToken);
         if (category == null)
         {
             throw new KeyNotFoundException();

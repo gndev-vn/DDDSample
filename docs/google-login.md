@@ -294,7 +294,7 @@ The raw `idToken` string is never written to any log sink. `GlobalExceptionHandl
 | Controller | `AuthController.GoogleLogin` | Receives `GoogleLoginRequest`, delegates to mediator, returns `ApiResponse` |
 | Application | `GoogleLoginCommand` / `GoogleLoginHandler` | Orchestrates validation, user lookup, provisioning, JWT issuance |
 | Application | `GoogleLoginValidator` | FluentValidation — `IdToken` must not be empty |
-| Service | `IGoogleTokenValidator` / `GoogleTokenValidator` | Wraps Google.Apis.Auth SDK; keeps SDK types out of the handler |
+| Service | `IGoogleTokenValidator` / `GoogleTokenValidator` | Wraps Google.Apis.Auth SDK; keeps SDK types out of the handler and caches Google validation settings |
 | Service | `GoogleSettings` / `GoogleSettingsValidator` | Typed options + startup validation |
 | Domain | `ApplicationUser.GoogleId` | Stores the Google `sub` claim for account linking |
 
@@ -304,9 +304,13 @@ The `IGoogleTokenValidator` interface means the handler has no compile-time depe
 
 `IJwtTokenService.GenerateTokenAsync` is called identically to the password login path. The resulting JWT carries the same claims (`sub`, `email`, `name`, `role`) and is subject to the same expiry, blacklist, and validation policies across all services.
 
+To reduce identity-store reads on the hot login path, the handlers now load roles once and pass them into JWT generation instead of asking `UserManager` to resolve the same roles twice. This keeps the response shape unchanged while avoiding one redundant lookup per successful login.
+
 ### Google certificate caching
 
 `Google.Apis.Auth` caches Google's public certificates in memory and refreshes them approximately once per hour. No explicit cache configuration is needed. This means the first request after startup may be slightly slower (certificate fetch), but subsequent requests use the in-memory cache.
+
+`GoogleTokenValidator` is registered as a singleton and reuses a prebuilt `ValidationSettings` instance, which avoids per-request validator allocation overhead without changing behavior.
 
 ---
 
@@ -319,3 +323,4 @@ The `IGoogleTokenValidator` interface means the handler has no compile-time depe
 | No hosted domain (`hd`) restriction | Any Google account with a verified email can sign up. If restriction to a specific Google Workspace domain is needed, add a `HostedDomain` check against `payload.HostedDomain`. |
 | No scope enforcement | The handler only uses claims available in the basic `openid email profile` scope. If the client requests additional scopes, those claims are ignored. |
 | Certificate fetch is blocking on first use | Cold-start latency is slightly higher on the first Google login. This is inherent to `Google.Apis.Auth` and acceptable for most deployments. |
+| Roles are still read from Identity once per login | The duplicate read was removed, but the login flow still queries the user store for roles so the JWT and response stay consistent. |

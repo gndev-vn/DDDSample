@@ -71,7 +71,7 @@ public sealed class GoogleLoginHandlerTests
             .ReturnsAsync(["User"]);
 
         var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(existingUser))
+        jwtService.Setup(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
             .ReturnsAsync("signed-jwt-token");
 
         var validator = new Mock<IGoogleTokenValidator>();
@@ -88,6 +88,8 @@ public sealed class GoogleLoginHandlerTests
         Assert.Equal("signed-jwt-token", result.Token);
         Assert.Equal(existingUser.Email, result.User!.Email);
         Assert.Contains("User", result.User.Roles);
+        userManager.Verify(m => m.GetRolesAsync(existingUser), Times.Once);
+        jwtService.Verify(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))), Times.Once);
     }
 
     [Fact]
@@ -107,7 +109,7 @@ public sealed class GoogleLoginHandlerTests
             .ReturnsAsync(["User"]);
 
         var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(existingUser))
+        jwtService.Setup(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
             .ReturnsAsync("signed-jwt-token");
 
         var validator = new Mock<IGoogleTokenValidator>();
@@ -122,6 +124,7 @@ public sealed class GoogleLoginHandlerTests
         // Assert: GoogleId was set and UpdateAsync was called exactly once
         Assert.Equal("google-sub-123", existingUser.GoogleId);
         userManager.Verify(m => m.UpdateAsync(existingUser), Times.Once);
+        userManager.Verify(m => m.GetRolesAsync(existingUser), Times.Once);
     }
 
     [Fact]
@@ -141,7 +144,7 @@ public sealed class GoogleLoginHandlerTests
             .ReturnsAsync(["User"]);
 
         var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(It.IsAny<ApplicationUser>()))
+        jwtService.Setup(s => s.GenerateTokenAsync(It.IsAny<ApplicationUser>(), It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
             .ReturnsAsync("new-user-jwt");
 
         var validator = new Mock<IGoogleTokenValidator>();
@@ -161,6 +164,8 @@ public sealed class GoogleLoginHandlerTests
             u.GoogleId == googleUser.Subject &&
             u.EmailConfirmed)), Times.Once);
         userManager.Verify(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "User"), Times.Once);
+        userManager.Verify(m => m.GetRolesAsync(It.IsAny<ApplicationUser>()), Times.Once);
+        jwtService.Verify(s => s.GenerateTokenAsync(It.IsAny<ApplicationUser>(), It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))), Times.Once);
     }
 
     [Fact]

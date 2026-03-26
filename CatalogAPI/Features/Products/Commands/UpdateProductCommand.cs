@@ -21,7 +21,7 @@ public class UpdateProductCommandHandler(AppDbContext dbContext) : IRequestHandl
     /// <exception cref="KeyNotFoundException">Thrown when the product to be updated cannot be found in the database.</exception>
     public async ValueTask<ProductModel> Handle(UpdateProductCommand command, CancellationToken cancellationToken)
     {
-        var product = await dbContext.Products.FindAsync([command.Product.Id], cancellationToken: cancellationToken);
+        var product = await dbContext.Products.FindAsync(command.Product.Id, cancellationToken: cancellationToken);
         if (product == null)
         {
             throw new KeyNotFoundException();
