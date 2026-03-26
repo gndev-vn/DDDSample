@@ -4,11 +4,11 @@
 
 Updating all NuGet packages to their latest versions across 6 projects (Shared, GrpcShared, CatalogAPI, IdentityAPI, OrderingAPI, Tests). No TFM change — solution stays on net10.0. All 38 packages are open-source; tasks are split by risk level.
 
-**Progress**: 1/4 tasks complete (25%) ![25%](https://progress-bar.xyz/25)
+**Progress**: 2/4 tasks complete (50%) ![50%](https://progress-bar.xyz/50)
 
 ## Tasks
 
 - ✅ 01-patch-packages: Low-risk package updates
-- 🔄 02-microsoft-packages: Microsoft platform packages (9.x → 10.x)
-- 🔲 03-major-third-party: WolverineFx and Mapster major version upgrades
+- ✅ 02-microsoft-packages: Microsoft platform packages (9.x → 10.x)
+- 🔄 03-major-third-party: WolverineFx and Mapster major version upgrades
 - 🔲 04-validate: Final build and test validation

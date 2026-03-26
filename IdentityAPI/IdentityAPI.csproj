@@ -9,9 +9,9 @@
 
     <ItemGroup>
         <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
-        <PackageReference Include="Mapster" Version="7.4.0" />
-        <PackageReference Include="Mapster.Async" Version="2.0.1" />
-        <PackageReference Include="Mapster.DependencyInjection" Version="1.0.1" />
+        <PackageReference Include="Mapster" Version="10.0.6" />
+        <PackageReference Include="Mapster.Async" Version="10.0.6" />
+        <PackageReference Include="Mapster.DependencyInjection" Version="10.0.6" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.5" />
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.1.0" />
