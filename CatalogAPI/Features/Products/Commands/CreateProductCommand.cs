@@ -8,17 +8,17 @@ using Shared.ValueObjects;
 
 namespace CatalogAPI.Features.Products.Commands;
 
-public record CreateProductCommand(Features.Products.Models.ProductCreateRequest Model) : IRequest<ProductModel>;
+public record CreateProductCommand(Features.Products.Models.ProductCreateRequest Model) : IRequest<ProductResponse>;
 
-public class CreateProductCommandHandler(AppDbContext dbContext) : IRequestHandler<CreateProductCommand, ProductModel>
+public class CreateProductCommandHandler(AppDbContext dbContext) : IRequestHandler<CreateProductCommand, ProductResponse>
 {
     /// <summary>
     /// Handles the creation of a new product by adding it to the database and returning the created product model.
     /// </summary>
     /// <param name="command">The command containing the details of the product to be created.</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A <see cref="ProductModel"/> representing the created product, or null if the creation fails.</returns>
-    public async ValueTask<ProductModel> Handle(CreateProductCommand command, CancellationToken cancellationToken)
+    /// <returns>A <see cref="ProductResponse"/> representing the created product, or null if the creation fails.</returns>
+    public async ValueTask<ProductResponse> Handle(CreateProductCommand command, CancellationToken cancellationToken)
     {
         var category = await dbContext.Categories
             .FirstOrDefaultAsync(x => x.Id == command.Model.CategoryId, cancellationToken);
@@ -32,7 +32,7 @@ public class CreateProductCommandHandler(AppDbContext dbContext) : IRequestHandl
         product.Category = category;
         await dbContext.Products.AddAsync(product, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new ProductModel
+        return new ProductResponse
         {
             Id = product.Id,
             Name = product.Name,

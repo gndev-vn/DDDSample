@@ -15,8 +15,6 @@ using MongoDB.Bson.Serialization.Serializers;
 using Shared.Middleware;
 using Shared.Models;
 using Shared.Validation;
-using ITokenBlacklistService = Shared.Services.ITokenBlacklistService;
-using TokenBlacklistService = Shared.Services.TokenBlacklistService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,8 +120,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 // Services
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddSingleton<IValidateOptions<GoogleSettings>, GoogleSettingsValidator>();

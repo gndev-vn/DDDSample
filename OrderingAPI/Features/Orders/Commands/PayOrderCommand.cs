@@ -11,8 +11,7 @@ public class PayOrderCommandHandler(AppDbContext dbContext) : IRequestHandler<Pa
 {
     public async ValueTask<bool> Handle(PayOrderCommand request, CancellationToken cancellationToken)
     {
-        var order = await dbContext.Orders.FindAsync(request.Id,
-            cancellationToken: cancellationToken);
+        var order = await dbContext.Orders.FindAsync([request.Id], cancellationToken: cancellationToken);
         if (order == null)
         {
             throw new NotFoundException("Order not found");

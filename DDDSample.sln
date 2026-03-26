@@ -16,7 +16,37 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrpcShared", "GrpcShared\Gr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityAPI", "IdentityAPI\IdentityAPI.csproj", "{DAE818BB-25B2-405E-8AA9-49FE6D53BEC1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDDSample.Tests", "DDDSample.Tests\DDDSample.Tests.csproj", "{8D9C6A41-CE08-45B1-A4BE-B7A6A2D8015E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{8D9C6A41-CE08-45B1-A4BE-B7A6A2D8015E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "prompts", "prompts", "{DD32B6B0-8756-47DA-8012-2BB644978EBD}"
+	ProjectSection(SolutionItems) = preProject
+		prompts\Use for optimization.md = prompts\Use for optimization.md
+		prompts\Use for creating query.md = prompts\Use for creating query.md
+		prompts\Use for high quality tests.md = prompts\Use for high quality tests.md
+		prompts\Use when building command-side use cases.md = prompts\Use when building command-side use cases.md
+		prompts\Use for technical docs generation.md = prompts\Use for technical docs generation.md
+		prompts\Use when fixing production or logic bugs.md = prompts\Use when fixing production or logic bugs.md
+		prompts\Use when auth or security is involved.md = prompts\Use when auth or security is involved.md
+		prompts\Use when cleaning code without changing behavior.md = prompts\Use when cleaning code without changing behavior.md
+		prompts\Use when adding a new API endpoint.md = prompts\Use when adding a new API endpoint.md
+		prompts\Use for GitHub Actions or Docker or K8s tasks.md = prompts\Use for GitHub Actions or Docker or K8s tasks.md
+		prompts\Use when you want to add a feature cleanly.md = prompts\Use when you want to add a feature cleanly.md
+		prompts\Use for architecture or flow diagrams.md = prompts\Use for architecture or flow diagrams.md
+		prompts\Example of prompts to implement a new feature.md = prompts\Example of prompts to implement a new feature.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{5E6C2799-2901-4205-8B22-8D54DD434936}"
+	ProjectSection(SolutionItems) = preProject
+		docs\architecture.md = docs\architecture.md
+		docs\api-standards.md = docs\api-standards.md
+		docs\google-login.md = docs\google-login.md
+		docs\storage-decision-guidelines.md = docs\storage-decision-guidelines.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent_rules", "agent_rules", "{BE85B1BD-0C50-4F27-9E37-BADB681CC168}"
+	ProjectSection(SolutionItems) = preProject
+		AGENT_RULES.md = AGENT_RULES.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -103,5 +133,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DD32B6B0-8756-47DA-8012-2BB644978EBD} = {63A4C73F-2501-4982-ACF6-9230AF58DB49}
+		{5E6C2799-2901-4205-8B22-8D54DD434936} = {63A4C73F-2501-4982-ACF6-9230AF58DB49}
+		{BE85B1BD-0C50-4F27-9E37-BADB681CC168} = {63A4C73F-2501-4982-ACF6-9230AF58DB49}
 	EndGlobalSection
 EndGlobal

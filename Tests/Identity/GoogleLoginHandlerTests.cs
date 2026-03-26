@@ -68,10 +68,11 @@ public sealed class GoogleLoginHandlerTests
         userManager.Setup(m => m.FindByEmailAsync(googleUser.Email))
             .ReturnsAsync(existingUser);
         userManager.Setup(m => m.GetRolesAsync(existingUser))
-            .ReturnsAsync(["User"]);
+            .ReturnsAsync(new List<string> { "User" });
 
         var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
+        jwtService.Setup(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(
+                new List<string> { "User" }.AsReadOnly()))))
             .ReturnsAsync("signed-jwt-token");
 
         var validator = new Mock<IGoogleTokenValidator>();
@@ -81,7 +82,7 @@ public sealed class GoogleLoginHandlerTests
         var handler = new GoogleLoginHandler(userManager.Object, jwtService.Object, validator.Object, JwtOptions());
 
         // Act
-        var result = await handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), default);
+        var result = await handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -89,7 +90,8 @@ public sealed class GoogleLoginHandlerTests
         Assert.Equal(existingUser.Email, result.User!.Email);
         Assert.Contains("User", result.User.Roles);
         userManager.Verify(m => m.GetRolesAsync(existingUser), Times.Once);
-        jwtService.Verify(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))), Times.Once);
+        jwtService.Verify(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(
+            new List<string> { "User" }.AsReadOnly()))), Times.Once);
     }
 
     [Fact]
@@ -106,10 +108,11 @@ public sealed class GoogleLoginHandlerTests
         userManager.Setup(m => m.UpdateAsync(existingUser))
             .ReturnsAsync(IdentityResult.Success);
         userManager.Setup(m => m.GetRolesAsync(existingUser))
-            .ReturnsAsync(["User"]);
+            .ReturnsAsync(new List<string> { "User" });
 
         var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
+        jwtService.Setup(s => s.GenerateTokenAsync(existingUser, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(
+                new List<string> { "User" }.AsReadOnly()))))
             .ReturnsAsync("signed-jwt-token");
 
         var validator = new Mock<IGoogleTokenValidator>();
@@ -119,7 +122,7 @@ public sealed class GoogleLoginHandlerTests
         var handler = new GoogleLoginHandler(userManager.Object, jwtService.Object, validator.Object, JwtOptions());
 
         // Act
-        await handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), default);
+        await handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), CancellationToken.None);
 
         // Assert: GoogleId was set and UpdateAsync was called exactly once
         Assert.Equal("google-sub-123", existingUser.GoogleId);
@@ -141,10 +144,11 @@ public sealed class GoogleLoginHandlerTests
         userManager.Setup(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "User"))
             .ReturnsAsync(IdentityResult.Success);
         userManager.Setup(m => m.GetRolesAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(["User"]);
+            .ReturnsAsync(new List<string> { "User" });
 
         var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(It.IsAny<ApplicationUser>(), It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
+        jwtService.Setup(s => s.GenerateTokenAsync(It.IsAny<ApplicationUser>(), It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(
+                new List<string> { "User" }.AsReadOnly()))))
             .ReturnsAsync("new-user-jwt");
 
         var validator = new Mock<IGoogleTokenValidator>();
@@ -154,7 +158,7 @@ public sealed class GoogleLoginHandlerTests
         var handler = new GoogleLoginHandler(userManager.Object, jwtService.Object, validator.Object, JwtOptions());
 
         // Act
-        var result = await handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), default);
+        var result = await handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), CancellationToken.None);
 
         // Assert
         Assert.True(result.Success);
@@ -165,7 +169,8 @@ public sealed class GoogleLoginHandlerTests
             u.EmailConfirmed)), Times.Once);
         userManager.Verify(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "User"), Times.Once);
         userManager.Verify(m => m.GetRolesAsync(It.IsAny<ApplicationUser>()), Times.Once);
-        jwtService.Verify(s => s.GenerateTokenAsync(It.IsAny<ApplicationUser>(), It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))), Times.Once);
+        jwtService.Verify(s => s.GenerateTokenAsync(It.IsAny<ApplicationUser>(), It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(
+            new List<string> { "User" }.AsReadOnly()))), Times.Once);
     }
 
     [Fact]
@@ -192,7 +197,7 @@ public sealed class GoogleLoginHandlerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), default).AsTask());
+            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), CancellationToken.None).AsTask());
     }
 
     [Fact]
@@ -211,7 +216,7 @@ public sealed class GoogleLoginHandlerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("bad-token")), default).AsTask());
+            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("bad-token")), CancellationToken.None).AsTask());
     }
 
     [Fact]
@@ -239,7 +244,7 @@ public sealed class GoogleLoginHandlerTests
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<BusinessException>(() =>
-            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), default).AsTask());
+            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("id-token")), CancellationToken.None).AsTask());
         Assert.Contains("Duplicate email", ex.Errors);
     }
 
@@ -260,7 +265,7 @@ public sealed class GoogleLoginHandlerTests
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("unverified-token")), default).AsTask());
+            handler.Handle(new GoogleLoginCommand(new GoogleLoginRequest("unverified-token")), CancellationToken.None).AsTask());
 
         Assert.Contains("not verified", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

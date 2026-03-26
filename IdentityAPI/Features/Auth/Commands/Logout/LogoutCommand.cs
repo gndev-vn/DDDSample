@@ -5,9 +5,9 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace IdentityAPI.Features.Auth.Commands.Logout;
 
-public record LogoutCommand(string Token) : IRequest<LogoutResponse>;
+public sealed record LogoutCommand(string Token) : IRequest<LogoutResponse>;
 
-public class LogoutCommandHandler(ITokenBlacklistService blacklistService)
+public sealed record LogoutCommandHandler(ITokenBlacklistService BlacklistService)
     : IRequestHandler<LogoutCommand, LogoutResponse>
 {
     public async ValueTask<LogoutResponse> Handle(LogoutCommand request, CancellationToken cancellationToken)
@@ -22,10 +22,9 @@ public class LogoutCommandHandler(ITokenBlacklistService blacklistService)
         if (timeUntilExpiry > TimeSpan.Zero)
         {
             // Add token to blacklist until it expires
-            await blacklistService.RevokeTokenAsync(request.Token, timeUntilExpiry);
+            await BlacklistService.RevokeTokenAsync(request.Token, timeUntilExpiry);
         }
 
         return new LogoutResponse(true, "Logged out successfully");
     }
 }
-

@@ -58,15 +58,17 @@ public sealed class LoginHandlerTests
             .ReturnsAsync(["User"]);
 
         var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(user, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
+        jwtService.Setup(s => s.GenerateTokenAsync(user, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(
+                new List<string> { "User" }.AsReadOnly()))))
             .ReturnsAsync("signed-jwt-token");
 
         var handler = new LoginHandler(userManager.Object, jwtService.Object, JwtOptions());
 
-        var result = await handler.Handle(new LoginCommand(new LoginRequest(user.Email!, "password")), default);
+        var result = await handler.Handle(new LoginCommand(new LoginRequest(user.Email!, "password")), CancellationToken.None);
 
         Assert.Equal("signed-jwt-token", result.Token);
         userManager.Verify(m => m.GetRolesAsync(user), Times.Once);
-        jwtService.Verify(s => s.GenerateTokenAsync(user, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))), Times.Once);
+        jwtService.Verify(s => s.GenerateTokenAsync(user, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(
+            new List<string> { "User" }.AsReadOnly()))), Times.Once);
     }
 }

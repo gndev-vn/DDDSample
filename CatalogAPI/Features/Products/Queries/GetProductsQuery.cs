@@ -7,9 +7,9 @@ using Shared.Interfaces;
 namespace CatalogAPI.Features.Products.Queries;
 
 public record GetProductsQuery(string Name = "", string Slug = "", int Page = 1, int PageSize = 5)
-    : IPagedQuery<List<ProductModel>>;
+    : IPagedQuery<List<ProductResponse>>;
 
-public class GetProductsQueryHandler(AppDbContext dbContext) : IRequestHandler<GetProductsQuery, List<ProductModel>>
+public class GetProductsQueryHandler(AppDbContext dbContext) : IRequestHandler<GetProductsQuery, List<ProductResponse>>
 {
     /// <summary>
     /// Handles the retrieval of products based on the provided query and database context.
@@ -17,7 +17,7 @@ public class GetProductsQueryHandler(AppDbContext dbContext) : IRequestHandler<G
     /// <param name="query">The query object containing pagination details and search filters such as name and slug.</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>A task representing the asynchronous operation, containing a list of products that match the query.</returns>
-    public async ValueTask<List<ProductModel>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
+    public async ValueTask<List<ProductResponse>> Handle(GetProductsQuery query, CancellationToken cancellationToken)
     {
         var productsQuery = dbContext.Products
             .Where(p => p.Name.Contains(query.Name) || p.Slug.Contains(query.Slug));
@@ -27,7 +27,7 @@ public class GetProductsQueryHandler(AppDbContext dbContext) : IRequestHandler<G
 
         var products = await productsQuery.Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(product => new ProductModel
+            .Select(product => new ProductResponse
             {
                 Id = product.Id,
                 Name = product.Name,
