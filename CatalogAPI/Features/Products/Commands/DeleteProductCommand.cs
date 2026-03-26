@@ -17,7 +17,7 @@ public class DeleteProductCommandHandler(AppDbContext dbContext) : IRequestHandl
     /// <exception cref="KeyNotFoundException">Thrown if the product with the specified ID is not found in the database.</exception>
     public async ValueTask<bool> Handle(DeleteProductCommand command, CancellationToken cancellationToken)
     {
-        var product = await dbContext.Products.FindAsync([command.Id], cancellationToken: cancellationToken);
+        var product = await dbContext.Products.FindAsync(command.Id, cancellationToken: cancellationToken);
         if (product == null)
         {
             throw new KeyNotFoundException("Invalid product id");

@@ -18,11 +18,47 @@ public class CreateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
 {
     public async ValueTask<OrderModel> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
     {
-        var newOrder = Order.Create(command.CustomerId, command.Lines.Adapt<List<OrderLine>>(),
-            command.ShippingAddress.Adapt<Address>()
+        var newOrder = Order.Create(command.CustomerId, command.Lines.Select(ToOrderLine).ToList(),
+            command.ShippingAddress.Adapt<Address>(),
+            command.BillingAddress?.Adapt<Address>()
         );
         await dbContext.Orders.AddAsync(newOrder, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return newOrder.Adapt<OrderModel>();
+        return ToOrderModel(newOrder);
+    }
+
+    private static OrderLine ToOrderLine(OrderLineModel model)
+    {
+        return new OrderLine(
+            new Sku(model.Sku),
+            Quantity.Of(model.Quantity),
+            new Money(model.UnitPrice, model.Currency));
+    }
+
+    private static OrderModel ToOrderModel(Order order)
+    {
+        return new OrderModel
+        {
+            Id = order.Id,
+            CustomerId = order.CustomerId,
+            Status = order.Status,
+            ShippingAddress = order.ShippingAddress == null
+                ? null
+                : new AddressModel(
+                    order.ShippingAddress.Line1,
+                    order.ShippingAddress.Line2,
+                    order.ShippingAddress.City,
+                    order.ShippingAddress.Province,
+                    order.ShippingAddress.District,
+                    order.ShippingAddress.Ward),
+            Lines = order.Lines.Select(line => new OrderLineModel
+            {
+                Id = line.Id,
+                Sku = line.Sku.Value,
+                Quantity = line.Quantity.Value,
+                UnitPrice = line.Total.Amount,
+                Currency = line.Total.Currency
+            }).ToList()
+        };
     }
 }

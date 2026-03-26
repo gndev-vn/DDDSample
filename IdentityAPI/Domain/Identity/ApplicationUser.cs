@@ -11,4 +11,9 @@ public class ApplicationUser : MongoIdentityUser<Guid>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Google account subject identifier ("sub" claim). Null for users who registered with a password.
+    /// </summary>
+    public string? GoogleId { get; set; }
 }

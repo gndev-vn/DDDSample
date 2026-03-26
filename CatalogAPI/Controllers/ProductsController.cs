@@ -2,6 +2,7 @@ using CatalogAPI.Features.Products.Commands;
 using CatalogAPI.Features.Products.Queries;
 using Mapster;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
 
@@ -31,6 +32,7 @@ public class ProductsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> Create([FromBody] ProductCreateRequest model)
     {
         var result = await mediator.Send(new CreateProductCommand(model.Adapt<Features.Products.Models.ProductCreateRequest>()));
@@ -39,7 +41,8 @@ public class ProductsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] Features.Products.Models.ProductDeleteRequest model)
+    [Authorize]
+    public async Task<IActionResult> Update(Guid id, [FromBody] Features.Products.Models.ProductUpdateRequest model)
     {
         if (model.Id != id)
         {
@@ -50,16 +53,10 @@ public class ProductsController(IMediator mediator) : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await mediator.Send(new DeleteProductCommand(id));
         return Ok(ApiResponse.Success("Product deleted successfully"));
-    }
-
-    [HttpGet("{id:guid}/variants")]
-    public async Task<IActionResult> GetVariants(Guid id)
-    {
-        var result = await mediator.Send(new GetProductVariantsByIdQuery(id));
-        return Ok(ApiResponse.Success(result));
     }
 }

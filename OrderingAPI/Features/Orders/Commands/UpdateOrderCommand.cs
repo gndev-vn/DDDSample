@@ -1,7 +1,11 @@
 using Mapster;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
 using OrderingAPI.Domain;
+using OrderingAPI.Domain.Entities;
 using OrderingAPI.Features.Orders.Models;
+using Shared.Models;
+using Shared.ValueObjects;
 
 namespace OrderingAPI.Features.Orders.Commands;
 
@@ -11,14 +15,56 @@ public class UpdateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
 {
     public async ValueTask<OrderModel> Handle(UpdateOrderCommand command, CancellationToken cancellationToken)
     {
-        var order = await dbContext.Orders.FindAsync([command.Model.Id], cancellationToken: cancellationToken);
+        var order = await dbContext.Orders
+            .Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.Id == command.Model.Id, cancellationToken);
         if (order == null)
         {
             throw new KeyNotFoundException();
         }
-        command.Model.Adapt(order);
-        await dbContext.Orders.AddAsync(order, cancellationToken);
+
+        var shippingAddress = command.Model.ShippingAddress?.Adapt<Address>()
+            ?? throw new ArgumentException("Shipping address is required");
+        var lines = command.Model.Lines.Select(ToOrderLine).ToList();
+
+        order.Update(shippingAddress, lines);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return order.Adapt<OrderModel>();
+
+        return ToOrderModel(order);
+    }
+
+    private static OrderLine ToOrderLine(OrderLineModel model)
+    {
+        return new OrderLine(
+            new Sku(model.Sku),
+            Quantity.Of(model.Quantity),
+            new Money(model.UnitPrice, model.Currency));
+    }
+
+    private static OrderModel ToOrderModel(Order order)
+    {
+        return new OrderModel
+        {
+            Id = order.Id,
+            CustomerId = order.CustomerId,
+            Status = order.Status,
+            ShippingAddress = order.ShippingAddress == null
+                ? null
+                : new AddressModel(
+                    order.ShippingAddress.Line1,
+                    order.ShippingAddress.Line2,
+                    order.ShippingAddress.City,
+                    order.ShippingAddress.Province,
+                    order.ShippingAddress.District,
+                    order.ShippingAddress.Ward),
+            Lines = order.Lines.Select(line => new OrderLineModel
+            {
+                Id = line.Id,
+                Sku = line.Sku.Value,
+                Quantity = line.Quantity.Value,
+                UnitPrice = line.Total.Amount,
+                Currency = line.Total.Currency
+            }).ToList()
+        };
     }
 }

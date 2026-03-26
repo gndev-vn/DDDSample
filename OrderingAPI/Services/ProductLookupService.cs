@@ -23,17 +23,17 @@ public sealed class ProductLookupService(
     public async Task<IReadOnlyList<ProductCacheModel>> GetManyAsync(
         IEnumerable<Guid> items, CancellationToken ct = default)
     {
-        var keys = items.Distinct().ToList();
-        if (keys.Count == 0)
+        var keys = items.Distinct().ToArray();
+        if (keys.Length == 0)
         {
             return [];
         }
 
-        var result = new List<ProductCacheModel>(keys.Count);
+        var result = new List<ProductCacheModel>(keys.Length);
         var missingProductsInCache = new List<Guid>();
         foreach (var key in keys)
         {
-            var cachedProduct = await cache.GetOrCreateAsync<ProductCacheModel?>(key.ToString(),
+            var cachedProduct = await cache.GetOrCreateAsync<ProductCacheModel?>(Key(key),
                 async (token) => await GetFromDbAsync(key, token), cancellationToken: ct);
             if (cachedProduct == null)
             {
@@ -49,13 +49,12 @@ public sealed class ProductLookupService(
         if (liveProducts.Count > 0)
         {
             result.AddRange(liveProducts);
-        }
+            await UpsertManyAsync(db, liveProducts, ct);
 
-        await UpsertManyAsync(db, liveProducts, ct);
-
-        foreach (var product in liveProducts)
-        {
-            await cache.SetAsync(Key(product.Id), product, cancellationToken: ct);
+            foreach (var product in liveProducts)
+            {
+                await cache.SetAsync(Key(product.Id), product, cancellationToken: ct);
+            }
         }
 
         return result;
@@ -94,10 +93,30 @@ public sealed class ProductLookupService(
     private static async Task UpsertManyAsync(AppDbContext db, IEnumerable<ProductCacheModel> items,
         CancellationToken ct)
     {
-        foreach (var pr in items)
+        var incoming = items.ToList();
+        if (incoming.Count == 0)
         {
-            var existing = await db.ProductCaches.FirstOrDefaultAsync(x => x.Id == pr.Id, ct);
-            if (existing is null)
+            return;
+        }
+
+        var ids = incoming.Select(x => x.Id).Distinct().ToArray();
+        var existingProducts = await db.ProductCaches
+            .Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, ct);
+
+        var now = DateTime.UtcNow;
+        foreach (var pr in incoming)
+        {
+            if (existingProducts.TryGetValue(pr.Id, out var existing))
+            {
+                existing.Name = pr.Name;
+                existing.Currency = pr.Currency;
+                existing.CurrentPrice = pr.CurrentPrice;
+                existing.ImageUrl = pr.ImageUrl;
+                existing.IsActive = pr.IsActive;
+                existing.LastUpdatedUtc = now;
+            }
+            else
             {
                 db.ProductCaches.Add(new ProductCache
                 {
@@ -107,12 +126,8 @@ public sealed class ProductLookupService(
                     CurrentPrice = pr.CurrentPrice,
                     ImageUrl = pr.ImageUrl,
                     IsActive = pr.IsActive,
-                    LastUpdatedUtc = DateTime.UtcNow
+                    LastUpdatedUtc = now
                 });
-            }
-            else
-            {
-                db.Entry(existing).CurrentValues.SetValues(pr);
             }
         }
 

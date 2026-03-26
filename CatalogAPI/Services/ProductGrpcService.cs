@@ -4,12 +4,13 @@ using CatalogAPI.Features.Products.Queries;
 using Grpc.Core;
 using Mapster;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
 using Shared.Extensions;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 
 namespace CatalogAPI.Services;
 
-public class ProductGrpcService(IMediator mediator, ILogger<ProductGrpcService> logger)
+public class ProductGrpcService(IMediator mediator, CatalogAPI.Domain.AppDbContext dbContext, ILogger<ProductGrpcService> logger)
     : ProductSvc.ProductSvcBase
 {
     public override async Task<GetProductsResponse> GetProducts(GetProductsRequest request, ServerCallContext context)
@@ -52,6 +53,31 @@ public class ProductGrpcService(IMediator mediator, ILogger<ProductGrpcService> 
             logger.LogWarning(ex, "GetById failed for {Id}", request.Id);
             throw ex.ToRpcException("catalog.get_by_id_failed");
         }
+    }
+
+    public override async Task<GetProductsByIdsResponse> GetProductsByIds(GetProductsByIdsRequest request,
+        ServerCallContext context)
+    {
+        var ids = request.Ids
+            .Select(id => Guid.TryParse(id, out var parsed) ? parsed : Guid.Empty)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return new GetProductsByIdsResponse();
+        }
+
+        var products = await dbContext.Products
+            .AsNoTracking()
+            .Where(product => ids.Contains(product.Id))
+            .ProjectToType<ProductDto>()
+            .ToListAsync(context.CancellationToken);
+
+        var response = new GetProductsByIdsResponse();
+        response.Products.AddRange(products);
+        return response;
     }
 
     public override async Task<ProductCreateResponse?> Create(ProductCreateRequest request, ServerCallContext context)

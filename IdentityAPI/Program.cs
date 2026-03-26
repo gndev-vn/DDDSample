@@ -3,6 +3,7 @@ using System.Text;
 using AspNetCore.Identity.MongoDbCore.Extensions;
 using AspNetCore.Identity.MongoDbCore.Infrastructure;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 using IdentityAPI.Domain.Identity;
 using IdentityAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,6 +14,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Shared.Middleware;
 using Shared.Models;
+using Shared.Validation;
 using ITokenBlacklistService = Shared.Services.ITokenBlacklistService;
 using TokenBlacklistService = Shared.Services.TokenBlacklistService;
 
@@ -43,7 +45,8 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddScoped<RequestValidationActionFilter>();
+builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -121,6 +124,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // Services
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
+builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
+builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
+builder.Services.AddSingleton<IValidateOptions<GoogleSettings>, GoogleSettingsValidator>();
 
 var app = builder.Build();
 

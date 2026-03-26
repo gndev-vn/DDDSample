@@ -23,6 +23,7 @@ message GetProductsResponse {
 }
 
 message GetProductsByIdsRequest {
+  repeated string ids = 1;
 }
 
 message GetProductsByIdsResponse {

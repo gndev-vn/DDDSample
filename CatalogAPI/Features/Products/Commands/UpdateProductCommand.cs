@@ -1,33 +1,56 @@
 using CatalogAPI.Domain;
 using CatalogAPI.Features.Products.Models;
-using Mapster;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Shared.Exceptions;
+using Shared.ValueObjects;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 
 namespace CatalogAPI.Features.Products.Commands;
 
-public record UpdateProductCommand(Features.Products.Models.ProductUpdateRequest Product) : IRequest<ProductResponse>;
+public record UpdateProductCommand(Features.Products.Models.ProductUpdateRequest Product) : IRequest<ProductModel>;
 
-public class UpdateProductCommandHandler(AppDbContext dbContext) : IRequestHandler<UpdateProductCommand, ProductResponse>
+public class UpdateProductCommandHandler(AppDbContext dbContext) : IRequestHandler<UpdateProductCommand, ProductModel>
 {
     /// <summary>
     /// Handles the update of a product entity within the database and maps the changes back to a product model.
     /// </summary>
     /// <param name="command">The command object containing the product model with updated values.</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A <see cref="ProductResponse"/> representing the updated product, or null if the update process failed.</returns>
+    /// <returns>A <see cref="ProductModel"/> representing the updated product, or null if the update process failed.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the product to be updated cannot be found in the database.</exception>
-    public async ValueTask<ProductResponse> Handle(UpdateProductCommand command, CancellationToken cancellationToken)
+    public async ValueTask<ProductModel> Handle(UpdateProductCommand command, CancellationToken cancellationToken)
     {
-        var product = await dbContext.Products.FindAsync([command.Product.Id], cancellationToken: cancellationToken);
+        var product = await dbContext.Products.FindAsync(command.Product.Id, cancellationToken: cancellationToken);
         if (product == null)
         {
             throw new KeyNotFoundException();
         }
 
-        command.Product.Adapt(product);
+        var category = await dbContext.Categories
+            .FirstOrDefaultAsync(x => x.Id == command.Product.CategoryId, cancellationToken);
+        if (category is null)
+        {
+            throw new NotFoundException("Category", command.Product.CategoryId);
+        }
+
+        product.UpdateDetails(
+            command.Product.Name,
+            command.Product.Description,
+            command.Product.Slug,
+            new Money(command.Product.BasePrice, command.Product.Currency));
+        product.Category = category;
         dbContext.Products.Update(product);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return product.Adapt<ProductResponse>();
+        return new ProductModel
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Slug = product.Slug,
+            Description = product.Description,
+            BasePrice = product.BasePrice?.Amount ?? 0,
+            Currency = product.BasePrice?.Currency ?? string.Empty,
+            IsActive = product.IsActive
+        };
     }
 }

@@ -18,7 +18,9 @@ public class GetOrderByIdQueryHandler(AppDbContext dbContext) : IRequestHandler<
             .Select(o => new OrderModel
             {
                 Id = o.Id,
-                ShippingAddress = new AddressModel(
+                Status = o.Status,
+                CustomerId = o.CustomerId,
+                ShippingAddress = o.ShippingAddress == null ? null : new AddressModel(
                     o.ShippingAddress.Line1,
                     string.IsNullOrWhiteSpace(o.ShippingAddress.Line2)
                         ? null

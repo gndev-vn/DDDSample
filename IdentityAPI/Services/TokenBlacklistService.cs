@@ -25,7 +25,7 @@ public class TokenBlacklistService(IDistributedCache cache) : ITokenBlacklistSer
 
     public async Task<bool> IsTokenRevokedAsync(string token)
     {
-        var key = $"{BlacklistPrefix}{token}";
+        var key = $"{BlacklistPrefix}:{token}";
         var value = await cache.GetStringAsync(key);
         return value != null;
     }
