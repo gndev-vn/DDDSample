@@ -8,14 +8,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentValidation" Version="12.1.0" />
-        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
-        <PackageReference Include="Mediator.SourceGenerator" Version="3.0.1">
+        <PackageReference Include="FluentValidation" Version="12.1.1" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+        <PackageReference Include="Mediator.SourceGenerator" Version="3.0.2">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Mediator.Abstractions" Version="3.0.*" />
-        <PackageReference Include="Grpc.AspNetCore" Version="2.70.0" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
         <PackageReference Include="Mapster" Version="7.4.0" />
         <PackageReference Include="Mapster.Async" Version="2.0.1" />
         <PackageReference Include="Mapster.DependencyInjection" Version="1.0.1" />
@@ -30,7 +30,7 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.14" />
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.10.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.14" />
-        <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
+        <PackageReference Include="StackExchange.Redis" Version="2.12.8" />
         <PackageReference Include="WolverineFx" Version="4.12.3" />
         <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="4.12.3" />
         <PackageReference Include="WolverineFx.RabbitMQ" Version="4.12.3" />
