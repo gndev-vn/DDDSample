@@ -3,7 +3,7 @@ using Shared.ValueObjects;
 
 namespace CatalogAPI.Features.Products.Models;
 
-public class ProductVariantModel : ModelBase
+public class ProductVariantResponse : ModelBase
 {
     public string Name { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;

@@ -2,7 +2,7 @@ using Shared.Models;
 
 namespace CatalogAPI.Features.Products.Models;
 
-public class ProductModel : ModelBase
+public class ProductResponse : ModelBase
 {
     public decimal BasePrice { get; set; }
     public string Currency { get; set; } = string.Empty;

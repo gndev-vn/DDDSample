@@ -27,7 +27,7 @@ public sealed class ProductVariant : Entity
 
         Name = name.Trim();
         Sku = sku.Trim();
-        Description = description ?? string.Empty;
+        Description = description;
         OverridePrice = overridePrice;
 
         if (attributes is null)
@@ -98,7 +98,7 @@ public sealed class ProductVariant : Entity
         Name = newName.Trim();
     }
 
-    public void SetDescription(string description) => Description = description ?? string.Empty;
+    public void SetDescription(string description) => Description = description;
 
     public void Deactivate()
     {
@@ -115,4 +115,7 @@ public sealed class ProductVariant : Entity
             IsActive = true;
         }
     }
+
+    public static ProductVariant Create(string name, string description, string sku, Money overridePrice, List<VariantAttribute> attributes)
+        => new(name, description, sku, overridePrice, attributes);
 }

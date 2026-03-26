@@ -2,14 +2,13 @@ using CatalogAPI.Domain;
 using CatalogAPI.Features.Products.Models;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
-using Shared.Models;
 
 namespace CatalogAPI.Features.Products.Queries;
 
-public record GetProductByIdQuery(Guid Id) : IRequest<ProductResponse?>;
+public record GetProductVariantsByIdQuery(Guid Id) : IRequest<List<ProductVariantResponse>>;
 
-public class GetProductByIdQueryQueryHandler(AppDbContext dbContext)
-    : IRequestHandler<GetProductByIdQuery, ProductResponse?>
+public class GetProductVariantsByIdQueryHandler(AppDbContext dbContext)
+    : IRequestHandler<GetProductVariantsByIdQuery, List<ProductVariantResponse>>
 {
     /// <summary>
     /// Handles the query to retrieve a product by its identifier.
@@ -20,20 +19,19 @@ public class GetProductByIdQueryQueryHandler(AppDbContext dbContext)
     /// A <see cref="ProductResponse"/> representing the product with the specified identifier,
     /// or null if no matching product is found.
     /// </returns>
-    public async ValueTask<ProductResponse?> Handle(GetProductByIdQuery query, CancellationToken cancellationToken)
+    public async ValueTask<List<ProductVariantResponse>> Handle(GetProductVariantsByIdQuery query, CancellationToken cancellationToken)
     {
-        var product = await dbContext.Products.Where(x => x.Id == query.Id)
-            .Select(x => new ProductResponse
+        var productVariants = await dbContext.ProductVariants
+            .Where(x => x.ProductId == query.Id)
+            .Select(x => new ProductVariantResponse
             {
                 Id = x.Id,
                 Name = x.Name,
-                BasePrice = x.BasePrice.Amount,
-                Currency = x.BasePrice.Currency,
+                OverridePrice = x.OverridePrice.Amount,
+                Currency = x.OverridePrice.Currency,
                 Description = x.Description,
-                Slug = x.Slug,
                 IsActive = x.IsActive,
-            })
-            .FirstOrDefaultAsync(cancellationToken: cancellationToken);
-        return product;
+            }).ToListAsync(cancellationToken);
+        return productVariants;
     }
 }

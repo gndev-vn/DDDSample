@@ -21,20 +21,20 @@
         <PackageReference Include="Mapster.DependencyInjection" Version="1.0.1" />
         <PackageReference Include="Mapster.EFCore" Version="5.1.1" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.14" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.14">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.14" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.14" />
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
         <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
-        <PackageReference Include="WolverineFx" Version="5.2.0" />
-        <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.2.0" />
-        <PackageReference Include="WolverineFx.RabbitMQ" Version="5.2.0" />
-        <PackageReference Include="WolverineFx.SqlServer" Version="5.2.0" />
+        <PackageReference Include="WolverineFx" Version="4.12.3" />
+        <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="4.12.3" />
+        <PackageReference Include="WolverineFx.RabbitMQ" Version="4.12.3" />
+        <PackageReference Include="WolverineFx.SqlServer" Version="4.12.3" />
     </ItemGroup>
 
     <ItemGroup>
