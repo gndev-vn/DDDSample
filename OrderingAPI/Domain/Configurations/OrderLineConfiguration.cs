@@ -14,6 +14,7 @@ public class OrderLineConfiguration : IEntityTypeConfiguration<OrderLine>
     {
         builder.ToTable(TableName, SchemaName);
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
 
         // Quantity value object
         builder.OwnsOne(x => x.Quantity, m =>
@@ -49,10 +50,9 @@ public class OrderLineConfiguration : IEntityTypeConfiguration<OrderLine>
         }).Navigation(x => x.Total).IsRequired();
 
         // Navigation and relationship configuration
-        builder.Metadata
-            .FindNavigation(nameof(OrderLine.Order))!
-            .SetPropertyAccessMode(PropertyAccessMode.Field);
-
+        // Note: OrderLine.Order has no backing field, so Field access mode must not be used here.
+        // The relationship is also configured from the Order side in OrderConfiguration;
+        // this side sets the FK and delete behavior only.
         builder
             .HasOne(x => x.Order)
             .WithMany(x => x.Lines)
