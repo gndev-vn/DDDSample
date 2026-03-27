@@ -7,6 +7,7 @@ namespace CatalogAPI.Domain.Events;
 public class ProductCreatedDomainEvent : DomainEvent
 {
     public Guid Id { get; set; }
+    public string Sku { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public decimal CurrentPrice { get; set; }
     public string Currency { get; set; } = "VND";
@@ -23,6 +24,7 @@ public class ProductCreatedDomainEventHandler
         await bus.PublishAsync(new ProductCreatedEvent
         {
             Id = @event.Id,
+            Sku = @event.Sku,
             Name = @event.Name,
             CurrentPrice = @event.CurrentPrice,
             Currency = @event.Currency,

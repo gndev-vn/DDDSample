@@ -4,7 +4,7 @@ WORKDIR /app
 EXPOSE 9088
 EXPOSE 9089
 
-FROM mcr.microsoft.com/dotnet/sdk:100 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["IdentityAPI/IdentityAPI.csproj", "IdentityAPI/"]

@@ -1,10 +1,11 @@
 using CatalogAPI.Features.Products.Commands;
 using CatalogAPI.Features.Products.Queries;
-using Mapster;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
+using ProductCreateModel = CatalogAPI.Features.Products.Models.ProductCreateRequest;
+using ProductUpdateModel = CatalogAPI.Features.Products.Models.ProductUpdateRequest;
 
 namespace CatalogAPI.Controllers;
 
@@ -33,22 +34,22 @@ public class ProductsController(IMediator mediator) : ControllerBase
 
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> Create([FromBody] ProductCreateRequest model)
+    public async Task<IActionResult> Create([FromBody] ProductCreateModel model)
     {
-        var result = await mediator.Send(new CreateProductCommand(model.Adapt<Features.Products.Models.ProductCreateRequest>()));
+        var result = await mediator.Send(new CreateProductCommand(model));
         return CreatedAtAction(nameof(GetById), new { id = result.Id },
             ApiResponse.Success(result, "Product created successfully"));
     }
 
     [HttpPut("{id:guid}")]
     [Authorize]
-    public async Task<IActionResult> Update(Guid id, [FromBody] Features.Products.Models.ProductUpdateRequest model)
+    public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpdateModel model)
     {
         if (model.Id != id)
         {
             return BadRequest("Id in route and model id not match");
         }
-        var result = await mediator.Send(new UpdateProductCommand(model.Adapt<Features.Products.Models.ProductUpdateRequest>()));
+        var result = await mediator.Send(new UpdateProductCommand(model));
         return Ok(ApiResponse.Success(result, "Product updated successfully"));
     }
 

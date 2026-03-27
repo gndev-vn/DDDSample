@@ -24,7 +24,7 @@ public class CategoryCreatedEventConsumer
             if (await dbContext.CategoryCaches.AnyAsync(x => x.Id == category.Id, cancellationToken))
             {
                 logger.LogInformation("Category already exists {Id}", @event.Id);
-                throw new InvalidOperationException("Category already exists");
+                return;
             }
 
             await dbContext.CategoryCaches.AddAsync(category, cancellationToken);

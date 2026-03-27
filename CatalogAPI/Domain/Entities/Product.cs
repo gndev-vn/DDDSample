@@ -26,6 +26,7 @@ public sealed class Product : EntityWithEvents
         AddDomainEvent(new ProductCreatedDomainEvent
         {
             Id = Id,
+            Sku = Slug,
             Name = Name,
             Currency = BasePrice.Currency,
             Slug = Slug,

@@ -106,6 +106,7 @@ builder.Host.UseWolverine(opts =>
         {
             ex.ExchangeType = ExchangeType.Topic;
             ex.BindTopic("catalog.category.created").ToQueue(orderingCatalogQueue);
+            ex.BindTopic("catalog.product.created").ToQueue(orderingCatalogQueue);
         })
         .DeclareExchange(paymentExchange, ex =>
         {
@@ -117,6 +118,7 @@ builder.Host.UseWolverine(opts =>
         .AutoProvision();
 
     opts.LocalQueue(localEventsQueue).MaximumParallelMessages(8);
+    opts.PublishAllMessages().ToRabbitTopics(orderingExchange);
     opts.ListenToRabbitQueue(orderingCatalogQueue);
     opts.ListenToRabbitQueue(orderingPaymentQueue);
 

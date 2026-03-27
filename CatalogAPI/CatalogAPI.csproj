@@ -16,7 +16,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
-        <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
         <PackageReference Include="Mapster" Version="10.0.6" />
         <PackageReference Include="Mapster.Async" Version="10.0.6" />
         <PackageReference Include="Mapster.DependencyInjection" Version="10.0.6" />

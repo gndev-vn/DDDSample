@@ -51,11 +51,15 @@
     command: >
       mongosh --host mongodb:27017 -u ${MONGO_ROOT_USERNAME:-admin} -p ${MONGO_ROOT_PASSWORD:-admin_password} --authenticationDatabase admin --eval '
       db = db.getSiblingDB("identitydb");
-      db.createUser({
-        user: "${MONGO_USER:-identity_user}",
-        pwd: "${MONGO_PASSWORD:-identity_password}",
-        roles: [{ role: "readWrite", db: "identitydb" }]
-      });'
+      if (!db.getUser("${MONGO_USER:-identity_user}")) {
+        db.createUser({
+          user: "${MONGO_USER:-identity_user}",
+          pwd: "${MONGO_PASSWORD:-identity_password}",
+          roles: [{ role: "readWrite", db: "identitydb" }]
+        });
+      }'
+    networks:
+      - microservices-net
 
   rabbitmq:
     image: rabbitmq:4-management
@@ -91,6 +95,7 @@
       - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
       - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
       - ConnectionStrings__Redis=redis:6379
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:9080;http://+:9081;
     depends_on:
       - sqlserver
@@ -115,6 +120,7 @@
       - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
       - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
       - ConnectionStrings__Redis=redis:6379
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:9084;http://+:9085
       - Redis__Host=redis
     depends_on:
@@ -142,6 +148,7 @@
       - JwtSettings__SecretKey=${JWT_SECRET_KEY}
       - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
       - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
+      - ASPNETCORE_ENVIRONMENT=Production
       - GrpcServices__Ordering=http://ordering-api:9085
       - ASPNETCORE_URLS=http://+:9092;http://+:9093
     depends_on:
@@ -170,6 +177,7 @@
       - JwtSettings__SecretKey=${JWT_SECRET_KEY}
       - JwtSettings__Issuer=${JWT_ISSUER:-IdentityAPI}
       - JwtSettings__Audience=${JWT_AUDIENCE:-IdentityAPI-Users}
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:9088;http://+:9089
     depends_on:
       - mongodb

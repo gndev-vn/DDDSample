@@ -17,7 +17,7 @@ public class ProductCreatedEventConsumer
         if (await dbContext.ProductCaches.AnyAsync(x => x.Id == product.Id || x.Sku == product.Sku, cancellationToken))
         {
             logger.LogInformation("Product already exists {Id}", @event.Id);
-            throw new InvalidOperationException("Product already exists");
+            return;
         }
 
         await dbContext.ProductCaches.AddAsync(product, cancellationToken);
