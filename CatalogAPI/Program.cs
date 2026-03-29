@@ -2,9 +2,10 @@ using CatalogAPI.Domain;
 using CatalogAPI.GraphQL;
 using CatalogAPI.Services;
 using Mapster;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Shared.Authentication;
+using Shared.Hosting;
+using Shared.Extensions;
 using Shared.Interceptors;
 using Shared.Middleware;
 using Shared.Services;
@@ -17,29 +18,7 @@ using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel
-builder.WebHost.ConfigureKestrel(options =>
-{
-    var restfulHttpPort = builder.Configuration["Hosting:Restful:Http"] ?? throw new InvalidOperationException();
-    // var restfulHttpsPort = builder.Configuration["Hosting:Restful:Https"] ?? throw new InvalidOperationException();
-    var grpcHttpPort = builder.Configuration["Hosting:Grpc:Http"] ?? throw new InvalidOperationException();
-    // var grpcHttpsPort = builder.Configuration["Hosting:Grpc:Https"] ?? throw new InvalidOperationException();
-
-    // Setup a HTTP/1.1 endpoint for REST API
-    options.ListenAnyIP(int.Parse(restfulHttpPort), o => o.Protocols = HttpProtocols.Http1);
-    /*options.ListenAnyIP(int.Parse(restfulHttpsPort), o =>
-    {
-        o.Protocols = HttpProtocols.Http1;
-        o.UseHttps();
-    });*/
-    // Setup a HTTP/2 endpoint for gRPC
-    options.ListenAnyIP(int.Parse(grpcHttpPort), o => o.Protocols = HttpProtocols.Http2);
-    /*options.ListenLocalhost(int.Parse(grpcHttpsPort), o =>
-    {
-        o.Protocols = HttpProtocols.Http2;
-        o.UseHttps();
-    });*/
-});
+builder.AddCentralizedApiEndpoints();
 
 // Service configuration
 builder.Services.AddGrpc();
@@ -76,7 +55,7 @@ var localEventsQueue = builder.Configuration["Wolverine:LocalQueue"] ?? throw ne
 var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException();
 builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 {
-    opt.UseSqlServer(sqlConnectionString);
+    opt.UseSqlServer(sqlConnectionString, sql => sql.EnableRetryOnFailure());
     var domainEventInterceptor = new DomainEventInterceptor(
         sp.GetRequiredService<IMessageBus>(), localEventsQueue,
         sp.GetRequiredService<ILogger<DomainEventInterceptor>>());
@@ -130,9 +109,7 @@ app.MapGrpcService<ProductGrpcService>();
 app.MapGrpcService<CategoryGrpcService>();
 
 // Run migration on startup
-using var scope = app.Services.CreateScope();
-var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-await db.Database.MigrateAsync();
+await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
 
 // Start the application
 await app.RunAsync();

@@ -10,6 +10,8 @@ public class PaymentCompletedEventHandler
     public static async Task HandleAsync(PaymentCompletedEvent @event, AppDbContext dbContext,
         ILogger<PaymentCompletedEventHandler> logger, CancellationToken cancellationToken)
     {
+        logger.LogInformation("[OrderingAPI] Consuming PaymentCompletedEvent for order {OrderId} and payment {PaymentId}", @event.OrderId, @event.PaymentId);
+
         var order = await dbContext.Orders.SingleOrDefaultAsync(x => x.Id == @event.OrderId, cancellationToken);
         if (order == null)
         {

@@ -16,7 +16,7 @@ public class OrderPaidDomainEventHandler
     public static async Task HandleAsync(OrderPaidDomainEvent @event, IMessageBus bus,
         ILogger<OrderPaidDomainEventHandler> logger)
     {
-        logger.LogInformation("Order {Id} paid.", @event.Id);
+        logger.LogInformation("[OrderingAPI] Publishing OrderPaidEvent for order {OrderId}", @event.Id);
         await bus.PublishAsync(new OrderPaidEvent
         {
             Id = @event.Id,

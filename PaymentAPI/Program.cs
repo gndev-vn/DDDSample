@@ -1,11 +1,12 @@
 using System.Net;
 using FluentValidation;
 using GrpcShared.Order.Services;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using PaymentAPI.Domain;
 using PaymentAPI.Services.Grpc;
 using Shared.Authentication;
+using Shared.Hosting;
+using Shared.Extensions;
 using Shared.Interceptors;
 using Shared.Middleware;
 using Shared.Validation;
@@ -16,14 +17,7 @@ using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    var restfulHttpPort = builder.Configuration["Hosting:Restful:Http"] ?? throw new InvalidOperationException();
-    var grpcHttpPort = builder.Configuration["Hosting:Grpc:Http"] ?? throw new InvalidOperationException();
-
-    options.ListenAnyIP(int.Parse(restfulHttpPort), o => o.Protocols = HttpProtocols.Http1);
-    options.ListenAnyIP(int.Parse(grpcHttpPort), o => o.Protocols = HttpProtocols.Http2);
-});
+builder.AddCentralizedApiEndpoints();
 
 builder.Services.AddMediator(options =>
     {
@@ -52,7 +46,7 @@ var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?
 
 builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 {
-    opt.UseSqlServer(sqlConnectionString);
+    opt.UseSqlServer(sqlConnectionString, sql => sql.EnableRetryOnFailure());
 
     var domainEventInterceptor = new DomainEventInterceptor(
         sp.GetRequiredService<IMessageBus>(),
@@ -118,8 +112,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapOpenApi();
 
-using var scope = app.Services.CreateScope();
-var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-await db.Database.MigrateAsync();
+await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
 
 await app.RunAsync();

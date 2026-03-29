@@ -16,7 +16,7 @@ public class PaymentCreatedDomainEventHandler
     public static async Task HandleAsync(PaymentCreatedDomainEvent @event, IMessageBus bus,
         ILogger<PaymentCreatedDomainEventHandler> logger)
     {
-        logger.LogInformation("Payment {PaymentId} created for order {OrderId}", @event.PaymentId, @event.OrderId);
+        logger.LogInformation("[PaymentAPI] Publishing PaymentCreatedEvent for payment {PaymentId} and order {OrderId}", @event.PaymentId, @event.OrderId);
         await bus.PublishAsync(new Shared.Messaging.Payment.PaymentCreatedEvent
         {
             PaymentId = @event.PaymentId,

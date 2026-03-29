@@ -17,7 +17,7 @@ public class PaymentFailedDomainEventHandler
     public static async Task HandleAsync(PaymentFailedDomainEvent @event, IMessageBus bus,
         ILogger<PaymentFailedDomainEventHandler> logger)
     {
-        logger.LogWarning("Payment {PaymentId} failed for order {OrderId}: {Reason}", @event.PaymentId, @event.OrderId,
+        logger.LogWarning("[PaymentAPI] Publishing PaymentFailedEvent for payment {PaymentId} and order {OrderId}: {Reason}", @event.PaymentId, @event.OrderId,
             @event.Reason);
         await bus.PublishAsync(new Shared.Messaging.Payment.PaymentFailedEvent
         {

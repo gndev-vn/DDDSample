@@ -47,8 +47,9 @@ public class DomainEventInterceptor(IMessageBus messageBus, string localEventsQu
                 var eventType = @event.GetType();
                 var eventName = eventType.Name;
 
-                logger.LogInformation("Publishing domain event: {EventName} {@Event}", eventName, @event);
+                logger.LogInformation("Dispatching domain event {EventName} to local queue {LocalEventsQueue}: {@Event}", eventName, localEventsQueue, @event);
                 await messageBus.EndpointFor(localEventsQueue).SendAsync(@event);
+                logger.LogInformation("Dispatched domain event {EventName} to local queue {LocalEventsQueue}", eventName, localEventsQueue);
             }
 
             await transaction.CommitAsync(cancellationToken);

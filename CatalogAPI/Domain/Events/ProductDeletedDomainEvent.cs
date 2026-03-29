@@ -4,17 +4,17 @@ using Wolverine;
 
 namespace CatalogAPI.Domain.Events;
 
-public class ProductDeletedDomainEvent : DomainEvent
+public sealed class ProductDeletedDomainEvent : DomainEvent
 {
     public Guid Id { get; set; }
 }
 
-public class ProductDeletedDomainEventHandler
+public sealed class ProductDeletedDomainEventHandler
 {
     public static async Task HandleAsync(ProductDeletedDomainEvent @event, IMessageBus bus,
         ILogger<ProductDeletedDomainEventHandler> logger)
     {
-        logger.LogInformation("Product {Id} created", @event.Id);
+        logger.LogInformation("[CatalogAPI] Publishing ProductDeletedEvent for product {ProductId}", @event.Id);
         await bus.PublishAsync(new ProductDeletedEvent { Id = @event.Id });
     }
 }

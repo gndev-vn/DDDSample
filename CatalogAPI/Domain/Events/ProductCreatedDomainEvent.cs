@@ -4,7 +4,7 @@ using Wolverine;
 
 namespace CatalogAPI.Domain.Events;
 
-public class ProductCreatedDomainEvent : DomainEvent
+public sealed class ProductCreatedDomainEvent : DomainEvent
 {
     public Guid Id { get; set; }
     public string Sku { get; set; } = string.Empty;
@@ -13,14 +13,15 @@ public class ProductCreatedDomainEvent : DomainEvent
     public string Currency { get; set; } = "VND";
     public string Slug { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 }
 
-public class ProductCreatedDomainEventHandler
+public sealed class ProductCreatedDomainEventHandler
 {
     public static async Task Handle(ProductCreatedDomainEvent @event, IMessageBus bus,
         ILogger<ProductCreatedDomainEventHandler> logger)
     {
-        logger.LogInformation("Received ProductCreated event for product {ProductId}", @event.Id);
+        logger.LogInformation("[CatalogAPI] Publishing ProductCreatedEvent for product {ProductId} ({Sku})", @event.Id, @event.Sku);
         await bus.PublishAsync(new ProductCreatedEvent
         {
             Id = @event.Id,
@@ -29,7 +30,8 @@ public class ProductCreatedDomainEventHandler
             CurrentPrice = @event.CurrentPrice,
             Currency = @event.Currency,
             Slug = @event.Slug,
-            ImageUrl = @event.ImageUrl
+            ImageUrl = @event.ImageUrl,
+            IsActive = @event.IsActive
         });
     }
 }

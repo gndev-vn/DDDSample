@@ -13,6 +13,8 @@ public class OrderCreatedEventHandler
         IOrderGrpcClientService orderGrpcClientService, ILogger<OrderCreatedEventHandler> logger,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation("[PaymentAPI] Consuming OrderCreatedEvent for order {OrderId}", @event.Id);
+
         var exists = await dbContext.Payments.AnyAsync(x => x.OrderId == @event.Id, cancellationToken);
         if (exists)
         {
