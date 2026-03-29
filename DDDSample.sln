@@ -41,6 +41,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{5E6C2799-2
 		docs\api-standards.md = docs\api-standards.md
 		docs\google-login.md = docs\google-login.md
 		docs\storage-decision-guidelines.md = docs\storage-decision-guidelines.md
+		docs\catalog-api-business-logic.md = docs\catalog-api-business-logic.md
+		docs\payment-api.md = docs\payment-api.md
+		docs\ordering-api-performance.md = docs\ordering-api-performance.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent_rules", "agent_rules", "{BE85B1BD-0C50-4F27-9E37-BADB681CC168}"

@@ -7,7 +7,6 @@ namespace OrderingAPI.Domain.Configurations;
 public class OrderConfiguration : IEntityTypeConfiguration<Order>
 {
     private const string TableName = "Orders";
-    private const string SchemaName = "ordering";
     private const int AddressLineMaxLength = 200;
     private const int AddressWardMaxLength = 100;
     private const int AddressDistrictMaxLength = 100;
@@ -16,7 +15,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
     public void Configure(EntityTypeBuilder<Order> builder)
     {
-        builder.ToTable(TableName, SchemaName);
+        builder.ToTable(TableName);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
 

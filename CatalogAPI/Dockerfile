@@ -1,8 +1,10 @@
 ﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
-# REST API port
+
+# REST API PORT
 EXPOSE 9080
+# GRPC API PORT
 EXPOSE 9081
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build

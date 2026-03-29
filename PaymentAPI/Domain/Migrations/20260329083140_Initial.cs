@@ -6,17 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PaymentAPI.Domain.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "payment");
-
             migrationBuilder.CreateTable(
                 name: "Payments",
-                schema: "payment",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -37,14 +33,12 @@ namespace PaymentAPI.Domain.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Payments_OrderId",
-                schema: "payment",
                 table: "Payments",
                 column: "OrderId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Payments_Status",
-                schema: "payment",
                 table: "Payments",
                 column: "Status");
         }
@@ -53,8 +47,7 @@ namespace PaymentAPI.Domain.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Payments",
-                schema: "payment");
+                name: "Payments");
         }
     }
 }

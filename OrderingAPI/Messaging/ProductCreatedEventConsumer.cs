@@ -1,6 +1,4 @@
-using Mapster;
 using Microsoft.EntityFrameworkCore;
-using OrderingAPI.Database;
 using OrderingAPI.Domain;
 using OrderingAPI.Domain.Entities;
 using Shared.Messaging.Catalog;
@@ -13,14 +11,25 @@ public class ProductCreatedEventConsumer
         AppDbContext dbContext, CancellationToken cancellationToken)
     {
         logger.LogInformation("Consumed product created event {Id}", @event.Id);
-        var product = @event.Adapt<ProductCache>();
-        if (await dbContext.ProductCaches.AnyAsync(x => x.Id == product.Id || x.Sku == product.Sku, cancellationToken))
+        if (await dbContext.ProductCaches.AnyAsync(x => x.Id == @event.Id || x.Sku == @event.Sku, cancellationToken))
         {
             logger.LogInformation("Product already exists {Id}", @event.Id);
             return;
         }
 
-        await dbContext.ProductCaches.AddAsync(product, cancellationToken);
+        var now = DateTime.UtcNow;
+        await dbContext.ProductCaches.AddAsync(new ProductCache
+        {
+            Id = @event.Id,
+            Sku = @event.Sku,
+            Name = @event.Name,
+            CurrentPrice = @event.CurrentPrice,
+            Currency = @event.Currency,
+            ImageUrl = @event.ImageUrl,
+            IsActive = @event.IsActive,
+            LastUpdatedUtc = now,
+            UpdatedAtUtc = now
+        }, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

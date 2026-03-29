@@ -1,6 +1,5 @@
 using Mapster;
 using Microsoft.EntityFrameworkCore;
-using OrderingAPI.Database;
 using OrderingAPI.Domain;
 using OrderingAPI.Domain.Entities;
 using Shared.Messaging.Catalog;

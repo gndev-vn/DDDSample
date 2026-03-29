@@ -1,94 +1,118 @@
 using CatalogAPI.Domain.Events;
+using Shared.Exceptions;
 using Shared.Models;
 
 namespace CatalogAPI.Domain.Entities;
 
-public class Category : EntityWithEvents
+public sealed class Category : EntityWithEvents
 {
+    private readonly List<Product> _products = [];
+
+    public Category()
+    {
+    }
+
+    public Category(string name, string description, string slug, bool isActive = true, Guid? parentId = null)
+    {
+        Name = NormalizeRequired(name, nameof(name));
+        Description = NormalizeDescription(description);
+        Slug = NormalizeRequired(slug, nameof(slug));
+        IsActive = isActive;
+        ParentId = parentId;
+
+        AddDomainEvent(new CategoryCreatedDomainEvent
+        {
+            Id = Id,
+            Name = Name,
+            Slug = Slug,
+            ParentId = ParentId ?? Guid.Empty
+        });
+    }
+
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public Guid? ParentId { get; set; }
     public Category? Parent { get; set; }
-
-    private readonly List<Product> _products = [];
     public IReadOnlyCollection<Product> Products => _products;
     public IEnumerable<Category>? Children { get; set; }
 
-    public Category(string name, string description, string slug, bool isActive = true, Guid? parentId = null)
-    {
-        if (string.IsNullOrWhiteSpace(slug))
-        {
-            throw new ArgumentException("slug required");
-        }
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("name required");
-        }
-
-        Name = name;
-        Description = description;
-        Slug = slug;
-        IsActive = isActive;
-        ParentId = parentId;
-        AddDomainEvent(new CategoryCreatedDomainEvent { Id = Id, Name = name });
-    }
-
-    public Category()
-    {
-    }
-
     public void Deactivate()
     {
+        if (!IsActive)
+        {
+            return;
+        }
+
         IsActive = false;
-        AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id, IsActive = false });
+        RaiseUpdatedDomainEvent();
+    }
+
+    public void Activate()
+    {
+        if (IsActive)
+        {
+            return;
+        }
+
+        IsActive = true;
+        RaiseUpdatedDomainEvent();
     }
 
     public void ChangeSlug(string newSlug)
     {
-        Slug = string.IsNullOrWhiteSpace(newSlug) ? Name : newSlug.Trim();
-        AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id, Slug = newSlug });
+        Slug = NormalizeRequired(newSlug, nameof(newSlug));
+        RaiseUpdatedDomainEvent();
     }
 
     public void Rename(string newName)
     {
-        Name = string.IsNullOrWhiteSpace(newName) ? Name : newName.Trim();
-        AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id, Name = newName });
+        Name = NormalizeRequired(newName, nameof(newName));
+        RaiseUpdatedDomainEvent();
     }
 
     public void UpdateDescription(string description)
     {
-        Description = description;
-        AddDomainEvent((new CategoryUpdatedDomainEvent { Id = Id, Description = description }));
+        Description = NormalizeDescription(description);
+        RaiseUpdatedDomainEvent();
     }
 
     public void AddProduct(Product product)
     {
+        ArgumentNullException.ThrowIfNull(product);
         _products.Add(product);
-        AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id });
+        RaiseUpdatedDomainEvent();
     }
 
     public void AddProducts(List<Product> products)
     {
+        ArgumentNullException.ThrowIfNull(products);
         _products.AddRange(products);
-        AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id });
+        RaiseUpdatedDomainEvent();
     }
 
     public void RemoveProduct(Product product)
     {
+        ArgumentNullException.ThrowIfNull(product);
         if (_products.Remove(product))
         {
-            AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id });
+            RaiseUpdatedDomainEvent();
         }
     }
 
     public void ChangeParent(Guid? newParentId)
     {
+        if (newParentId == Id)
+        {
+            throw new BusinessRuleException("Category cannot be its own parent.");
+        }
+
         ParentId = newParentId;
-        AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id, ParentId = newParentId });
+        RaiseUpdatedDomainEvent();
     }
+
+    public void MarkDeleted() => AddDomainEvent(new CategoryDeletedDomainEvent { Id = Id });
 
     public static Category Create(string name, string description, string slug, bool isActive = true,
         Guid? parentId = null)
@@ -96,11 +120,41 @@ public class Category : EntityWithEvents
 
     public void Update(string name, string description, string slug, bool isActive = true, Guid? parentId = null)
     {
-        Name = name;
-        Description = description;
-        Slug = slug;
+        if (parentId == Id)
+        {
+            throw new BusinessRuleException("Category cannot be its own parent.");
+        }
+
+        Name = NormalizeRequired(name, nameof(name));
+        Description = NormalizeDescription(description);
+        Slug = NormalizeRequired(slug, nameof(slug));
         IsActive = isActive;
         ParentId = parentId;
-        AddDomainEvent(new CategoryUpdatedDomainEvent { Id = Id });
+        RaiseUpdatedDomainEvent();
     }
+
+    private void RaiseUpdatedDomainEvent()
+    {
+        AddDomainEvent(new CategoryUpdatedDomainEvent
+        {
+            Id = Id,
+            Name = Name,
+            Slug = Slug,
+            ParentId = ParentId,
+            IsActive = IsActive,
+            Description = Description
+        });
+    }
+
+    private static string NormalizeRequired(string? value, string paramName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException($"{paramName} required", paramName);
+        }
+
+        return value.Trim();
+    }
+
+    private static string NormalizeDescription(string? value) => value?.Trim() ?? string.Empty;
 }

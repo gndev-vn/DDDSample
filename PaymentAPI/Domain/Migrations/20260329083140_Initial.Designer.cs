@@ -12,8 +12,8 @@ using PaymentAPI.Domain;
 namespace PaymentAPI.Domain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260326103523_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260329083140_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -61,7 +61,7 @@ namespace PaymentAPI.Domain.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Payments", "payment");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("PaymentAPI.Domain.Entities.Payment", b =>
@@ -83,7 +83,7 @@ namespace PaymentAPI.Domain.Migrations
 
                             b1.HasKey("PaymentId");
 
-                            b1.ToTable("Payments", "payment");
+                            b1.ToTable("Payments");
 
                             b1.WithOwner()
                                 .HasForeignKey("PaymentId");

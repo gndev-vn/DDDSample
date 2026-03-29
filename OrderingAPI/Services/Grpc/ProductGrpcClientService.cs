@@ -20,6 +20,7 @@ public class ProductGrpcClientService(ProductSvc.ProductSvcClient client) : IPro
         return new ProductCacheModel
         {
             Id = Guid.Parse(productResponse.Product.Id),
+            Sku = productResponse.Product.Slug,
             Name = productResponse.Product.Name,
             CurrentPrice = productResponse.Product.BasePrice.Amount,
             Currency = productResponse.Product.BasePrice.Currency,
@@ -34,6 +35,7 @@ public class ProductGrpcClientService(ProductSvc.ProductSvcClient client) : IPro
         return productsResponse.Products.Select(x => new ProductCacheModel
         {
             Id = Guid.Parse(x.Id),
+            Sku = x.Slug,
             Name = x.Name,
             CurrentPrice = x.BasePrice.Amount,
             Currency = x.BasePrice.Currency,
@@ -51,6 +53,7 @@ public class ProductGrpcClientService(ProductSvc.ProductSvcClient client) : IPro
         return productsResponse.Products.Select(x => new ProductCacheModel
         {
             Id = Guid.Parse(x.Id),
+            Sku = x.Slug,
             Name = x.Name,
             CurrentPrice = x.BasePrice.Amount,
             Currency = x.BasePrice.Currency,

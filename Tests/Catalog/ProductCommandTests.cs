@@ -187,6 +187,17 @@ public sealed class ProductCommandTests : IDisposable
     }
 
     [Fact]
+    public void ProductMarkDeleted_AddsDeletedDomainEvent()
+    {
+        var product = new Product("DDD Sample", "Domain-driven design sample", "ddd-sample", new Shared.ValueObjects.Money(42m, "USD"));
+        product.ClearDomainEvents();
+
+        product.MarkDeleted();
+
+        Assert.Contains(product.DomainEvents, x => x is CatalogAPI.Domain.Events.ProductDeletedDomainEvent);
+    }
+
+    [Fact]
     public async Task DeleteProduct_WhenProductExists_RemovesProduct()
     {
         // Arrange

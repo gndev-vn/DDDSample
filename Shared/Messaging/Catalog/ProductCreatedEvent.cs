@@ -13,4 +13,5 @@ public class ProductCreatedEvent
     public long Version { get; set; }
     public string Slug { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 }

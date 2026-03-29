@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CatalogAPI.Database.Migrations
+namespace CatalogAPI.Domain.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration
@@ -11,12 +11,8 @@ namespace CatalogAPI.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "catalog");
-
             migrationBuilder.CreateTable(
                 name: "Categories",
-                schema: "catalog",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -34,7 +30,6 @@ namespace CatalogAPI.Database.Migrations
                     table.ForeignKey(
                         name: "FK_Categories_Categories_ParentId",
                         column: x => x.ParentId,
-                        principalSchema: "catalog",
                         principalTable: "Categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -62,7 +57,6 @@ namespace CatalogAPI.Database.Migrations
                     table.ForeignKey(
                         name: "FK_Products_Categories_CategoryId",
                         column: x => x.CategoryId,
-                        principalSchema: "catalog",
                         principalTable: "Categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -117,21 +111,18 @@ namespace CatalogAPI.Database.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_Name",
-                schema: "catalog",
                 table: "Categories",
                 column: "Name",
                 filter: "IsActive = 1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_ParentId",
-                schema: "catalog",
                 table: "Categories",
                 column: "ParentId",
                 filter: "IsActive = 1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_Slug",
-                schema: "catalog",
                 table: "Categories",
                 column: "Slug",
                 unique: true,
@@ -173,8 +164,7 @@ namespace CatalogAPI.Database.Migrations
                 name: "Products");
 
             migrationBuilder.DropTable(
-                name: "Categories",
-                schema: "catalog");
+                name: "Categories");
         }
     }
 }

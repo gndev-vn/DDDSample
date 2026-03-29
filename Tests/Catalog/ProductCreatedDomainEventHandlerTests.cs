@@ -11,7 +11,6 @@ public sealed class ProductCreatedDomainEventHandlerTests
     [Fact]
     public async Task Handle_PublishesProductCreatedEventWithSkuAndSlug()
     {
-        // Arrange
         ProductCreatedEvent? published = null;
         var bus = new Mock<IMessageBus>();
         bus.Setup(x => x.PublishAsync(It.IsAny<ProductCreatedEvent>(), It.IsAny<DeliveryOptions>()))
@@ -26,19 +25,19 @@ public sealed class ProductCreatedDomainEventHandlerTests
             CurrentPrice = 105m,
             Currency = "USD",
             Slug = "product-slug",
-            ImageUrl = "image.png"
+            ImageUrl = "image.png",
+            IsActive = true
         };
 
-        // Act
         await ProductCreatedDomainEventHandler.Handle(domainEvent, bus.Object,
             NullLogger<ProductCreatedDomainEventHandler>.Instance);
 
-        // Assert
         Assert.NotNull(published);
         Assert.Equal(domainEvent.Id, published!.Id);
         Assert.Equal("product-slug", published.Sku);
         Assert.Equal(domainEvent.Slug, published.Slug);
         Assert.Equal(105m, published.CurrentPrice);
         Assert.Equal("USD", published.Currency);
+        Assert.True(published.IsActive);
     }
 }

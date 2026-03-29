@@ -1,7 +1,7 @@
 Follow all repository custom instructions and agent rules before making changes.
 
 Task:
-Implement <feature name> in this .NET 10 Clean Architecture / DDD solution.
+Implement product variant events in this .NET 10 Clean Architecture / DDD solution.
 
 Requirements:
 - preserve Clean Architecture boundaries

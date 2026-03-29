@@ -7,12 +7,11 @@ namespace OrderingAPI.Domain.Configurations;
 public class CategoryCacheConfiguration : IEntityTypeConfiguration<CategoryCache>
 {
     private const string TableName = "CategoryCaches";
-    private const string SchemaName = "ordering";
     private const int NameMaxLength = 300;
 
     public void Configure(EntityTypeBuilder<CategoryCache> builder)
     {
-        builder.ToTable(TableName, SchemaName);
+        builder.ToTable(TableName);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Name)

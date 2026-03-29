@@ -12,15 +12,15 @@ using OrderingAPI.Domain;
 namespace OrderingAPI.Domain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251111044508_UpdateMoreEntities")]
-    partial class UpdateMoreEntities
+    [Migration("20260329083119_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -56,13 +56,12 @@ namespace OrderingAPI.Domain.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("CategoryCaches", "ordering");
+                    b.ToTable("CategoryCaches", (string)null);
                 });
 
             modelBuilder.Entity("OrderingAPI.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -82,13 +81,12 @@ namespace OrderingAPI.Domain.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Orders", "ordering");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("OrderingAPI.Domain.Entities.OrderLine", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -107,7 +105,7 @@ namespace OrderingAPI.Domain.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderLines", "ordering");
+                    b.ToTable("OrderLines", (string)null);
                 });
 
             modelBuilder.Entity("OrderingAPI.Domain.Entities.ProductCache", b =>
@@ -158,7 +156,7 @@ namespace OrderingAPI.Domain.Migrations
 
                     b.HasIndex("UpdatedAtUtc");
 
-                    b.ToTable("ProductCaches", "ordering");
+                    b.ToTable("ProductCaches", (string)null);
                 });
 
             modelBuilder.Entity("OrderingAPI.Domain.Entities.Order", b =>
@@ -205,7 +203,7 @@ namespace OrderingAPI.Domain.Migrations
 
                             b1.HasKey("OrderId");
 
-                            b1.ToTable("Orders", "ordering");
+                            b1.ToTable("Orders");
 
                             b1.WithOwner()
                                 .HasForeignKey("OrderId");
@@ -253,7 +251,7 @@ namespace OrderingAPI.Domain.Migrations
 
                             b1.HasKey("OrderId");
 
-                            b1.ToTable("Orders", "ordering");
+                            b1.ToTable("Orders");
 
                             b1.WithOwner()
                                 .HasForeignKey("OrderId");
@@ -289,7 +287,7 @@ namespace OrderingAPI.Domain.Migrations
 
                             b1.HasKey("OrderLineId");
 
-                            b1.ToTable("OrderLines", "ordering");
+                            b1.ToTable("OrderLines");
 
                             b1.WithOwner()
                                 .HasForeignKey("OrderLineId");
@@ -306,7 +304,7 @@ namespace OrderingAPI.Domain.Migrations
 
                             b1.HasKey("OrderLineId");
 
-                            b1.ToTable("OrderLines", "ordering");
+                            b1.ToTable("OrderLines");
 
                             b1.WithOwner()
                                 .HasForeignKey("OrderLineId");
@@ -325,7 +323,7 @@ namespace OrderingAPI.Domain.Migrations
 
                             b1.HasKey("OrderLineId");
 
-                            b1.ToTable("OrderLines", "ordering");
+                            b1.ToTable("OrderLines");
 
                             b1.WithOwner()
                                 .HasForeignKey("OrderLineId");

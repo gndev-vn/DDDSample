@@ -31,6 +31,11 @@ public class GetOrderByIdQueryHandler(AppDbContext dbContext) : IRequestHandler<
                     o.ShippingAddress.Ward),
                 Lines = o.Lines.Select(l => new OrderLineModel
                 {
+                    ProductId = l.ProductId,
+                    Name = dbContext.ProductCaches
+                        .Where(p => p.Id == l.ProductId)
+                        .Select(p => p.Name)
+                        .FirstOrDefault() ?? string.Empty,
                     Sku = l.Sku.Value,
                     Quantity = l.Quantity.Value,
                     UnitPrice = l.Total.Amount,

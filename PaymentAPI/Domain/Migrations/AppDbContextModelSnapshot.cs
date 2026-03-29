@@ -58,7 +58,7 @@ namespace PaymentAPI.Domain.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Payments", "payment");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("PaymentAPI.Domain.Entities.Payment", b =>
@@ -80,7 +80,7 @@ namespace PaymentAPI.Domain.Migrations
 
                             b1.HasKey("PaymentId");
 
-                            b1.ToTable("Payments", "payment");
+                            b1.ToTable("Payments");
 
                             b1.WithOwner()
                                 .HasForeignKey("PaymentId");

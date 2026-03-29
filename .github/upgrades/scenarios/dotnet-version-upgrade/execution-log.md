@@ -13,3 +13,8 @@ Updated Microsoft platform packages to 10.x across all projects: Microsoft.AspNe
 
 Updated WolverineFx 4.12.3→5.24.0 (core + EFCore + RabbitMQ + SqlServer) in Shared/CatalogAPI/OrderingAPI. Updated all Mapster 7.4.0→10.0.6 packages (Mapster, Mapster.Async, Mapster.DependencyInjection, Mapster.EFCore) in CatalogAPI/OrderingAPI/IdentityAPI. Build succeeded 0 errors, 8 warnings (all pre-existing). No API breaking changes required — Wolverine's IMessageBus.EndpointFor(), [Topic] attribute, and handler naming convention remain compatible. Mapster's .Adapt<T>() and .ProjectToType<T>() APIs are unchanged.
 
+
+## [2026-03-26 14:04] 04-validate
+
+Final build: dotnet build DDDSample.sln → 0 errors, 8 warnings (all pre-existing). Tests: 25 passed, 1 pre-existing failure (UpdateOrderCommandHandlerTests — DbUpdateConcurrencyException, pre-dates this upgrade). The Scriban vulnerability warnings are gone (resolved by WolverineFx 5.24.0 updating its transitive deps). Upgrade complete.
+

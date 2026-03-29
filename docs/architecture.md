@@ -15,9 +15,9 @@ graph TB
     end
 
     subgraph "Microservices"
-        Identity[IdentityAPI<br/>Port: 8088/8089]
-        Catalog[CatalogAPI<br/>Port: 8080/8081]
-        Ordering[OrderingAPI<br/>Port: 8084/8085]
+        Identity[IdentityAPI<br/>Port: 9088/9089]
+        Catalog[CatalogAPI<br/>Port: 9080/9081]
+        Ordering[OrderingAPI<br/>Port: 9084/9085]
         Payment[PaymentAPI<br/>Port: 9092/9093]
     end
 
@@ -116,6 +116,18 @@ graph LR
 ```
 
 ## Service Layering
+
+## Centralized Endpoint Configuration
+
+HTTP and gRPC listener configuration is now centralized in `Shared/Hosting/ApiEndpointConfigurationExtensions.cs`.
+Each API keeps its own `Hosting` section in `appsettings*.json`, but the Kestrel binding logic, validation, and protocol assignment now live in one shared place.
+
+Operational notes:
+- `Hosting:Restful:Http` is bound as HTTP/1.1 for REST controllers and OpenAPI.
+- `Hosting:Grpc:Http` is bound as HTTP/2 for internal gRPC traffic.
+- `ApiEndpointOptionsValidator` fails fast on invalid or duplicate ports during startup.
+- `docker-compose.yaml` no longer overrides listener URLs with `ASPNETCORE_URLS`; the `Hosting` section is the runtime source of truth.
+- `launchSettings.json` values were aligned with the configured development ports to reduce local debugging drift.
 
 Each microservice is implemented as a single deployable project with folder-based layering:
 
@@ -254,6 +266,33 @@ graph LR
     PaymentExchange --> OrderingQueue
     OrderingQueue --> OA_Handler
 ```
+
+## Catalog product variant events
+
+Catalog variant writes now follow the same domain-event flow as products:
+
+- `CreateProductVariantCommand`, `UpdateProductVariantCommand`, and `DeleteProductVariantCommand` load the owning `Product` aggregate and mutate variants through aggregate methods rather than writing `DbSet<ProductVariant>` directly.
+- The `Product` aggregate raises `ProductVariantCreatedDomainEvent`, `ProductVariantUpdatedDomainEvent`, and `ProductVariantDeletedDomainEvent`.
+- Wolverine handlers translate those domain events into integration events on RabbitMQ topics:
+  - `catalog.product-variant.created`
+  - `catalog.product-variant.updated`
+  - `catalog.product-variant.deleted`
+- Variant create/update requests are validated with FluentValidation before handlers execute.
+- `ProductVariantsController` remains transport-only and documents response metadata for OpenAPI generation.
+
+### Variant event payload and behavior
+
+- Event payloads include `Id`, `ProductId`, `Sku`, and the effective price fields required by downstream consumers.
+- For create/update, the published price is the variant override price when present; otherwise the product base price is used.
+- Delete events include the removed variant identifier, owning product identifier, and SKU.
+- Variant updates do not support moving a variant between products; `ParentId` identifies the owning aggregate for the command.
+
+### Storage, cache, and operations impact
+
+- Storage remains in the existing Catalog relational store via EF Core.
+- No Redis cache is involved, so there are no cache keys, TTLs, or invalidation changes.
+- No Azure, deployment, or CI/CD changes are required for this feature.
+- Downstream services can now subscribe to variant-specific catalog topics independently from product topics.
 
 ## Payment Flow
 

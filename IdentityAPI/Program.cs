@@ -7,40 +7,18 @@ using Microsoft.Extensions.Options;
 using IdentityAPI.Domain.Identity;
 using IdentityAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Shared.Middleware;
+using Shared.Hosting;
 using Shared.Models;
 using Shared.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel
-builder.WebHost.ConfigureKestrel(options =>
-{
-    var restfulHttpPort = builder.Configuration["Hosting:Restful:Http"] ?? throw new InvalidOperationException();
-    // var restfulHttpsPort = builder.Configuration["Hosting:Restful:Https"] ?? throw new InvalidOperationException();
-    var grpcHttpPort = builder.Configuration["Hosting:Grpc:Http"] ?? throw new InvalidOperationException();
-    // var grpcHttpsPort = builder.Configuration["Hosting:Grpc:Https"] ?? throw new InvalidOperationException();
-
-    // Setup a HTTP/1.1 endpoint for REST API
-    options.ListenAnyIP(int.Parse(restfulHttpPort), o => o.Protocols = HttpProtocols.Http1);
-    /*options.ListenAnyIP(int.Parse(restfulHttpsPort), o =>
-    {
-        o.Protocols = HttpProtocols.Http1;
-        o.UseHttps();
-    });*/
-    // Setup a HTTP/2 endpoint for gRPC
-    options.ListenAnyIP(int.Parse(grpcHttpPort), o => o.Protocols = HttpProtocols.Http2);
-    /*options.ListenLocalhost(int.Parse(grpcHttpsPort), o =>
-    {
-        o.Protocols = HttpProtocols.Http2;
-        o.UseHttps();
-    });*/
-});
+builder.AddCentralizedApiEndpoints();
 
 // Add services to the container.
 builder.Services.AddScoped<RequestValidationActionFilter>();

@@ -7,14 +7,13 @@ namespace PaymentAPI.Domain.Configurations;
 public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 {
     private const string TableName = "Payments";
-    private const string SchemaName = "payment";
     private const int CurrencyMaxLength = 3;
     private const int TransactionReferenceMaxLength = 200;
     private const int FailureReasonMaxLength = 500;
 
     public void Configure(EntityTypeBuilder<Payment> builder)
     {
-        builder.ToTable(TableName, SchemaName);
+        builder.ToTable(TableName);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
 

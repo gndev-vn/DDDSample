@@ -4,10 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CatalogAPI.Domain.Configurations;
 
-public class CategoryConfiguration : IEntityTypeConfiguration<Category>
+public sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
 {
     private const string TableName = "Categories";
-    private const string SchemaName = "catalog";
     private const int NameMaxLength = 200;
     private const int SlugMaxLength = 200;
     private const int DescriptionMaxLength = 1000;
@@ -15,7 +14,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
     public void Configure(EntityTypeBuilder<Category> builder)
     {
         // Table name and schema
-        builder.ToTable(TableName, SchemaName);
+        builder.ToTable(TableName);
 
         // Primary Key
         builder.HasKey(c => c.Id);

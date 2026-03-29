@@ -189,6 +189,99 @@ public sealed class CategoryCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateCategory_WhenParentIsSelf_ThrowsBusinessRuleException()
+    {
+        var category = new Category("Child", "Child category", "child");
+        await using (var seedContext = NewContext())
+        {
+            seedContext.Categories.Add(category);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = NewContext();
+        var handler = new UpdateCategoryCommandHandler(dbContext);
+        var command = new UpdateCategoryCommand(new CategoryUpdateRequest(
+            category.Id,
+            "Child",
+            "child",
+            "Child category",
+            category.Id));
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => handler.Handle(command, CancellationToken.None).AsTask());
+    }
+
+    [Fact]
+    public async Task UpdateCategory_WhenParentCreatesCycle_ThrowsBusinessRuleException()
+    {
+        var root = new Category("Root", "Root category", "root");
+        var child = new Category("Child", "Child category", "child", parentId: root.Id);
+        var grandchild = new Category("Grandchild", "Grandchild category", "grandchild", parentId: child.Id);
+
+        await using (var seedContext = NewContext())
+        {
+            seedContext.Categories.AddRange(root, child, grandchild);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = NewContext();
+        var handler = new UpdateCategoryCommandHandler(dbContext);
+        var command = new UpdateCategoryCommand(new CategoryUpdateRequest(
+            root.Id,
+            "Root",
+            "root",
+            "Root category",
+            grandchild.Id));
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => handler.Handle(command, CancellationToken.None).AsTask());
+    }
+
+    [Fact]
+    public async Task DeleteCategory_WhenChildCategoriesExist_ThrowsBusinessRuleException()
+    {
+        var parent = new Category("Parent", "Parent category", "parent");
+        var child = new Category("Child", "Child category", "child", parentId: parent.Id);
+
+        await using (var seedContext = NewContext())
+        {
+            seedContext.Categories.AddRange(parent, child);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = NewContext();
+        var handler = new DeleteCategoryCommandHandler(dbContext);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            handler.Handle(new DeleteCategoryCommand(parent.Id), CancellationToken.None).AsTask());
+
+        Assert.Equal("Cannot delete a category that still has child categories.", exception.Message);
+    }
+
+    [Fact]
+    public async Task DeleteCategory_WhenProductsExist_ThrowsBusinessRuleException()
+    {
+        var category = new Category("Books", "Books", "books");
+        var product = new Product("DDD Sample", "Domain-driven design sample", "ddd-sample", new Shared.ValueObjects.Money(42m, "USD"))
+        {
+            Category = category
+        };
+
+        await using (var seedContext = NewContext())
+        {
+            seedContext.Categories.Add(category);
+            seedContext.Products.Add(product);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = NewContext();
+        var handler = new DeleteCategoryCommandHandler(dbContext);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            handler.Handle(new DeleteCategoryCommand(category.Id), CancellationToken.None).AsTask());
+
+        Assert.Equal("Cannot delete a category that still has products.", exception.Message);
+    }
+
+    [Fact]
     public void CategoryCreateValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
         // Arrange
