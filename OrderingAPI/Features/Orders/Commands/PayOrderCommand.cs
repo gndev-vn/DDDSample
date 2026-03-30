@@ -1,6 +1,5 @@
 using Mediator;
 using OrderingAPI.Domain;
-using Shared.Enums;
 using Shared.Exceptions;
 
 namespace OrderingAPI.Features.Orders.Commands;

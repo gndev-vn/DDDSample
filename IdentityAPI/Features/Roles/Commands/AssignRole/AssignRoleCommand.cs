@@ -17,7 +17,14 @@ public record AssignRoleCommandHandler(UserManager<ApplicationUser> UserManager)
         {
             throw new NotFoundException("User not found", request.Model.UserId);
         }
-        var result = await UserManager.AddToRolesAsync(user, request.Model.Roles);
+
+        var normalizedRoles = request.Model.Roles
+            .Where(role => !string.IsNullOrWhiteSpace(role))
+            .Select(role => role.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var result = await UserManager.AddToRolesAsync(user, normalizedRoles);
         if (!result.Succeeded)
         {
             throw new BusinessException("Failed to assign role", result.Errors.Select(e => e.Description));
@@ -26,7 +33,7 @@ public record AssignRoleCommandHandler(UserManager<ApplicationUser> UserManager)
         return new AssignRolesResponse(
             Success: true,
             Message: "Role created successfully",
-            RoleIds: request.Model.Roles
+            RoleIds: normalizedRoles.ToList()
         );
     }
 }

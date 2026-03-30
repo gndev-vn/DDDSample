@@ -1,10 +1,8 @@
 using IdentityAPI.Domain.Identity;
 using IdentityAPI.Features.Auth.Models;
-using IdentityAPI.Services;
+using IdentityAPI.Features.Auth.Services;
 using Mediator;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
-using Shared.Models;
 
 namespace IdentityAPI.Features.Auth.Commands.Login;
 
@@ -12,12 +10,9 @@ public record LoginCommand(LoginRequest Model) : IRequest<LoginResponse>;
 
 public class LoginHandler(
     UserManager<ApplicationUser> userManager,
-    IJwtTokenService jwtTokenService,
-    IOptions<JwtSettings> jwtSettings)
+    ILoginResponseFactory loginResponseFactory)
     : IRequestHandler<LoginCommand, LoginResponse>
 {
-    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
-
     public async ValueTask<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(request.Model.Email);
@@ -40,21 +35,6 @@ public class LoginHandler(
         }
 
         var roles = (await userManager.GetRolesAsync(user)).ToArray();
-        var token = await jwtTokenService.GenerateTokenAsync(user, roles);
-
-        return new LoginResponse(
-            Success: true,
-            Message: "Login successful",
-            Token: token,
-            ExpiresAt: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
-            User: new UserInfo(
-                user.Id.ToString(),
-                user.UserName ?? string.Empty,
-                user.Email ?? string.Empty,
-                user.FirstName,
-                user.LastName,
-                roles
-            )
-        );
+        return await loginResponseFactory.CreateAsync(user, roles, cancellationToken);
     }
 }
