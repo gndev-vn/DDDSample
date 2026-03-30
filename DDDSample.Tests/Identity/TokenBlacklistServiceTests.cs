@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using IdentityTokenBlacklistService = IdentityAPI.Services.TokenBlacklistService;
 using Microsoft.Extensions.Caching.Distributed;
 using SharedTokenBlacklistService = Shared.Services.TokenBlacklistService;
 
@@ -7,18 +6,6 @@ namespace DDDSample.Tests.Identity;
 
 public sealed class TokenBlacklistServiceTests
 {
-    [Fact]
-    public async Task IdentityTokenBlacklistService_UsesConsistentKeyForRevocation()
-    {
-        var cache = new InMemoryDistributedCache();
-        var service = new IdentityTokenBlacklistService(cache);
-        const string token = "header.payload.signature";
-
-        await service.RevokeTokenAsync(token, TimeSpan.FromMinutes(15));
-
-        Assert.True(await service.IsTokenRevokedAsync(token));
-    }
-
     [Fact]
     public async Task SharedTokenBlacklistService_UsesConsistentKeyForRevocation()
     {

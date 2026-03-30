@@ -6,6 +6,7 @@ using FluentValidation;
 using Microsoft.Extensions.Options;
 using IdentityAPI.Domain.Identity;
 using IdentityAPI.Services;
+using IdentityAPI.Features.Auth.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
@@ -123,6 +124,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 // Services
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ILoginResponseFactory, LoginResponseFactory>();
+builder.Services.AddScoped<IIdentityAccountService, IdentityAccountService>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();

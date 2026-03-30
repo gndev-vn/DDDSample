@@ -1,12 +1,11 @@
 using IdentityAPI.Domain.Identity;
 using IdentityAPI.Features.Auth.Commands.Login;
 using IdentityAPI.Features.Auth.Models;
-using IdentityAPI.Services;
+using IdentityAPI.Features.Auth.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Shared.Models;
 
 namespace DDDSample.Tests.Identity;
 
@@ -27,18 +26,10 @@ public sealed class LoginHandlerTests
             new Mock<ILogger<UserManager<ApplicationUser>>>().Object);
     }
 
-    private static IOptions<JwtSettings> JwtOptions() =>
-        Options.Create(new JwtSettings
-        {
-            SecretKey = "unit-test-secret-key-32chars-long!!",
-            Issuer = "TestIssuer",
-            Audience = "TestAudience",
-            ExpirationInMinutes = 60
-        });
-
     [Fact]
-    public async Task Handle_ValidCredentials_UsesPreloadedRolesForJwtGeneration()
+    public async Task Handle_ValidCredentials_UsesPreloadedRolesForLoginResponse()
     {
+        var expectedRoles = new[] { "User" };
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid(),
@@ -55,18 +46,25 @@ public sealed class LoginHandlerTests
         userManager.Setup(m => m.CheckPasswordAsync(user, "password"))
             .ReturnsAsync(true);
         userManager.Setup(m => m.GetRolesAsync(user))
-            .ReturnsAsync(["User"]);
+            .ReturnsAsync(expectedRoles);
 
-        var jwtService = new Mock<IJwtTokenService>();
-        jwtService.Setup(s => s.GenerateTokenAsync(user, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))))
-            .ReturnsAsync("signed-jwt-token");
+        var loginResponseFactory = new Mock<ILoginResponseFactory>();
+        loginResponseFactory
+            .Setup(factory => factory.CreateAsync(
+                user,
+                It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(expectedRoles)),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LoginResponse(true, "Login successful", "signed-jwt-token"));
 
-        var handler = new LoginHandler(userManager.Object, jwtService.Object, JwtOptions());
+        var handler = new LoginHandler(userManager.Object, loginResponseFactory.Object);
 
         var result = await handler.Handle(new LoginCommand(new LoginRequest(user.Email!, "password")), default);
 
         Assert.Equal("signed-jwt-token", result.Token);
         userManager.Verify(m => m.GetRolesAsync(user), Times.Once);
-        jwtService.Verify(s => s.GenerateTokenAsync(user, It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(["User"]))), Times.Once);
+        loginResponseFactory.Verify(factory => factory.CreateAsync(
+            user,
+            It.Is<IEnumerable<string>>(roles => roles.SequenceEqual(expectedRoles)),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

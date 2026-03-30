@@ -1,7 +1,7 @@
 using IdentityAPI.Features.Auth.Models;
-using IdentityAPI.Services;
 using Mediator;
 using System.IdentityModel.Tokens.Jwt;
+using Shared.Services;
 
 namespace IdentityAPI.Features.Auth.Commands.Logout;
 
@@ -28,4 +28,3 @@ public class LogoutCommandHandler(ITokenBlacklistService blacklistService)
         return new LogoutResponse(true, "Logged out successfully");
     }
 }
-
