@@ -2,7 +2,7 @@ using Wolverine.Attributes;
 
 namespace Shared.Messaging.Order;
 
-[Topic("ordering.order.updated")]
+[Topic("ordering.order.created")]
 public class OrderCreatedEvent
 {
     public Guid Id { get; set; }

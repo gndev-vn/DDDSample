@@ -8,33 +8,33 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="FluentValidation" Version="12.1.0" />
-        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
-        <PackageReference Include="HotChocolate.AspNetCore" Version="15.1.11" />
-        <PackageReference Include="Mediator.SourceGenerator" Version="3.0.1">
+        <PackageReference Include="FluentValidation" Version="12.1.1" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+        <PackageReference Include="HotChocolate.AspNetCore" Version="15.1.12" />
+        <PackageReference Include="Mediator.SourceGenerator" Version="3.0.2">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Mediator.Abstractions" Version="3.0.1" />
-        <PackageReference Include="Grpc.AspNetCore" Version="2.70.0" />
-        <PackageReference Include="Mapster" Version="7.4.0" />
-        <PackageReference Include="Mapster.Async" Version="2.0.1" />
-        <PackageReference Include="Mapster.DependencyInjection" Version="1.0.1" />
-        <PackageReference Include="Mapster.EFCore" Version="5.1.1" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.14" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.14" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.14">
+        <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
+        <PackageReference Include="Mapster" Version="10.0.6" />
+        <PackageReference Include="Mapster.Async" Version="10.0.6" />
+        <PackageReference Include="Mapster.DependencyInjection" Version="10.0.6" />
+        <PackageReference Include="Mapster.EFCore" Version="10.0.6" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.14" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.14" />
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.14" />
-        <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
-        <PackageReference Include="WolverineFx" Version="4.12.3" />
-        <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="4.12.3" />
-        <PackageReference Include="WolverineFx.RabbitMQ" Version="4.12.3" />
-        <PackageReference Include="WolverineFx.SqlServer" Version="4.12.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.5" />
+        <PackageReference Include="StackExchange.Redis" Version="2.12.8" />
+        <PackageReference Include="WolverineFx" Version="5.24.0" />
+        <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.24.0" />
+        <PackageReference Include="WolverineFx.RabbitMQ" Version="5.24.0" />
+        <PackageReference Include="WolverineFx.SqlServer" Version="5.24.0" />
     </ItemGroup>
 
     <ItemGroup>

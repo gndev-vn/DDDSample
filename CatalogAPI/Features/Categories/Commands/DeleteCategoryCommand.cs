@@ -1,5 +1,7 @@
 using CatalogAPI.Domain;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Shared.Exceptions;
 using KeyNotFoundException = System.Collections.Generic.KeyNotFoundException;
 
 namespace CatalogAPI.Features.Categories.Commands;
@@ -8,22 +10,32 @@ public record DeleteCategoryCommand(Guid Id) : IRequest<bool>;
 
 public class DeleteCategoryCommandHandler(AppDbContext dbContext) : IRequestHandler<DeleteCategoryCommand, bool>
 {
-    /// <summary>
-    /// Handles the process of deleting a category from the database.
-    /// </summary>
-    /// <param name="command">The command containing the ID of the category to be deleted.</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A task representing the asynchronous operation. The task result contains a boolean indicating
-    /// whether the operation was successful. Returns <c>true</c> if the category was deleted successfully, otherwise <c>false</c>.</returns>
-    /// <exception cref="KeyNotFoundException">Thrown if the category with the specified ID does not exist.</exception>
     public async ValueTask<bool> Handle(DeleteCategoryCommand command, CancellationToken cancellationToken)
     {
-        var category = await dbContext.Categories.FindAsync([command.Id], cancellationToken: cancellationToken);
+        var category = await dbContext.Categories
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
         if (category == null)
         {
             throw new KeyNotFoundException("Invalid category id");
         }
 
+        var hasChildren = await dbContext.Categories
+            .IgnoreQueryFilters()
+            .AnyAsync(x => x.ParentId == command.Id, cancellationToken);
+        if (hasChildren)
+        {
+            throw new BusinessRuleException("Cannot delete a category that still has child categories.");
+        }
+
+        var hasProducts = await dbContext.Products
+            .AnyAsync(x => EF.Property<Guid?>(x, "CategoryId") == command.Id, cancellationToken);
+        if (hasProducts)
+        {
+            throw new BusinessRuleException("Cannot delete a category that still has products.");
+        }
+
+        category.MarkDeleted();
         dbContext.Categories.Remove(category);
         return await dbContext.SaveChangesAsync(cancellationToken) > 0;
     }

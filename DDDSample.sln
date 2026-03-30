@@ -41,12 +41,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{5E6C2799-2
 		docs\api-standards.md = docs\api-standards.md
 		docs\google-login.md = docs\google-login.md
 		docs\storage-decision-guidelines.md = docs\storage-decision-guidelines.md
+		docs\catalog-api-business-logic.md = docs\catalog-api-business-logic.md
+		docs\payment-api.md = docs\payment-api.md
+		docs\ordering-api-performance.md = docs\ordering-api-performance.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent_rules", "agent_rules", "{BE85B1BD-0C50-4F27-9E37-BADB681CC168}"
 	ProjectSection(SolutionItems) = preProject
 		AGENT_RULES.md = AGENT_RULES.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaymentAPI", "PaymentAPI\PaymentAPI.csproj", "{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -130,6 +135,18 @@ Global
 		{8D9C6A41-CE08-45B1-A4BE-B7A6A2D8015E}.Release|x64.Build.0 = Release|Any CPU
 		{8D9C6A41-CE08-45B1-A4BE-B7A6A2D8015E}.Release|x86.ActiveCfg = Release|Any CPU
 		{8D9C6A41-CE08-45B1-A4BE-B7A6A2D8015E}.Release|x86.Build.0 = Release|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Debug|x64.Build.0 = Debug|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Debug|x86.Build.0 = Debug|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Release|x64.ActiveCfg = Release|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Release|x64.Build.0 = Release|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Release|x86.ActiveCfg = Release|Any CPU
+		{56243CC9-1C1A-494A-8E32-BE08F5BEEF5B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,12 +1,13 @@
 using System.Net;
 using FluentValidation;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OrderingAPI.Domain;
 using OrderingAPI.Services;
 using OrderingAPI.Services.Grpc;
 using Shared.Authentication;
+using Shared.Hosting;
+using Shared.Extensions;
 using Shared.Interceptors;
 using Shared.Middleware;
 using Shared.Validation;
@@ -17,29 +18,7 @@ using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel
-builder.WebHost.ConfigureKestrel(options =>
-{
-    var restfulHttpPort = builder.Configuration["Hosting:Restful:Http"] ?? throw new InvalidOperationException();
-    // var restfulHttpsPort = builder.Configuration["Hosting:Restful:Https"] ?? throw new InvalidOperationException();
-    var grpcHttpPort = builder.Configuration["Hosting:Grpc:Http"] ?? throw new InvalidOperationException();
-    // var grpcHttpsPort = builder.Configuration["Hosting:Grpc:Https"] ?? throw new InvalidOperationException();
-
-    // Setup a HTTP/1.1 endpoint for REST API
-    options.ListenAnyIP(int.Parse(restfulHttpPort), o => o.Protocols = HttpProtocols.Http1);
-    /*options.ListenAnyIP(int.Parse(restfulHttpsPort), o =>
-    {
-        o.Protocols = HttpProtocols.Http1;
-        o.UseHttps();
-    });*/
-    // Setup a HTTP/2 endpoint for gRPC
-    options.ListenAnyIP(int.Parse(grpcHttpPort), o => o.Protocols = HttpProtocols.Http2);
-    /*options.ListenLocalhost(int.Parse(grpcHttpsPort), o =>
-    {
-        o.Protocols = HttpProtocols.Http2;
-        o.UseHttps();
-    });*/
-});
+builder.AddCentralizedApiEndpoints();
 
 builder.Services.AddMediator(options =>
     {
@@ -77,7 +56,7 @@ var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?
 
 builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 {
-    opt.UseSqlServer(sqlConnectionString);
+    opt.UseSqlServer(sqlConnectionString, sql => sql.EnableRetryOnFailure());
 
     var domainEventInterceptor = new DomainEventInterceptor(
         sp.GetRequiredService<IMessageBus>(), localEventsQueue,
@@ -94,7 +73,10 @@ builder.Host.UseWolverine(opts =>
 
     var catalogExchange = builder.Configuration["Wolverine:CatalogExchange"] ?? throw new InvalidOperationException();
     var orderingExchange = builder.Configuration["Wolverine:OrderingExchange"] ?? throw new InvalidOperationException();
+    var paymentExchange = builder.Configuration["Wolverine:PaymentExchange"] ?? throw new InvalidOperationException();
     var orderingCatalogQueue = builder.Configuration["Wolverine:OrderingCatalogQueue"] ??
+                               throw new InvalidOperationException();
+    var orderingPaymentQueue = builder.Configuration["Wolverine:OrderingPaymentQueue"] ??
                                throw new InvalidOperationException();
 
     opts.UseRabbitMq(rabbitMqUrl)
@@ -103,12 +85,25 @@ builder.Host.UseWolverine(opts =>
         {
             ex.ExchangeType = ExchangeType.Topic;
             ex.BindTopic("catalog.category.created").ToQueue(orderingCatalogQueue);
+            ex.BindTopic("catalog.category.updated").ToQueue(orderingCatalogQueue);
+            ex.BindTopic("catalog.category.deleted").ToQueue(orderingCatalogQueue);
+            ex.BindTopic("catalog.product.created").ToQueue(orderingCatalogQueue);
+            ex.BindTopic("catalog.product.updated").ToQueue(orderingCatalogQueue);
+            ex.BindTopic("catalog.product.deleted").ToQueue(orderingCatalogQueue);
+        })
+        .DeclareExchange(paymentExchange, ex =>
+        {
+            ex.ExchangeType = ExchangeType.Topic;
+            ex.BindTopic("payment.completed").ToQueue(orderingPaymentQueue);
         })
         .DeclareQueue(orderingCatalogQueue)
+        .DeclareQueue(orderingPaymentQueue)
         .AutoProvision();
 
     opts.LocalQueue(localEventsQueue).MaximumParallelMessages(8);
+    opts.PublishAllMessages().ToRabbitTopics(orderingExchange);
     opts.ListenToRabbitQueue(orderingCatalogQueue);
+    opts.ListenToRabbitQueue(orderingPaymentQueue);
 
     opts.PersistMessagesWithSqlServer(sqlConnectionString, schema: "wolverine");
     opts.UseEntityFrameworkCoreTransactions();
@@ -146,8 +141,6 @@ app.MapControllers();
 app.MapOpenApi();
 app.MapGrpcService<OrderGrpcService>();
 
-using var scope = app.Services.CreateScope();
-var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-await db.Database.MigrateAsync();
+await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
 
 app.Run();

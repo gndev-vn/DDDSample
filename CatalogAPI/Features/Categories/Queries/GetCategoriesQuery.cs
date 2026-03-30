@@ -13,42 +13,35 @@ public record GetCategoriesQuery(string Name = "", string Slug = "", int Page = 
 public class GetCategoriesQueryHandler(AppDbContext dbContext)
     : IRequestHandler<GetCategoriesQuery, List<CategoryModel>>
 {
-    /// <summary>
-    /// Handles the GetCategoriesQuery by retrieving filtered, sorted, and paginated categories
-    /// </summary>
-    /// <param name="query">The query containing search and pagination parameters</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A list of category models matching the query criteria</returns>
     public async ValueTask<List<CategoryModel>> Handle(GetCategoriesQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(dbContext);
 
-        // Apply filtering
-        var categoriesQuery = ApplyFilters(dbContext.Categories, query);
+        var categoriesQuery = ApplySorting(ApplyFilters(dbContext.Categories.AsNoTracking(), query), query.Slug);
 
-        // Apply sorting
-        categoriesQuery = ApplySorting(categoriesQuery, query.Slug);
+        return await ApplyPaginationAndProjection(categoriesQuery, query.Page, query.PageSize);
+    }
 
-        // Apply pagination and projection
-        var categories = await ApplyPaginationAndProjection(
-            categoriesQuery,
-            query.Page,
-            query.PageSize);
+    private static IQueryable<Domain.Entities.Category> ApplyFilters(IQueryable<Domain.Entities.Category> categories,
+        GetCategoriesQuery query)
+    {
+        if (!string.IsNullOrWhiteSpace(query.Name))
+        {
+            categories = categories.Where(category => category.Name.Contains(query.Name));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Slug))
+        {
+            categories = categories.Where(category => category.Slug.Contains(query.Slug));
+        }
 
         return categories;
     }
 
-    private static IQueryable<Domain.Entities.Category> ApplyFilters(DbSet<Domain.Entities.Category> categories, GetCategoriesQuery query)
-    {
-        return categories.Where(p =>
-            p.Name.Contains(query.Name) ||
-            p.Slug.Contains(query.Slug));
-    }
-
     private static IQueryable<Domain.Entities.Category> ApplySorting(IQueryable<Domain.Entities.Category> query, string searchSlug)
     {
-        return string.IsNullOrEmpty(searchSlug)
+        return string.IsNullOrWhiteSpace(searchSlug)
             ? query.OrderBy(p => p.Name)
             : query.OrderBy(p => p.Slug);
     }

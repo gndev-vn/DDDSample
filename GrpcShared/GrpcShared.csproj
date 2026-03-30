@@ -7,9 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Protobuf" Version="3.33.0" />
+        <PackageReference Include="Google.Protobuf" Version="3.34.1" />
         <PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
-        <PackageReference Include="Grpc.Tools" Version="2.68.1" PrivateAssets="All" />
+        <PackageReference Include="Grpc.Tools" Version="2.68.1" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>
@@ -18,8 +18,8 @@
         <Protobuf Include="Common\decimal.proto" />
 
         <Protobuf Include="Order\Models\orderLineDto.proto" />
-        <Protobuf Include="Order\Models\orderDto.proto"/>
-        <Protobuf Include="Order\Services\orderSvc.proto" GrpcServices="Both" ProtoRoot="."/>
+        <Protobuf Include="Order\Models\orderDto.proto" />
+        <Protobuf Include="Order\Services\orderSvc.proto" GrpcServices="Both" ProtoRoot="." />
 
         <Protobuf Include="Catalog\Models\productVariantDto.proto" />
         <Protobuf Include="Catalog\Models\productDto.proto" />

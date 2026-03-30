@@ -7,13 +7,12 @@ namespace OrderingAPI.Domain.Configurations;
 public class ProductCacheConfiguration : IEntityTypeConfiguration<ProductCache>
 {
     private const string TableName = "ProductCaches";
-    private const string SchemaName = "ordering";
     private const int SkuMaxLength = 100;
     private const int NameMaxLength = 300;
     
     public void Configure(EntityTypeBuilder<ProductCache> builder)
     {
-        builder.ToTable(TableName, SchemaName);
+        builder.ToTable(TableName);
         builder.HasKey(x => x.Id);
         
         builder.Property(x => x.Sku)

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CatalogAPI.Domain.Configurations;
 
-public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVariant>
+public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVariant>
 {
     private const string TableName = "ProductVariants";
     private const int NameMaxLength = 200;

@@ -2,7 +2,7 @@
 
 ## System Overview
 
-This repository currently contains the three backend services and shared libraries shown below. The gateway in the first diagram is conceptual only; there is no API gateway project in this solution today.
+This repository currently contains the four backend services and shared libraries shown below. The gateway in the first diagram is conceptual only; there is no API gateway project in this solution today.
 
 ```mermaid
 graph TB
@@ -15,15 +15,16 @@ graph TB
     end
 
     subgraph "Microservices"
-        Identity[IdentityAPI<br/>Port: 8088/8089]
-        Catalog[CatalogAPI<br/>Port: 8080/8081]
-        Ordering[OrderingAPI<br/>Port: 8084/8085]
+        Identity[IdentityAPI<br/>Port: 9088/9089]
+        Catalog[CatalogAPI<br/>Port: 9080/9081]
+        Ordering[OrderingAPI<br/>Port: 9084/9085]
+        Payment[PaymentAPI<br/>Port: 9092/9093]
     end
 
     subgraph "Infrastructure"
         Redis[(Redis<br/>Token Blacklist<br/>Cache)]
         MongoDB[(MongoDB<br/>Identity Data)]
-        SQLServer[(SQL Server<br/>Catalog & Orders)]
+        SQLServer[(SQL Server<br/>Catalog, Orders & Payments)]
         RabbitMQ[RabbitMQ<br/>Message Bus]
     end
 
@@ -31,6 +32,7 @@ graph TB
     Gateway --> Identity
     Gateway --> Catalog
     Gateway --> Ordering
+    Gateway --> Payment
 
     Identity -->|JWT Auth| Redis
     Identity -->|User Data| MongoDB
@@ -44,9 +46,15 @@ graph TB
     Ordering -->|gRPC| Catalog
     Ordering -->|Validate Token| Redis
 
+    Payment -->|Payment Data| SQLServer
+    Payment -->|Events| RabbitMQ
+    Payment -->|gRPC| Ordering
+    Payment -->|Validate Token| Redis
+
     style Identity fill:#e1f5ff
     style Catalog fill:#fff4e1
     style Ordering fill:#f0e1ff
+    style Payment fill:#e1ffe8
 ```
 
 ## Microservices Architecture
@@ -90,10 +98,36 @@ graph LR
         OA_Handler --> OA_gRPC_Client
     end
 
+    subgraph "PaymentAPI"
+        PA_Controller[Controllers]
+        PA_Handler[CQRS Handlers]
+        PA_Domain[Domain Models]
+        PA_EF[Entity Framework]
+        PA_gRPC_Client[gRPC Client]
+
+        PA_Controller --> PA_Handler
+        PA_Handler --> PA_Domain
+        PA_Domain --> PA_EF
+        PA_Handler --> PA_gRPC_Client
+    end
+
     OA_gRPC_Client -.->|Product Info| CA_gRPC
+    PA_gRPC_Client -.->|Order Info| OA_Controller
 ```
 
 ## Service Layering
+
+## Centralized Endpoint Configuration
+
+HTTP and gRPC listener configuration is now centralized in `Shared/Hosting/ApiEndpointConfigurationExtensions.cs`.
+Each API keeps its own `Hosting` section in `appsettings*.json`, but the Kestrel binding logic, validation, and protocol assignment now live in one shared place.
+
+Operational notes:
+- `Hosting:Restful:Http` is bound as HTTP/1.1 for REST controllers and OpenAPI.
+- `Hosting:Grpc:Http` is bound as HTTP/2 for internal gRPC traffic.
+- `ApiEndpointOptionsValidator` fails fast on invalid or duplicate ports during startup.
+- `docker-compose.yaml` no longer overrides listener URLs with `ASPNETCORE_URLS`; the `Hosting` section is the runtime source of truth.
+- `launchSettings.json` values were aligned with the configured development ports to reduce local debugging drift.
 
 Each microservice is implemented as a single deployable project with folder-based layering:
 
@@ -203,28 +237,84 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    subgraph "CatalogAPI"
-        CA_Domain[Domain Events]
-        CA_Interceptor[Domain Event Interceptor]
-        CA_Wolverine[Wolverine]
+    subgraph "OrderingAPI"
+        OA_Domain[Order Domain Events]
+        OA_Wolverine[Wolverine]
+        OA_Handler[Payment Event Handler]
+    end
+
+    subgraph "PaymentAPI"
+        PA_Handler[Order Event Handler]
+        PA_Domain[Payment Domain Events]
+        PA_Wolverine[Wolverine]
     end
 
     subgraph "RabbitMQ"
-        Exchange[catalog.exchange]
-        Queue[ordering-catalog.queue]
+        OrderingExchange[ordering.exchange]
+        PaymentExchange[payment.exchange]
+        PaymentQueue[payment-ordering.queue]
+        OrderingQueue[ordering-payment.queue]
     end
 
-    subgraph "OrderingAPI"
-        OA_Wolverine[Wolverine]
-        OA_Handler[Event Handlers]
-    end
+    OA_Domain -->|ordering.order.created| OA_Wolverine
+    OA_Wolverine --> OrderingExchange
+    OrderingExchange --> PaymentQueue
+    PaymentQueue --> PA_Handler
 
-    CA_Domain -->|Save Changes| CA_Interceptor
-    CA_Interceptor -->|Publish| CA_Wolverine
-    CA_Wolverine -->|catalog.category.created| Exchange
-    Exchange --> Queue
-    Queue --> OA_Wolverine
-    OA_Wolverine --> OA_Handler
+    PA_Domain -->|payment.completed| PA_Wolverine
+    PA_Wolverine --> PaymentExchange
+    PaymentExchange --> OrderingQueue
+    OrderingQueue --> OA_Handler
+```
+
+## Catalog product variant events
+
+Catalog variant writes now follow the same domain-event flow as products:
+
+- `CreateProductVariantCommand`, `UpdateProductVariantCommand`, and `DeleteProductVariantCommand` load the owning `Product` aggregate and mutate variants through aggregate methods rather than writing `DbSet<ProductVariant>` directly.
+- The `Product` aggregate raises `ProductVariantCreatedDomainEvent`, `ProductVariantUpdatedDomainEvent`, and `ProductVariantDeletedDomainEvent`.
+- Wolverine handlers translate those domain events into integration events on RabbitMQ topics:
+  - `catalog.product-variant.created`
+  - `catalog.product-variant.updated`
+  - `catalog.product-variant.deleted`
+- Variant create/update requests are validated with FluentValidation before handlers execute.
+- `ProductVariantsController` remains transport-only and documents response metadata for OpenAPI generation.
+
+### Variant event payload and behavior
+
+- Event payloads include `Id`, `ProductId`, `Sku`, and the effective price fields required by downstream consumers.
+- For create/update, the published price is the variant override price when present; otherwise the product base price is used.
+- Delete events include the removed variant identifier, owning product identifier, and SKU.
+- Variant updates do not support moving a variant between products; `ParentId` identifies the owning aggregate for the command.
+
+### Storage, cache, and operations impact
+
+- Storage remains in the existing Catalog relational store via EF Core.
+- No Redis cache is involved, so there are no cache keys, TTLs, or invalidation changes.
+- No Azure, deployment, or CI/CD changes are required for this feature.
+- Downstream services can now subscribe to variant-specific catalog topics independently from product topics.
+
+## Payment Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Ordering
+    participant RabbitMQ
+    participant Payment
+    participant OrderingGrpc as Ordering gRPC
+
+    Client->>Ordering: Create order
+    Ordering->>RabbitMQ: ordering.order.created
+    RabbitMQ->>Payment: OrderCreatedEvent
+    Payment->>OrderingGrpc: GetById(orderId)
+    OrderingGrpc-->>Payment: Order snapshot
+    Payment->>Payment: Create pending payment
+
+    Client->>Payment: Complete payment
+    Payment->>RabbitMQ: payment.completed
+    RabbitMQ->>Ordering: PaymentCompletedEvent
+    Ordering->>Ordering: Mark order as paid
 ```
 
 ## Data Flow

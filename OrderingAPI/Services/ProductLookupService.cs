@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using OrderingAPI.Database;
 using OrderingAPI.Domain;
 using OrderingAPI.Domain.Entities;
 using OrderingAPI.Features.ProductsCache.Models;
@@ -34,7 +33,7 @@ public sealed class ProductLookupService(
         foreach (var key in keys)
         {
             var cachedProduct = await cache.GetOrCreateAsync<ProductCacheModel?>(Key(key),
-                async (token) => await GetFromDbAsync(key, token), cancellationToken: ct);
+                async token => await GetFromDbAsync(key, token), cancellationToken: ct);
             if (cachedProduct == null)
             {
                 missingProductsInCache.Add(key);
@@ -67,6 +66,7 @@ public sealed class ProductLookupService(
             .Select(x => new ProductCacheModel
             {
                 Id = x.Id,
+                Sku = x.Sku,
                 Name = x.Name,
                 Currency = x.Currency,
                 CurrentPrice = x.CurrentPrice,
@@ -82,6 +82,7 @@ public sealed class ProductLookupService(
         return batch.Select(x => new ProductCacheModel
         {
             Id = x.Id,
+            Sku = x.Sku,
             Name = x.Name,
             Currency = x.Currency,
             CurrentPrice = x.CurrentPrice,
@@ -109,24 +110,28 @@ public sealed class ProductLookupService(
         {
             if (existingProducts.TryGetValue(pr.Id, out var existing))
             {
+                existing.Sku = pr.Sku;
                 existing.Name = pr.Name;
                 existing.Currency = pr.Currency;
                 existing.CurrentPrice = pr.CurrentPrice;
                 existing.ImageUrl = pr.ImageUrl;
                 existing.IsActive = pr.IsActive;
                 existing.LastUpdatedUtc = now;
+                existing.UpdatedAtUtc = now;
             }
             else
             {
                 db.ProductCaches.Add(new ProductCache
                 {
                     Id = pr.Id,
+                    Sku = pr.Sku,
                     Name = pr.Name,
                     Currency = pr.Currency,
                     CurrentPrice = pr.CurrentPrice,
                     ImageUrl = pr.ImageUrl,
                     IsActive = pr.IsActive,
-                    LastUpdatedUtc = now
+                    LastUpdatedUtc = now,
+                    UpdatedAtUtc = now
                 });
             }
         }

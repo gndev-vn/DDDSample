@@ -9,7 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<ProductCache> ProductCaches => Set<ProductCache>();
-    public DbSet<CategoryCache> CategoryCaches { get; set; }
+    public DbSet<CategoryCache> CategoryCaches => Set<CategoryCache>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

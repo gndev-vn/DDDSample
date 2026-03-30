@@ -15,19 +15,12 @@ public sealed class ProductVariant : Entity
     public ProductVariant(string name, string sku, string description, Money? overridePrice = null,
         IEnumerable<VariantAttribute>? attributes = null)
     {
-        if (string.IsNullOrWhiteSpace(sku))
-        {
-            throw new ArgumentException("sku required", nameof(sku));
-        }
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("name required", nameof(name));
-        }
+        GuardNotNullOrWhiteSpace(sku, nameof(sku));
+        GuardNotNullOrWhiteSpace(name, nameof(name));
 
         Name = name.Trim();
         Sku = sku.Trim();
-        Description = description;
+        Description = description ?? string.Empty;
         OverridePrice = overridePrice;
 
         if (attributes is null)
@@ -46,19 +39,14 @@ public sealed class ProductVariant : Entity
     public string Description { get; private set; } = string.Empty;
     public Money? OverridePrice { get; private set; }
     public bool IsActive { get; private set; } = true;
-
-    // Expose as read-only collection to protect invariants
     public IReadOnlyCollection<VariantAttribute> Attributes => _attributes;
-
     public Product? Product { get; set; }
     public Guid ProductId { get; set; }
 
-    // Domain operations
     public void AddOrReplaceAttribute(VariantAttribute attribute)
     {
         ArgumentNullException.ThrowIfNull(attribute);
-        var index =
-            _attributes.FindIndex(a => string.Equals(a.Name, attribute.Name, StringComparison.OrdinalIgnoreCase));
+        var index = _attributes.FindIndex(a => string.Equals(a.Name, attribute.Name, StringComparison.OrdinalIgnoreCase));
         if (index >= 0)
         {
             _attributes[index] = attribute;
@@ -86,6 +74,17 @@ public sealed class ProductVariant : Entity
         return true;
     }
 
+    public void UpdateDetails(string name, string sku, string description, Money? overridePrice)
+    {
+        GuardNotNullOrWhiteSpace(name, nameof(name));
+        GuardNotNullOrWhiteSpace(sku, nameof(sku));
+
+        Name = name.Trim();
+        Sku = sku.Trim();
+        Description = description ?? string.Empty;
+        OverridePrice = overridePrice;
+    }
+
     public void SetOverridePrice(Money? newPrice) => OverridePrice = newPrice;
 
     public void Rename(string newName)
@@ -98,7 +97,7 @@ public sealed class ProductVariant : Entity
         Name = newName.Trim();
     }
 
-    public void SetDescription(string description) => Description = description;
+    public void SetDescription(string description) => Description = description ?? string.Empty;
 
     public void Deactivate()
     {
@@ -116,6 +115,15 @@ public sealed class ProductVariant : Entity
         }
     }
 
-    public static ProductVariant Create(string name, string description, string sku, Money overridePrice, List<VariantAttribute> attributes)
-        => new(name, description, sku, overridePrice, attributes);
+    public static ProductVariant Create(string name, string sku, string description, Money? overridePrice,
+        IEnumerable<VariantAttribute>? attributes)
+        => new(name, sku, description, overridePrice, attributes);
+
+    private static void GuardNotNullOrWhiteSpace(string? value, string paramName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException($"{paramName} required", paramName);
+        }
+    }
 }

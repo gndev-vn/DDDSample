@@ -21,7 +21,7 @@ public class CreateCategoryCommandHandler(AppDbContext dbContext)
     /// <returns>A <see cref="CategoryModel"/> representing the created category, or null if the operation fails.</returns>
     public async ValueTask<CategoryModel> Handle(CreateCategoryCommand command, CancellationToken cancellationToken)
     {
-        if (command.Model.ParentId != Guid.Empty)
+        if (command.Model.ParentId != null)
         {
             var parentExists = await dbContext.Categories.AnyAsync(x => x.Id == command.Model.ParentId, cancellationToken);
             if (!parentExists)
@@ -30,7 +30,7 @@ public class CreateCategoryCommandHandler(AppDbContext dbContext)
             }
         }
 
-        Guid? parentId = command.Model.ParentId == Guid.Empty ? null : command.Model.ParentId;
+        var parentId = command.Model.ParentId;
         var category = new Category(command.Model.Name, command.Model.Description, command.Model.Slug, parentId: parentId);
         await dbContext.Categories.AddAsync(category, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);

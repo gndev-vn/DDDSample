@@ -7,12 +7,12 @@ using IdentityAPI.Domain.Identity;
 using IdentityAPI.Features.Auth.Services;
 using IdentityAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using Shared.Hosting;
 using Shared.Middleware;
 using Shared.Models;
 using Shared.Services;
@@ -20,14 +20,7 @@ using Shared.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    var restfulHttpPort = builder.Configuration["Hosting:Restful:Http"] ?? throw new InvalidOperationException();
-    var grpcHttpPort = builder.Configuration["Hosting:Grpc:Http"] ?? throw new InvalidOperationException();
-
-    options.ListenAnyIP(int.Parse(restfulHttpPort), o => o.Protocols = HttpProtocols.Http1);
-    options.ListenAnyIP(int.Parse(grpcHttpPort), o => o.Protocols = HttpProtocols.Http2);
-});
+builder.AddCentralizedApiEndpoints();
 
 builder.Services.AddScoped<RequestValidationActionFilter>();
 builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());

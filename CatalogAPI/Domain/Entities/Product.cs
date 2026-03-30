@@ -26,11 +26,13 @@ public sealed class Product : EntityWithEvents
         AddDomainEvent(new ProductCreatedDomainEvent
         {
             Id = Id,
+            Sku = Slug,
             Name = Name,
             Currency = BasePrice.Currency,
             Slug = Slug,
             CurrentPrice = BasePrice.Amount,
-            ImageUrl = ImageUrl
+            ImageUrl = ImageUrl,
+            IsActive = IsActive
         });
     }
 
@@ -50,8 +52,73 @@ public sealed class Product : EntityWithEvents
         GuardNotNullOrWhiteSpace(name, nameof(name));
         GuardNotNullOrWhiteSpace(sku, nameof(sku));
 
-        var variant = new ProductVariant(name, sku, description, overridePrice, attributes);
+        if (TryGetVariantBySku(sku, out _))
+        {
+            throw new InvalidOperationException($"Variant sku '{sku}' already exists for product '{Id}'.");
+        }
+
+        var variant = new ProductVariant(name, sku, description, overridePrice, attributes)
+        {
+            Product = this,
+            ProductId = Id
+        };
+
         _variants.Add(variant);
+        var price = ResolveVariantPrice(variant);
+        AddDomainEvent(new ProductVariantCreatedDomainEvent
+        {
+            Id = variant.Id,
+            ProductId = Id,
+            Sku = variant.Sku,
+            Name = variant.Name,
+            CurrentPrice = price.Amount,
+            Currency = price.Currency,
+            IsActive = variant.IsActive
+        });
+
+        return variant;
+    }
+
+    public ProductVariant UpdateVariant(Guid variantId, string name, string sku, string description,
+        Money? overridePrice = null)
+    {
+        var variant = GetVariantById(variantId);
+        var normalizedSku = sku.Trim();
+
+        if (!string.Equals(variant.Sku, normalizedSku, StringComparison.OrdinalIgnoreCase)
+            && TryGetVariantBySku(normalizedSku, out _))
+        {
+            throw new InvalidOperationException($"Variant sku '{sku}' already exists for product '{Id}'.");
+        }
+
+        variant.UpdateDetails(name, normalizedSku, description, overridePrice);
+        var price = ResolveVariantPrice(variant);
+        AddDomainEvent(new ProductVariantUpdatedDomainEvent
+        {
+            Id = variant.Id,
+            ProductId = Id,
+            Sku = variant.Sku,
+            Name = variant.Name,
+            CurrentPrice = price.Amount,
+            Currency = price.Currency,
+            IsActive = variant.IsActive
+        });
+
+        return variant;
+    }
+
+    public ProductVariant RemoveVariant(Guid variantId)
+    {
+        var variant = GetVariantById(variantId);
+        _variants.Remove(variant);
+
+        AddDomainEvent(new ProductVariantDeletedDomainEvent
+        {
+            Id = variant.Id,
+            ProductId = Id,
+            Sku = variant.Sku
+        });
+
         return variant;
     }
 
@@ -89,6 +156,7 @@ public sealed class Product : EntityWithEvents
 
     public void Deactivate() => IsActive = false;
     public void Activate() => IsActive = true;
+    public void MarkDeleted() => AddDomainEvent(new ProductDeletedDomainEvent { Id = Id });
 
     public static Product Create(string name, string description, string slug, Money basePrice, bool isActive = true)
         => new(name, description, slug, basePrice, isActive);
@@ -106,8 +174,30 @@ public sealed class Product : EntityWithEvents
         IsActive = isActive;
         AddDomainEvent(new ProductUpdatedDomainEvent
         {
-            Id = Id
+            Id = Id,
+            Name = Name,
+            CurrentPrice = BasePrice.Amount,
+            Currency = BasePrice.Currency,
+            Slug = Slug,
+            ImageUrl = ImageUrl,
+            IsActive = IsActive
         });
+    }
+
+    private ProductVariant GetVariantById(Guid variantId)
+    {
+        var variant = _variants.FirstOrDefault(v => v.Id == variantId);
+        return variant ?? throw new System.Collections.Generic.KeyNotFoundException("Invalid product variant id");
+    }
+
+    private Money ResolveVariantPrice(ProductVariant variant)
+    {
+        if (variant.OverridePrice is not null)
+        {
+            return variant.OverridePrice;
+        }
+
+        return BasePrice ?? throw new InvalidOperationException("Product base price must be set before managing variants.");
     }
 
     private static void GuardNotNullOrWhiteSpace(string? value, string paramName)

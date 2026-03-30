@@ -4,7 +4,7 @@ using Wolverine;
 
 namespace CatalogAPI.Domain.Events;
 
-public class CategoryUpdatedDomainEvent : DomainEvent
+public sealed class CategoryUpdatedDomainEvent : DomainEvent
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -14,12 +14,12 @@ public class CategoryUpdatedDomainEvent : DomainEvent
     public string Description { get; set; } = string.Empty;
 }
 
-public class CategoryUpdatedDomainEventHandler
+public sealed class CategoryUpdatedDomainEventHandler
 {
     public async Task HandleAsync(CategoryUpdatedDomainEvent @event, IMessageBus bus,
         ILogger<CategoryUpdatedDomainEventHandler> logger)
     {
-        logger.LogInformation("Category updated: {@event}", @event);
+        logger.LogInformation("[CatalogAPI] Publishing CategoryUpdatedEvent for category {CategoryId}", @event.Id);
         await bus.PublishAsync(new CategoryUpdatedEvent
         {
             Id = @event.Id,
