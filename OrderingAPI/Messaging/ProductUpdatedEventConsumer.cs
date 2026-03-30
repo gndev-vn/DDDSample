@@ -10,7 +10,7 @@ public class ProductUpdatedEventConsumer
     public static async Task HandleAsync(ProductUpdatedEvent @event, ILogger<ProductUpdatedEventConsumer> logger,
         AppDbContext dbContext, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Consumed product updated event {Id}", @event.Id);
+        logger.LogInformation("[OrderingAPI] Consuming ProductUpdatedEvent for product {ProductId}", @event.Id);
         var now = DateTime.UtcNow;
         var cache = await dbContext.ProductCaches.FirstOrDefaultAsync(x => x.Id == @event.Id, cancellationToken);
         if (cache is null)

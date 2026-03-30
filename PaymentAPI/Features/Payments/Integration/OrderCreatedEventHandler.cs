@@ -18,7 +18,8 @@ public class OrderCreatedEventHandler
         var exists = await dbContext.Payments.AnyAsync(x => x.OrderId == @event.Id, cancellationToken);
         if (exists)
         {
-            logger.LogInformation("Payment already exists for order {OrderId}; skipping duplicate order-created event", @event.Id);
+            logger.LogInformation("[PaymentAPI] Payment already exists for order {OrderId}; skipping duplicate OrderCreatedEvent",
+                @event.Id);
             return;
         }
 
@@ -28,6 +29,6 @@ public class OrderCreatedEventHandler
         await dbContext.Payments.AddAsync(payment, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Created pending payment {PaymentId} for order {OrderId}", payment.Id, payment.OrderId);
+        logger.LogInformation("[PaymentAPI] Created pending payment {PaymentId} for order {OrderId}", payment.Id, payment.OrderId);
     }
 }

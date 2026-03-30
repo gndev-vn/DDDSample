@@ -10,10 +10,10 @@ public class ProductCreatedEventConsumer
     public static async Task HandleAsync(ProductCreatedEvent @event, ILogger<ProductCreatedEventConsumer> logger,
         AppDbContext dbContext, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Consumed product created event {Id}", @event.Id);
+        logger.LogInformation("[OrderingAPI] Consuming ProductCreatedEvent for product {ProductId} ({Sku})", @event.Id, @event.Sku);
         if (await dbContext.ProductCaches.AnyAsync(x => x.Id == @event.Id || x.Sku == @event.Sku, cancellationToken))
         {
-            logger.LogInformation("Product already exists {Id}", @event.Id);
+            logger.LogInformation("[OrderingAPI] Product cache already exists for product {ProductId}; skipping ProductCreatedEvent", @event.Id);
             return;
         }
 

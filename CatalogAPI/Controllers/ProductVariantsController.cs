@@ -2,6 +2,7 @@ using CatalogAPI.Features.Products.Commands;
 using CatalogAPI.Features.Products.Models;
 using CatalogAPI.Features.Products.Queries;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
@@ -43,9 +44,12 @@ public class ProductVariantsController(IMediator mediator) : ControllerBase
     /// <summary>
     /// Creates a product variant for an existing product.
     /// </summary>
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<ProductVariantResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] ProductVariantCreateRequest model)
     {
         var result = await mediator.Send(new CreateProductVariantCommand(model));
@@ -56,15 +60,18 @@ public class ProductVariantsController(IMediator mediator) : ControllerBase
     /// <summary>
     /// Updates a product variant.
     /// </summary>
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ProductVariantResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] ProductVariantUpdateRequest model)
     {
         if (model.Id != id)
         {
-            return BadRequest("Id in route and model id not match");
+            return BadRequest("Id in route and model id must match");
         }
 
         var result = await mediator.Send(new UpdateProductVariantCommand(model));
@@ -74,8 +81,11 @@ public class ProductVariantsController(IMediator mediator) : ControllerBase
     /// <summary>
     /// Deletes a product variant.
     /// </summary>
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {

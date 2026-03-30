@@ -15,14 +15,14 @@ public class PaymentCompletedEventHandler
         var order = await dbContext.Orders.SingleOrDefaultAsync(x => x.Id == @event.OrderId, cancellationToken);
         if (order == null)
         {
-            logger.LogWarning("Order {OrderId} was not found for completed payment {PaymentId}", @event.OrderId,
+            logger.LogWarning("[OrderingAPI] Order {OrderId} was not found for PaymentCompletedEvent from payment {PaymentId}", @event.OrderId,
                 @event.PaymentId);
             return;
         }
 
         if (order.Status == OrderStatus.Paid)
         {
-            logger.LogInformation("Order {OrderId} is already marked as paid; ignoring duplicate payment event {PaymentId}",
+            logger.LogInformation("[OrderingAPI] Order {OrderId} is already marked as paid; skipping duplicate PaymentCompletedEvent from payment {PaymentId}",
                 @event.OrderId, @event.PaymentId);
             return;
         }
@@ -30,7 +30,7 @@ public class PaymentCompletedEventHandler
         order.Pay();
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Order {OrderId} marked as paid from payment event {PaymentId}", @event.OrderId,
+        logger.LogInformation("[OrderingAPI] Marked order {OrderId} as paid from PaymentCompletedEvent {PaymentId}", @event.OrderId,
             @event.PaymentId);
     }
 }

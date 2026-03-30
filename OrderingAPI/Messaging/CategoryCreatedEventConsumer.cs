@@ -17,12 +17,13 @@ public class CategoryCreatedEventConsumer
     {
         try
         {
-            logger.LogInformation("[OrderingAPI] Successfully processed CategoryCreatedEvent for category {Name} ({Id})",
-                @event.Name, @event.Id);
+            logger.LogInformation("[OrderingAPI] Consuming CategoryCreatedEvent for category {CategoryId} ({CategoryName})",
+                @event.Id, @event.Name);
             var category = @event.Adapt<CategoryCache>();
             if (await dbContext.CategoryCaches.AnyAsync(x => x.Id == category.Id, cancellationToken))
             {
-                logger.LogInformation("Category already exists {Id}", @event.Id);
+                logger.LogInformation("[OrderingAPI] Category cache already exists for category {CategoryId}; skipping CategoryCreatedEvent",
+                    @event.Id);
                 return;
             }
 
@@ -31,7 +32,7 @@ public class CategoryCreatedEventConsumer
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[OrderingAPI] Error processing CategoryCreatedEvent: {@Event}", @event);
+            logger.LogError(ex, "[OrderingAPI] Error consuming CategoryCreatedEvent: {@Event}", @event);
             throw;
         }
     }

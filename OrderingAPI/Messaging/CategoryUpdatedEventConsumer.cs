@@ -10,7 +10,7 @@ public class CategoryUpdatedEventConsumer
     public static async Task HandleAsync(CategoryUpdatedEvent @event, ILogger<CategoryUpdatedEventConsumer> logger,
         AppDbContext dbContext, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Consumed category updated event {Id}", @event.Id);
+        logger.LogInformation("[OrderingAPI] Consuming CategoryUpdatedEvent for category {CategoryId}", @event.Id);
         var cache = await dbContext.CategoryCaches.FirstOrDefaultAsync(x => x.Id == @event.Id, cancellationToken);
         if (cache is null)
         {

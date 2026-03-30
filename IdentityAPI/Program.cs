@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using AspNetCore.Identity.MongoDbCore.Extensions;
+using IdentityAPI.Configuration;
 using AspNetCore.Identity.MongoDbCore.Infrastructure;
 using FluentValidation;
 using IdentityAPI.Domain.Identity;
@@ -39,6 +40,7 @@ BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(BsonType.String))
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDB"));
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.Configure<IdentitySeedOptions>(builder.Configuration.GetSection("IdentitySeed"));
 
 var mongoDbSettings = builder.Configuration.GetSection("MongoDB").Get<MongoDbSettings>();
 var mongoDbIdentityConfig = new MongoDbIdentityConfiguration
@@ -94,11 +96,18 @@ builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ILoginResponseFactory, LoginResponseFactory>();
 builder.Services.AddScoped<IIdentityAccountService, IdentityAccountService>();
+builder.Services.AddScoped<IdentitySeedService>();
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddSingleton<IValidateOptions<GoogleSettings>, GoogleSettingsValidator>();
 
 var app = builder.Build();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var identitySeedService = scope.ServiceProvider.GetRequiredService<IdentitySeedService>();
+    await identitySeedService.SeedAsync();
+}
 
 app.UseGlobalExceptionHandler();
 app.UseRouting();

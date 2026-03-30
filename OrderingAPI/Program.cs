@@ -6,10 +6,11 @@ using OrderingAPI.Domain;
 using OrderingAPI.Services;
 using OrderingAPI.Services.Grpc;
 using Shared.Authentication;
-using Shared.Hosting;
 using Shared.Extensions;
+using Shared.Hosting;
 using Shared.Interceptors;
 using Shared.Middleware;
+using Shared.Services;
 using Shared.Validation;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
@@ -38,7 +39,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
-builder.Services.AddScoped<Shared.Services.ITokenBlacklistService, Shared.Services.TokenBlacklistService>();
+builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 builder.Services.AddStackExchangeRedisCache(o =>
 {
     o.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379";
@@ -143,4 +144,6 @@ app.MapGrpcService<OrderGrpcService>();
 
 await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
 
-app.Run();
+await app.StartAsync();
+await WolverineSqlServerDurabilityIndexingExtensions.EnsureWolverineSqlServerDurabilityIndexesAsync(sqlConnectionString, app.Logger);
+await app.WaitForShutdownAsync();

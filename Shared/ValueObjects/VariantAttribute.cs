@@ -6,9 +6,8 @@ public sealed class VariantAttribute : ValueObject
 {
     public VariantAttribute()
     {
-        
     }
-    
+
     public VariantAttribute(string name, string value)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -25,9 +24,9 @@ public sealed class VariantAttribute : ValueObject
         Value = value;
     }
 
-    public string Name { get; } = string.Empty;
-    
-    public string Value { get; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+
+    public string Value { get; init; } = string.Empty;
 
     protected override IEnumerable<object?> GetEqualityComponents()
     {

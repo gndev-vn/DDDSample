@@ -32,7 +32,7 @@ public record AssignRoleCommandHandler(UserManager<ApplicationUser> UserManager)
 
         return new AssignRolesResponse(
             Success: true,
-            Message: "Role created successfully",
+            Message: "Roles assigned successfully",
             RoleIds: normalizedRoles.ToList()
         );
     }

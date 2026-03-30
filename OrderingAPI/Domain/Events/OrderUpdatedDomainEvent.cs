@@ -17,8 +17,8 @@ public class OrderUpdatedDomainEventHandler
 {
     public static async Task HandleAsync(OrderUpdatedDomainEvent @event, IMessageBus bus, ILogger logger)
     {
-        logger.LogInformation("Order updated {OrderId} with total {Total}",
-            @event.Id, @event.Total);
+        logger.LogInformation("[OrderingAPI] Publishing OrderUpdatedEvent for order {OrderId} with total {Total} {Currency}",
+            @event.Id, @event.Total, @event.Currency);
         await bus.PublishAsync(new OrderUpdatedEvent
         {
             Id = @event.Id,

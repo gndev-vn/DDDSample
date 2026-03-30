@@ -20,7 +20,8 @@ public sealed class ProductVariantCreatedDomainEventHandler
     public static async Task Handle(ProductVariantCreatedDomainEvent @event, IMessageBus bus,
         ILogger<ProductVariantCreatedDomainEventHandler> logger)
     {
-        logger.LogInformation("Received ProductVariantCreated event for product variant {ProductVariantId}", @event.Id);
+        logger.LogInformation("[CatalogAPI] Publishing ProductVariantCreatedEvent for product variant {ProductVariantId} ({Sku})",
+            @event.Id, @event.Sku);
         await bus.PublishAsync(new ProductVariantCreatedEvent
         {
             Id = @event.Id,

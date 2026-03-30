@@ -1,6 +1,7 @@
 using System.Reflection;
 using CatalogAPI.Controllers;
 using CatalogAPI.Features.Products.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
@@ -31,6 +32,21 @@ public sealed class ProductVariantControllerContractTests
         Assert.Contains(metadata, attribute =>
             attribute.StatusCode == StatusCodes.Status201Created &&
             attribute.Type == typeof(ApiResponse<ProductVariantResponse>));
+    }
+
+    [Theory]
+    [InlineData(nameof(ProductVariantsController.Create))]
+    [InlineData(nameof(ProductVariantsController.Update))]
+    [InlineData(nameof(ProductVariantsController.Delete))]
+    public void Write_Actions_RequireAdminRole(string actionName)
+    {
+        var method = typeof(ProductVariantsController).GetMethod(actionName,
+            BindingFlags.Instance | BindingFlags.Public)!;
+
+        var authorizeAttribute = method.GetCustomAttribute<AuthorizeAttribute>();
+
+        Assert.NotNull(authorizeAttribute);
+        Assert.Equal("Admin", authorizeAttribute!.Roles);
     }
 
     [Fact]

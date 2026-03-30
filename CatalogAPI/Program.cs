@@ -82,6 +82,7 @@ builder.Host.UseWolverine(opts =>
     opts.Policies.UseDurableLocalQueues();
 });
 
+
 var app = builder.Build();
 
 // Global exception handler
@@ -112,4 +113,6 @@ app.MapGrpcService<CategoryGrpcService>();
 await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
 
 // Start the application
-await app.RunAsync();
+await app.StartAsync();
+await WolverineSqlServerDurabilityIndexingExtensions.EnsureWolverineSqlServerDurabilityIndexesAsync(sqlConnectionString, app.Logger);
+await app.WaitForShutdownAsync();

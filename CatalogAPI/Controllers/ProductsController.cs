@@ -2,9 +2,11 @@ using CatalogAPI.Features.Products.Commands;
 using CatalogAPI.Features.Products.Queries;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
 using ProductCreateModel = CatalogAPI.Features.Products.Models.ProductCreateRequest;
+using ProductResponseModel = CatalogAPI.Features.Products.Models.ProductResponse;
 using ProductUpdateModel = CatalogAPI.Features.Products.Models.ProductUpdateRequest;
 
 namespace CatalogAPI.Controllers;
@@ -14,6 +16,7 @@ namespace CatalogAPI.Controllers;
 public class ProductsController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<List<ProductResponseModel>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var products = await mediator.Send(new GetProductsQuery());
@@ -21,6 +24,8 @@ public class ProductsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ProductResponseModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var product = await mediator.Send(new GetProductByIdQuery(id));
@@ -32,8 +37,12 @@ public class ProductsController(IMediator mediator) : ControllerBase
         return Ok(ApiResponse.Success(product, "Product retrieved successfully"));
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
-    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<ProductResponseModel>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] ProductCreateModel model)
     {
         var result = await mediator.Send(new CreateProductCommand(model));
@@ -41,20 +50,30 @@ public class ProductsController(IMediator mediator) : ControllerBase
             ApiResponse.Success(result, "Product created successfully"));
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
-    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<ProductResponseModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpdateModel model)
     {
         if (model.Id != id)
         {
-            return BadRequest("Id in route and model id not match");
+            return BadRequest("Id in route and model id must match");
         }
+
         var result = await mediator.Send(new UpdateProductCommand(model));
         return Ok(ApiResponse.Success(result, "Product updated successfully"));
     }
 
-    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await mediator.Send(new DeleteProductCommand(id));

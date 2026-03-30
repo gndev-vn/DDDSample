@@ -1,4 +1,5 @@
 using Mediator;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OrderingAPI.Features.Orders.Commands;
 using OrderingAPI.Features.Orders.Models;
@@ -12,6 +13,7 @@ namespace OrderingAPI.Controllers;
 public class OrdersController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<List<OrderModel>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var orders = await mediator.Send(new GetOrdersQuery());
@@ -19,6 +21,8 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<OrderModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var order = await mediator.Send(new GetOrderByIdQuery(id));
@@ -32,6 +36,8 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<OrderModel>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateOrderModel request)
     {
         var result = await mediator.Send(new CreateOrderCommand(
@@ -45,6 +51,8 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/pay")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Pay(Guid id)
     {
         var result = await mediator.Send(new PayOrderCommand(id));
@@ -52,6 +60,8 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/cancel")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Cancel(Guid id)
     {
         var result = await mediator.Send(new CancelOrderCommand(id));
@@ -59,6 +69,8 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await mediator.Send(new DeleteOrderCommand(id));

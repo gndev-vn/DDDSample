@@ -1,4 +1,5 @@
 using Mediator;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PaymentAPI.Features.Payments.Commands;
 using PaymentAPI.Features.Payments.Models;
@@ -12,6 +13,7 @@ namespace PaymentAPI.Controllers;
 public class PaymentsController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<List<PaymentModel>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var payments = await mediator.Send(new GetPaymentsQuery());
@@ -19,6 +21,8 @@ public class PaymentsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var payment = await mediator.Send(new GetPaymentByIdQuery(id));
@@ -31,6 +35,8 @@ public class PaymentsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("orders/{orderId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByOrderId(Guid orderId)
     {
         var payment = await mediator.Send(new GetPaymentByOrderIdQuery(orderId));
@@ -43,6 +49,9 @@ public class PaymentsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/complete")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Complete(Guid id, [FromBody] CompletePaymentRequest request)
     {
         var payment = await mediator.Send(new CompletePaymentCommand(id, request.TransactionReference));
@@ -50,6 +59,9 @@ public class PaymentsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/fail")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Fail(Guid id, [FromBody] FailPaymentRequest request)
     {
         var payment = await mediator.Send(new FailPaymentCommand(id, request.Reason));

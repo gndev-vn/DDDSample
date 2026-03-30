@@ -16,7 +16,8 @@ public sealed class ProductVariantDeletedDomainEventHandler
     public static async Task Handle(ProductVariantDeletedDomainEvent @event, IMessageBus bus,
         ILogger<ProductVariantDeletedDomainEventHandler> logger)
     {
-        logger.LogInformation("Received ProductVariantDeleted event for product variant {ProductVariantId}", @event.Id);
+        logger.LogInformation("[CatalogAPI] Publishing ProductVariantDeletedEvent for product variant {ProductVariantId} ({Sku})",
+            @event.Id, @event.Sku);
         await bus.PublishAsync(new ProductVariantDeletedEvent
         {
             Id = @event.Id,

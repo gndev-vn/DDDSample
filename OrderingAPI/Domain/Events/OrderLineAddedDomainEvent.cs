@@ -17,8 +17,8 @@ public class OrderLineAddedDomainEventHandler
 {
     public static async Task HandleAsync(OrderLineAddedDomainEvent @event, IMessageBus bus, ILogger logger)
     {
-        logger.LogInformation("Order line {LineId} added to order {OrderId} with quantity of {Quantity}",
-            @event.OrderLineId, @event.OrderId, @event.Quantity);
+        logger.LogInformation("[OrderingAPI] Publishing OrderLineAddedEvent for order {OrderId}, line {OrderLineId}, quantity {Quantity}",
+            @event.OrderId, @event.OrderLineId, @event.Quantity);
         await bus.PublishAsync(new OrderLineAddedEvent
         {
             OrderId = @event.OrderId,

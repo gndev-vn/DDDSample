@@ -5,6 +5,7 @@ using IdentityAPI.Features.Auth.Commands.Register;
 using IdentityAPI.Features.Auth.Models;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
 
@@ -15,6 +16,8 @@ namespace IdentityAPI.Controllers;
 public class AuthController(IMediator mediator) : ControllerBase
 {
     [HttpPost("register")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         var result = await mediator.Send(new RegisterCommand(request));
@@ -22,6 +25,8 @@ public class AuthController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("login")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var result = await mediator.Send(new LoginCommand(request));
@@ -35,6 +40,8 @@ public class AuthController(IMediator mediator) : ControllerBase
 
     [HttpPost("logout")]
     [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Logout()
     {
         var token = Request.Headers.Authorization.ToString().Replace("Bearer ", "");
@@ -49,6 +56,8 @@ public class AuthController(IMediator mediator) : ControllerBase
     /// the standard login endpoint.
     /// </summary>
     [HttpPost("google-login")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
     {
         var result = await mediator.Send(new GoogleLoginCommand(request));
