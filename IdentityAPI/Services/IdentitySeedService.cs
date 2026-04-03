@@ -2,6 +2,7 @@ using IdentityAPI.Configuration;
 using IdentityAPI.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using Shared.Authentication;
 
 namespace IdentityAPI.Services;
 
@@ -22,20 +23,39 @@ public sealed class IdentitySeedService(
             return;
         }
 
-        await EnsureRoleAsync(IdentityRoleNames.Admin, "Administrator role", cancellationToken);
-        await EnsureRoleAsync(IdentityRoleNames.User, "Default user role", cancellationToken);
+        await EnsureRoleAsync(IdentityRoleNames.Admin, "Administrator role", Permissions.All, cancellationToken);
+        await EnsureRoleAsync(
+            IdentityRoleNames.User,
+            "Default user role",
+            [
+                Permissions.Categories.View,
+                Permissions.Products.View,
+                Permissions.Variants.View,
+                Permissions.Orders.View,
+                Permissions.Payments.View
+            ],
+            cancellationToken);
 
         await EnsureUserAsync(options.Admin, IdentityRoleNames.Admin, cancellationToken);
         await EnsureUserAsync(options.User, IdentityRoleNames.User, cancellationToken);
     }
 
-    private async Task EnsureRoleAsync(string roleName, string description, CancellationToken cancellationToken)
+    private async Task EnsureRoleAsync(string roleName, string description, IEnumerable<string> permissions, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (await roleManager.RoleExistsAsync(roleName))
+        var existingRole = await roleManager.FindByNameAsync(roleName);
+        if (existingRole is not null)
         {
-            logger.LogInformation("[IdentityAPI] Role {RoleName} already exists.", roleName);
+            existingRole.Description = description;
+            existingRole.Permissions = permissions.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(permission => permission).ToList();
+            var updateResult = await roleManager.UpdateAsync(existingRole);
+            if (!updateResult.Succeeded)
+            {
+                throw new InvalidOperationException($"Failed to update seeded role '{roleName}': {FormatErrors(updateResult)}");
+            }
+
+            logger.LogInformation("[IdentityAPI] Role {RoleName} already exists. Permissions synchronized.", roleName);
             return;
         }
 
@@ -43,9 +63,9 @@ public sealed class IdentitySeedService(
         {
             Name = roleName,
             Description = description,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Permissions = permissions.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(permission => permission).ToList()
         });
-
         if (!result.Succeeded)
         {
             throw new InvalidOperationException($"Failed to seed role '{roleName}': {FormatErrors(result)}");

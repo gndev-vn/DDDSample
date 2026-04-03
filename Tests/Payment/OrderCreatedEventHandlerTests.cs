@@ -1,11 +1,11 @@
+using Mediator;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using PaymentAPI.Domain.Entities;
 using PaymentAPI.Domain.Enums;
-using PaymentAPI.Features.Payments.Integration;
-using PaymentAPI.Services.Grpc;
+using PaymentAPI.Features.Messaging.OrderCreated;
+using PaymentAPI.Features.Payments.CreatePayment;
 using Shared.Messaging.Order;
 using PaymentAppDbContext = PaymentAPI.Domain.AppDbContext;
 
@@ -33,37 +33,37 @@ public sealed class OrderCreatedEventHandlerTests : IDisposable
     private PaymentAppDbContext NewContext() => new(_options);
 
     [Fact]
-    public async Task HandleAsync_WhenPaymentDoesNotExist_CreatesPendingPaymentFromGrpcOrderSnapshot()
+    public async Task HandleAsync_WhenPaymentDoesNotExist_CreatesPendingPaymentFromOrderCreatedEvent()
     {
-        // Arrange
         var orderId = Guid.NewGuid();
-        var grpc = new Mock<IOrderGrpcClientService>();
-        grpc.Setup(x => x.GetOrderAsync(orderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OrderSnapshot(orderId, Guid.NewGuid(), 125m, "USD", "Submitted"));
-
         await using var dbContext = NewContext();
+        var mediator = new Mock<IMediator>();
+        mediator
+            .Setup(x => x.Send(It.IsAny<CreatePaymentCommand>(), It.IsAny<CancellationToken>()))
+            .Returns<CreatePaymentCommand, CancellationToken>((command, cancellationToken) =>
+                new CreatePaymentCommandHandler(dbContext).Handle(command, cancellationToken));
 
-        // Act
         await OrderCreatedEventHandler.HandleAsync(
-            new OrderCreatedEvent { Id = orderId },
+            new OrderCreatedEvent { Id = orderId, Total = 125m, Currency = "USD" },
             dbContext,
-            grpc.Object,
+            mediator.Object,
             NullLogger<OrderCreatedEventHandler>.Instance,
             CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         var payment = await assertContext.Payments.SingleAsync(x => x.OrderId == orderId);
         Assert.Equal(PaymentStatus.Pending, payment.Status);
         Assert.Equal(125m, payment.Amount.Amount);
         Assert.Equal("USD", payment.Amount.Currency);
-        grpc.Verify(x => x.GetOrderAsync(orderId, It.IsAny<CancellationToken>()), Times.Once);
+        mediator.Verify(x => x.Send(
+                It.Is<CreatePaymentCommand>(command => command.OrderId == orderId && command.Amount == 125m && command.Currency == "USD"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenPaymentAlreadyExists_SkipsGrpcLookupAndDoesNotDuplicate()
+    public async Task HandleAsync_WhenPaymentAlreadyExists_DoesNotDuplicate()
     {
-        // Arrange
         var orderId = Guid.NewGuid();
         await using (var seedContext = NewContext())
         {
@@ -71,20 +71,18 @@ public sealed class OrderCreatedEventHandlerTests : IDisposable
             await seedContext.SaveChangesAsync();
         }
 
-        var grpc = new Mock<IOrderGrpcClientService>(MockBehavior.Strict);
+        var mediator = new Mock<IMediator>(MockBehavior.Strict);
         await using var dbContext = NewContext();
 
-        // Act
         await OrderCreatedEventHandler.HandleAsync(
-            new OrderCreatedEvent { Id = orderId },
+            new OrderCreatedEvent { Id = orderId, Total = 30m, Currency = "USD" },
             dbContext,
-            grpc.Object,
+            mediator.Object,
             NullLogger<OrderCreatedEventHandler>.Instance,
             CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         Assert.Equal(1, await assertContext.Payments.CountAsync(x => x.OrderId == orderId));
-        grpc.VerifyNoOtherCalls();
+        mediator.VerifyNoOtherCalls();
     }
 }

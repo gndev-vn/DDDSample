@@ -30,4 +30,9 @@
     <ProjectReference Include="..\PaymentAPI\PaymentAPI.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>
+

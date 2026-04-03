@@ -14,11 +14,9 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
 
     public void Configure(EntityTypeBuilder<ProductVariant> builder)
     {
-        // Table and key
         builder.ToTable(TableName);
         builder.HasKey(x => x.Id);
 
-        // Scalars
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(NameMaxLength);
@@ -32,16 +30,13 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
         builder.Property(x => x.IsActive)
             .IsRequired();
 
-        // Unique SKU per product
         builder.HasIndex(x => new { x.ProductId, x.Sku }).IsUnique();
 
-        // Relationship to Product
         builder.HasOne(x => x.Product)
             .WithMany(x => x.Variants)
             .HasForeignKey(x => x.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Optional owned value object: OverridePrice
         builder.OwnsOne(x => x.OverridePrice, price =>
         {
             price.Property(p => p.Amount)
@@ -55,14 +50,14 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
         });
         builder.Navigation(x => x.OverridePrice).IsRequired(false);
 
-        // Owned collection of value objects: Attributes (field-backed)
         builder.OwnsMany(x => x.Attributes, attributes =>
         {
             attributes.ToTable("ProductVariantAttributes");
             attributes.WithOwner().HasForeignKey("ProductVariantId");
-
-            // Composite key without identity (value object semantics)
             attributes.HasKey("Id");
+
+            attributes.Property(p => p.AttributeId)
+                .IsRequired();
 
             attributes.Property(p => p.Name)
                 .IsRequired()
@@ -72,10 +67,9 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
                 .IsRequired()
                 .HasMaxLength(AttributeValueMaxLength);
 
-            attributes.HasIndex("ProductVariantId", "Name");
+            attributes.HasIndex("ProductVariantId", "AttributeId").IsUnique();
         });
 
-        // Ensure field access for the collection to respect encapsulation
         builder.Navigation(x => x.Attributes).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

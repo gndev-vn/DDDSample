@@ -33,8 +33,6 @@ public static class ApiEndpointConfigurationExtensions
 
             options.ListenAnyIP(endpointOptions.Restful.Http, listenOptions =>
                 listenOptions.Protocols = HttpProtocols.Http1);
-            options.ListenAnyIP(endpointOptions.Grpc.Http, listenOptions =>
-                listenOptions.Protocols = HttpProtocols.Http2);
         });
 
         return builder;

@@ -11,6 +11,7 @@ public interface ICurrentUser
     string? FirstName { get; }
     string? LastName { get; }
     IEnumerable<string> Roles { get; }
+    IEnumerable<string> Permissions { get; }
     bool IsAuthenticated { get; }
 }
 
@@ -27,6 +28,8 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
     public string? LastName => httpContextAccessor.HttpContext?.User?.FindFirst("lastName")?.Value;
 
     public IEnumerable<string> Roles => httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role)?.Select(c => c.Value) ?? Enumerable.Empty<string>();
+
+    public IEnumerable<string> Permissions => httpContextAccessor.HttpContext?.User?.FindAll(PermissionClaimTypes.Permission)?.Select(c => c.Value) ?? Enumerable.Empty<string>();
 
     public bool IsAuthenticated => httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 }

@@ -1,7 +1,9 @@
 using CatalogAPI.Domain;
 using CatalogAPI.Domain.Entities;
-using CatalogAPI.Features.Categories.Queries;
-using CatalogAPI.Features.Products.Queries;
+using CatalogAPI.Features.Categories.GetCategories;
+using CatalogAPI.Features.Products.GetProductVariantById;
+using CatalogAPI.Features.Products.GetProductVariants;
+using CatalogAPI.Features.Products.GetProducts;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Shared.ValueObjects;
@@ -55,11 +57,11 @@ public sealed class CatalogQueryTests : IDisposable
         var category = new Category("Books", "Books", "books");
         var matching = new Product("DDD Sample", "Domain-driven design sample", "ddd-sample", new Money(42m, "USD"))
         {
-            Category = category
+            Category = category,
         };
         var other = new Product("Patterns", "Patterns book", "patterns", new Money(50m, "USD"))
         {
-            Category = category
+            Category = category,
         };
 
         await using (var seedContext = NewContext())
@@ -76,5 +78,75 @@ public sealed class CatalogQueryTests : IDisposable
 
         Assert.Single(result);
         Assert.Equal(matching.Id, result[0].Id);
+    }
+
+    [Fact]
+    public async Task GetProductVariantsQuery_WithOwnedOverridePrice_ReturnsProjectedVariants()
+    {
+        var color = new ProductAttributeDefinition("Color");
+        var size = new ProductAttributeDefinition("Size");
+        var product = new Product("Shirt", "Cotton shirt", "shirt", new Money(30m, "USD"));
+        var variant = product.AddVariant(
+            "Shirt / Blue / M",
+            "shirt-blue-m",
+            "Blue medium shirt",
+            new Money(35m, "USD"),
+            [
+                new VariantAttribute(color.Id, color.Name, "Blue"),
+                new VariantAttribute(size.Id, size.Name, "M"),
+            ]);
+
+        await using (var seedContext = NewContext())
+        {
+            seedContext.ProductAttributeDefinitions.AddRange(color, size);
+            seedContext.Products.Add(product);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = NewContext();
+        var handler = new GetProductVariantsQueryHandler(dbContext);
+
+        var result = await handler.Handle(new GetProductVariantsQuery(), CancellationToken.None);
+
+        var response = Assert.Single(result);
+        Assert.Equal(variant.Id, response.Id);
+        Assert.Equal(35m, response.OverridePrice);
+        Assert.Equal("USD", response.Currency);
+        Assert.Equal(2, response.Attributes.Count);
+        Assert.Contains(response.Attributes, attribute => attribute.AttributeId == color.Id && attribute.Name == "Color");
+    }
+
+    [Fact]
+    public async Task GetProductVariantByIdQuery_WithOwnedOverridePrice_ReturnsProjectedVariant()
+    {
+        var color = new ProductAttributeDefinition("Color");
+        var product = new Product("Hat", "Wool hat", "hat", new Money(20m, "USD"));
+        var variant = product.AddVariant(
+            "Hat / Black",
+            "hat-black",
+            "Black wool hat",
+            new Money(24m, "USD"),
+            [new VariantAttribute(color.Id, color.Name, "Black")]);
+
+        await using (var seedContext = NewContext())
+        {
+            seedContext.ProductAttributeDefinitions.Add(color);
+            seedContext.Products.Add(product);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = NewContext();
+        var handler = new GetProductVariantByIdQueryHandler(dbContext);
+
+        var result = await handler.Handle(new GetProductVariantByIdQuery(variant.Id), CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(variant.Id, result!.Id);
+        Assert.Equal(24m, result.OverridePrice);
+        Assert.Equal("USD", result.Currency);
+        var attribute = Assert.Single(result.Attributes);
+        Assert.Equal(color.Id, attribute.AttributeId);
+        Assert.Equal("Color", attribute.Name);
+        Assert.Equal("Black", attribute.Value);
     }
 }

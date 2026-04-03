@@ -9,10 +9,13 @@ public sealed class ProductVariant : Entity
 
     public ProductVariant()
     {
-        // EF Core requires default constructor
     }
 
-    public ProductVariant(string name, string sku, string description, Money? overridePrice = null,
+    public ProductVariant(
+        string name,
+        string sku,
+        string description,
+        Money? overridePrice = null,
         IEnumerable<VariantAttribute>? attributes = null)
     {
         GuardNotNullOrWhiteSpace(sku, nameof(sku));
@@ -23,30 +26,45 @@ public sealed class ProductVariant : Entity
         Description = description ?? string.Empty;
         OverridePrice = overridePrice;
 
+        ReplaceAttributes(attributes);
+    }
+
+    public string Name { get; private set; } = string.Empty;
+
+    public string Sku { get; private set; } = string.Empty;
+
+    public string Description { get; private set; } = string.Empty;
+
+    public Money? OverridePrice { get; private set; }
+
+    public bool IsActive { get; private set; } = true;
+
+    public IReadOnlyCollection<VariantAttribute> Attributes => _attributes;
+
+    public Product? Product { get; set; }
+
+    public Guid ProductId { get; set; }
+
+    public void ReplaceAttributes(IEnumerable<VariantAttribute>? attributes)
+    {
+        _attributes.Clear();
+
         if (attributes is null)
         {
             return;
         }
 
-        foreach (var attr in attributes)
+        foreach (var attribute in attributes)
         {
-            AddOrReplaceAttribute(attr);
+            AddOrReplaceAttribute(attribute);
         }
     }
-
-    public string Name { get; private set; } = string.Empty;
-    public string Sku { get; private set; } = string.Empty;
-    public string Description { get; private set; } = string.Empty;
-    public Money? OverridePrice { get; private set; }
-    public bool IsActive { get; private set; } = true;
-    public IReadOnlyCollection<VariantAttribute> Attributes => _attributes;
-    public Product? Product { get; set; }
-    public Guid ProductId { get; set; }
 
     public void AddOrReplaceAttribute(VariantAttribute attribute)
     {
         ArgumentNullException.ThrowIfNull(attribute);
-        var index = _attributes.FindIndex(a => string.Equals(a.Name, attribute.Name, StringComparison.OrdinalIgnoreCase));
+
+        var index = _attributes.FindIndex(a => a.AttributeId == attribute.AttributeId);
         if (index >= 0)
         {
             _attributes[index] = attribute;
@@ -57,24 +75,12 @@ public sealed class ProductVariant : Entity
         }
     }
 
-    public bool RemoveAttributeByName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return false;
-        }
-
-        var idx = _attributes.FindIndex(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
-        if (idx < 0)
-        {
-            return false;
-        }
-
-        _attributes.RemoveAt(idx);
-        return true;
-    }
-
-    public void UpdateDetails(string name, string sku, string description, Money? overridePrice)
+    public void UpdateDetails(
+        string name,
+        string sku,
+        string description,
+        Money? overridePrice,
+        IEnumerable<VariantAttribute>? attributes)
     {
         GuardNotNullOrWhiteSpace(name, nameof(name));
         GuardNotNullOrWhiteSpace(sku, nameof(sku));
@@ -83,6 +89,7 @@ public sealed class ProductVariant : Entity
         Sku = sku.Trim();
         Description = description ?? string.Empty;
         OverridePrice = overridePrice;
+        ReplaceAttributes(attributes);
     }
 
     public void SetOverridePrice(Money? newPrice) => OverridePrice = newPrice;
@@ -115,7 +122,11 @@ public sealed class ProductVariant : Entity
         }
     }
 
-    public static ProductVariant Create(string name, string sku, string description, Money? overridePrice,
+    public static ProductVariant Create(
+        string name,
+        string sku,
+        string description,
+        Money? overridePrice,
         IEnumerable<VariantAttribute>? attributes)
         => new(name, sku, description, overridePrice, attributes);
 

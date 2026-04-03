@@ -1,10 +1,10 @@
-using System.Reflection;
 using System.Text;
 using AspNetCore.Identity.MongoDbCore.Extensions;
-using IdentityAPI.Configuration;
 using AspNetCore.Identity.MongoDbCore.Infrastructure;
 using FluentValidation;
+using IdentityAPI.Configuration;
 using IdentityAPI.Domain.Identity;
+using IdentityAPI.Features;
 using IdentityAPI.Features.Auth.Services;
 using IdentityAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,41 +13,53 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using ServiceDefaults;
+using Shared.Authentication;
 using Shared.Hosting;
 using Shared.Middleware;
 using Shared.Models;
 using Shared.Services;
-using Shared.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
 builder.AddCentralizedApiEndpoints();
 
-builder.Services.AddScoped<RequestValidationActionFilter>();
-builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());
-builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-
+builder.Services.AddOpenApi();
 builder.Services.AddMediator(options =>
 {
+    options.Assemblies = [typeof(Program)];
     options.ServiceLifetime = ServiceLifetime.Scoped;
 });
-
-builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(BsonType.String));
 
-builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDB"));
+var configuredMongoDbSettings = builder.Configuration.GetSection("MongoDB").Get<MongoDbSettings>() ?? new MongoDbSettings();
+var aspireMongoConnectionString = builder.Configuration.GetConnectionString("MongoDB");
+var mongoDbSettings = new MongoDbSettings
+{
+    ConnectionString = aspireMongoConnectionString
+                       ?? configuredMongoDbSettings.ConnectionString
+                       ?? throw new InvalidOperationException("MongoDB connection string is not configured."),
+    DatabaseName = configuredMongoDbSettings.DatabaseName ?? "identitydb"
+};
+
+builder.Services.Configure<MongoDbSettings>(options =>
+{
+    options.ConnectionString = mongoDbSettings.ConnectionString;
+    options.DatabaseName = mongoDbSettings.DatabaseName;
+});
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<IdentitySeedOptions>(builder.Configuration.GetSection("IdentitySeed"));
 
-var mongoDbSettings = builder.Configuration.GetSection("MongoDB").Get<MongoDbSettings>();
 var mongoDbIdentityConfig = new MongoDbIdentityConfiguration
 {
     MongoDbSettings = new MongoDbSettings
     {
-        ConnectionString = mongoDbSettings!.ConnectionString,
+        ConnectionString = mongoDbSettings.ConnectionString,
         DatabaseName = mongoDbSettings.DatabaseName
     },
     IdentityOptionsAction = options =>
@@ -85,7 +97,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddApplicationAuthorization();
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -94,6 +106,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 builder.Services.AddScoped<ILoginResponseFactory, LoginResponseFactory>();
 builder.Services.AddScoped<IIdentityAccountService, IdentityAccountService>();
 builder.Services.AddScoped<IdentitySeedService>();
@@ -115,6 +128,7 @@ app.UseAuthentication();
 app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 app.MapOpenApi();
-app.MapControllers();
+app.MapIdentityEndpoints();
+app.MapDefaultEndpoints();
 
 app.Run();

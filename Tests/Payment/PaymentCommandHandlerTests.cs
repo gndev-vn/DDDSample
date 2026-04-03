@@ -2,8 +2,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using PaymentAPI.Domain.Entities;
 using PaymentAPI.Domain.Enums;
-using PaymentAPI.Features.Payments.Commands;
-using PaymentAPI.Features.Payments.Models;
+using PaymentAPI.Features.Payments.CompletePayment;
+using PaymentAPI.Features.Payments.FailPayment;
 using Shared.Exceptions;
 using Shared.ValueObjects;
 using PaymentAppDbContext = PaymentAPI.Domain.AppDbContext;
@@ -44,15 +44,12 @@ public sealed class PaymentCommandHandlerTests : IDisposable
     [Fact]
     public async Task CompletePayment_WhenPaymentIsPending_CompletesAndReturnsUpdatedModel()
     {
-        // Arrange
         var paymentId = await SeedPendingPaymentAsync();
         await using var handlerContext = NewContext();
         var handler = new CompletePaymentCommandHandler(handlerContext);
 
-        // Act
         var result = await handler.Handle(new CompletePaymentCommand(paymentId, "txn-123"), CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         var payment = await assertContext.Payments.SingleAsync(x => x.Id == paymentId);
         Assert.Equal(PaymentStatus.Completed, payment.Status);
@@ -65,15 +62,12 @@ public sealed class PaymentCommandHandlerTests : IDisposable
     [Fact]
     public async Task FailPayment_WhenPaymentIsPending_MarksPaymentAsFailed()
     {
-        // Arrange
         var paymentId = await SeedPendingPaymentAsync();
         await using var handlerContext = NewContext();
         var handler = new FailPaymentCommandHandler(handlerContext);
 
-        // Act
         var result = await handler.Handle(new FailPaymentCommand(paymentId, "Gateway timeout"), CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         var payment = await assertContext.Payments.SingleAsync(x => x.Id == paymentId);
         Assert.Equal(PaymentStatus.Failed, payment.Status);
@@ -87,11 +81,9 @@ public sealed class PaymentCommandHandlerTests : IDisposable
     [Fact]
     public async Task CompletePayment_WhenPaymentDoesNotExist_ThrowsNotFoundException()
     {
-        // Arrange
         await using var handlerContext = NewContext();
         var handler = new CompletePaymentCommandHandler(handlerContext);
 
-        // Act / Assert
         await Assert.ThrowsAsync<NotFoundException>(() =>
             handler.Handle(new CompletePaymentCommand(Guid.NewGuid(), "txn-404"), CancellationToken.None).AsTask());
     }
@@ -99,7 +91,6 @@ public sealed class PaymentCommandHandlerTests : IDisposable
     [Fact]
     public async Task CompletePayment_WhenPaymentAlreadyFailed_ThrowsDomainException()
     {
-        // Arrange
         var paymentId = await SeedPendingPaymentAsync();
         await using (var arrangeContext = NewContext())
         {
@@ -111,7 +102,6 @@ public sealed class PaymentCommandHandlerTests : IDisposable
         await using var handlerContext = NewContext();
         var handler = new CompletePaymentCommandHandler(handlerContext);
 
-        // Act / Assert
         var ex = await Assert.ThrowsAsync<DomainException>(() =>
             handler.Handle(new CompletePaymentCommand(paymentId, "txn-late"), CancellationToken.None).AsTask());
         Assert.Contains("pending", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -120,14 +110,11 @@ public sealed class PaymentCommandHandlerTests : IDisposable
     [Fact]
     public void CompletePaymentRequestValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
-        // Arrange
         var validator = new CompletePaymentRequestValidator();
         var request = new CompletePaymentRequest { TransactionReference = string.Empty };
 
-        // Act
         var result = validator.Validate(request);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(CompletePaymentRequest.TransactionReference));
     }
@@ -135,14 +122,11 @@ public sealed class PaymentCommandHandlerTests : IDisposable
     [Fact]
     public void FailPaymentRequestValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
-        // Arrange
         var validator = new FailPaymentRequestValidator();
         var request = new FailPaymentRequest { Reason = string.Empty };
 
-        // Act
         var result = validator.Validate(request);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(FailPaymentRequest.Reason));
     }

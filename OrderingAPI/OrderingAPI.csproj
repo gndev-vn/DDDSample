@@ -15,7 +15,6 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Mediator.Abstractions" Version="3.0.*" />
-        <PackageReference Include="Grpc.AspNetCore" Version="2.67.0" />
         <PackageReference Include="Mapster" Version="10.0.6" />
         <PackageReference Include="Mapster.Async" Version="10.0.6" />
         <PackageReference Include="Mapster.DependencyInjection" Version="10.0.6" />
@@ -29,6 +28,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.10.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.5" />
         <PackageReference Include="StackExchange.Redis" Version="2.12.8" />
@@ -39,8 +39,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
         <ProjectReference Include="..\Shared\Shared.csproj" />
-        <ProjectReference Include="..\GrpcShared\GrpcShared.csproj" />
     </ItemGroup>
 
     <ItemGroup>

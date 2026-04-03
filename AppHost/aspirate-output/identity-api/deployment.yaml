@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-api
+  labels:
+    app: identity-api
+spec:
+  minReadySeconds: 60
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: identity-api
+    spec:
+      containers:
+      - name: identity-api
+        image: ghcr.io/dddsample/identity-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 8443
+        - name: rest
+          containerPort: 9088
+        - name: grpc
+          containerPort: 9089
+        envFrom:
+        - configMapRef:
+            name: identity-api-env
+      terminationGracePeriodSeconds: 180

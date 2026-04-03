@@ -2,12 +2,17 @@
 
 ## System Overview
 
-This repository currently contains the four backend services and shared libraries shown below. The gateway in the first diagram is conceptual only; there is no API gateway project in this solution today.
+This repository currently contains the four backend services, shared libraries, a Vue web client, and a new platform bootstrap library shown below. The gateway in the first diagram is conceptual only; there is no API gateway project in this solution today.
+
+`ServiceDefaults` has been introduced as the first step of the Aspire migration. It centralizes shared health checks, OpenTelemetry setup, service discovery, and resilient `HttpClient` defaults so the API projects can share one consistent platform baseline and emit telemetry to the Aspire dashboard during local runs.
+
+`AppHost` now models the local distributed application in code. It defines SQL Server, MongoDB, Redis, RabbitMQ, the four API projects, and the Vue web app with explicit resource references and startup ordering.
 
 ```mermaid
 graph TB
     subgraph "Client Layer"
         Browser[Browser/Mobile App]
+        WebApp[Vue Web App<br/>Port: 5173]
     end
 
     subgraph "Optional Gateway / Load Balancer"
@@ -28,6 +33,8 @@ graph TB
         RabbitMQ[RabbitMQ<br/>Message Bus]
     end
 
+    Browser -->|HTTP/REST| WebApp
+    WebApp -->|HTTP proxy| Gateway
     Browser -->|HTTP/REST| Gateway
     Gateway --> Identity
     Gateway --> Catalog
@@ -123,16 +130,92 @@ HTTP and gRPC listener configuration is now centralized in `Shared/Hosting/ApiEn
 Each API keeps its own `Hosting` section in `appsettings*.json`, but the Kestrel binding logic, validation, and protocol assignment now live in one shared place.
 
 Operational notes:
-- `Hosting:Restful:Http` is bound as HTTP/1.1 for REST controllers and OpenAPI.
+- `Hosting:Restful:Http` is bound as HTTP/1.1 for REST endpoints and OpenAPI.
 - `Hosting:Grpc:Http` is bound as HTTP/2 for internal gRPC traffic.
 - `ApiEndpointOptionsValidator` fails fast on invalid or duplicate ports during startup.
 - `docker-compose.yaml` no longer overrides listener URLs with `ASPNETCORE_URLS`; the `Hosting` section is the runtime source of truth.
 - `launchSettings.json` values were aligned with the configured development ports to reduce local debugging drift.
 
+## Platform Defaults for Aspire Migration
+
+The solution now includes `ServiceDefaults`, a shared library that defines the common service bootstrap used during the Aspire migration:
+
+- `AddServiceDefaults()` registers:
+  - OpenTelemetry traces and metrics for ASP.NET Core, outgoing `HttpClient` calls, and runtime instrumentation
+  - OpenTelemetry logging integration
+  - service discovery support for named downstream services
+  - resilient `HttpClient` defaults through `AddStandardResilienceHandler()`
+  - standard health checks with a self-check tagged for liveness
+- `MapDefaultEndpoints()` exposes:
+  - `/health` for readiness-style probes
+  - `/alive` for liveness-style probes
+
+The project is now available as the shared platform baseline for the broader Aspire migration. Service discovery is already being consumed directly by the gRPC client registrations in `OrderingAPI` and `PaymentAPI`, while the rest of the shared defaults can be adopted incrementally by the remaining services.
+
+## Aspire AppHost
+
+The solution now also includes `AppHost`, which replaces `docker-compose` as the code-first orchestration entry point for local distributed development.
+
+Current AppHost responsibilities:
+
+- defines shared infrastructure resources:
+  - SQL Server for `CatalogAPI`, `OrderingAPI`, and `PaymentAPI`
+  - MongoDB for `IdentityAPI`
+  - Redis
+  - RabbitMQ
+- defines project resources for:
+  - `CatalogAPI`
+  - `OrderingAPI`
+  - `PaymentAPI`
+  - `IdentityAPI`
+- preserves dependency order:
+  - `OrderingAPI` waits for `CatalogAPI`
+  - `PaymentAPI` waits for `OrderingAPI`
+- injects connection strings and configuration values needed by the current services:
+  - SQL connection strings as `ConnectionStrings__Default`
+  - Redis connection strings as `ConnectionStrings__Redis`
+  - MongoDB connection string and database name for `IdentityAPI`
+  - RabbitMQ as `ConnectionStrings__RabbitMq`, with a shared compatibility helper so existing Wolverine setup can still read legacy `RabbitMq:*` settings when needed
+
+### Kubernetes manifests with aspirate
+
+The AppHost now includes `AppHost\aspirate.json`, and Kubernetes manifests have been generated into `AppHost\aspirate-output\` using `aspirate` in non-interactive mode.
+
+Generated resources include:
+
+- SQL Server
+- MongoDB
+- Redis
+- RabbitMQ
+- `CatalogAPI`
+- `OrderingAPI`
+- `PaymentAPI`
+- `IdentityAPI`
+- Aspire dashboard
+- root `namespace.yaml` and `kustomization.yaml`
+
+Current generation assumptions:
+
+- namespace: `dddsample`
+- registry: `ghcr.io`
+- repository prefix: `dddsample`
+- image tag: `latest`
+- image pull policy: `IfNotPresent`
+- secret handling was disabled for generation, so placeholder values such as `ChangeMe_SqlPassword!`, `ChangeMe_MongoPassword!`, and `ChangeMe_RabbitMqPassword!` are present in the generated kustomize files
+
+Before applying to a real cluster, replace the placeholder registry/repository settings and regenerate with real secret handling or updated parameter values.
+
+gRPC discovery between services now uses Aspire references plus logical endpoint names:
+
+- `OrderingAPI` resolves Catalog through `http://_grpc.catalog-api`, falling back to `GrpcServices:Catalog` outside AppHost
+- `PaymentAPI` resolves Ordering through `http://_grpc.ordering-api`, falling back to `GrpcServices:Ordering` outside AppHost
+
+The temporary `GrpcServices:*` AppHost bridge is no longer required.
+
 Each microservice is implemented as a single deployable project with folder-based layering:
 
-- `Controllers`, gRPC services, and GraphQL resolvers form the presentation edge
-- `Features` contains CQRS-style commands, queries, handlers, and request models
+- grouped minimal APIs, gRPC services, and GraphQL resolvers form the presentation edge
+- `Features` contains CQRS-style commands, queries, handlers, validators, request models, and endpoint registrations
 - `Domain` contains entities, value objects, domain events, EF mappings, and migrations
 - `Services` plus `Program.cs` wire infrastructure such as auth, caching, messaging, and database access
 
@@ -143,7 +226,7 @@ This is a pragmatic layered microservice structure rather than a strict multi-as
 ```mermaid
 graph TB
     subgraph "Presentation Layer"
-        Controllers[Controllers<br/>REST API Endpoints]
+        Endpoints[Minimal API<br/>REST Endpoints]
         gRPC[gRPC Services]
         GraphQL[GraphQL<br/>CatalogAPI only]
     end
@@ -169,7 +252,7 @@ graph TB
         RabbitMQ[Wolverine + RabbitMQ]
     end
 
-    Controllers --> CQRS
+    Endpoints --> CQRS
     gRPC --> CQRS
     GraphQL --> CQRS
     CQRS --> Handlers
@@ -278,7 +361,7 @@ Catalog variant writes now follow the same domain-event flow as products:
   - `catalog.product-variant.updated`
   - `catalog.product-variant.deleted`
 - Variant create/update requests are validated with FluentValidation before handlers execute.
-- `ProductVariantsController` remains transport-only and documents response metadata for OpenAPI generation.
+- Product variant minimal API endpoints remain transport-only and document response metadata for OpenAPI generation.
 
 ### Variant event payload and behavior
 
@@ -324,7 +407,7 @@ graph TB
     subgraph "Request Flow"
         Request[HTTP Request]
         Middleware[Middleware Pipeline]
-        Controller[Controller]
+        Endpoint[Minimal API Endpoint]
         Mediator[Mediator]
         Handler[Handler]
         Domain[Domain Logic]
@@ -336,8 +419,8 @@ graph TB
     Middleware -->|1. Exception Handler| Middleware
     Middleware -->|2. Authentication| Middleware
     Middleware -->|3. Token Blacklist| Middleware
-    Middleware -->|4. Authorization| Controller
-    Controller -->|Send Command/Query| Mediator
+    Middleware -->|4. Authorization| Endpoint
+    Endpoint -->|Send Command/Query| Mediator
     Mediator -->|Route to| Handler
     Handler -->|Validation| Handler
     Handler -->|Business Logic| Domain
@@ -347,8 +430,8 @@ graph TB
     Repository -->|Return| Domain
     Domain -->|Return| Handler
     Handler -->|Return| Mediator
-    Mediator -->|Return| Controller
-    Controller -->|ApiResponse| Request
+    Mediator -->|Return| Endpoint
+    Endpoint -->|ApiResponse| Request
 ```
 
 ## Shared Components

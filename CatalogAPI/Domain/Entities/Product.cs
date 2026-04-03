@@ -10,7 +10,6 @@ public sealed class Product : EntityWithEvents
 
     public Product()
     {
-        // EF Core requires default constructor
     }
 
     public Product(string name, string description, string slug, Money basePrice, bool isActive = true)
@@ -32,21 +31,31 @@ public sealed class Product : EntityWithEvents
             Slug = Slug,
             CurrentPrice = BasePrice.Amount,
             ImageUrl = ImageUrl,
-            IsActive = IsActive
+            IsActive = IsActive,
         });
     }
 
     public Money? BasePrice { get; set; }
+
     public bool IsActive { get; set; } = true;
+
     public string Slug { get; set; } = string.Empty;
+
     public string Name { get; set; } = string.Empty;
+
     public string Description { get; set; } = string.Empty;
+
     public string ImageUrl { get; set; } = string.Empty;
 
     public IReadOnlyList<ProductVariant> Variants => _variants;
+
     public Category? Category { get; set; }
 
-    public ProductVariant AddVariant(string name, string sku, string description, Money? overridePrice = null,
+    public ProductVariant AddVariant(
+        string name,
+        string sku,
+        string description,
+        Money? overridePrice = null,
         IEnumerable<VariantAttribute>? attributes = null)
     {
         GuardNotNullOrWhiteSpace(name, nameof(name));
@@ -60,7 +69,7 @@ public sealed class Product : EntityWithEvents
         var variant = new ProductVariant(name, sku, description, overridePrice, attributes)
         {
             Product = this,
-            ProductId = Id
+            ProductId = Id,
         };
 
         _variants.Add(variant);
@@ -73,14 +82,19 @@ public sealed class Product : EntityWithEvents
             Name = variant.Name,
             CurrentPrice = price.Amount,
             Currency = price.Currency,
-            IsActive = variant.IsActive
+            IsActive = variant.IsActive,
         });
 
         return variant;
     }
 
-    public ProductVariant UpdateVariant(Guid variantId, string name, string sku, string description,
-        Money? overridePrice = null)
+    public ProductVariant UpdateVariant(
+        Guid variantId,
+        string name,
+        string sku,
+        string description,
+        Money? overridePrice = null,
+        IEnumerable<VariantAttribute>? attributes = null)
     {
         var variant = GetVariantById(variantId);
         var normalizedSku = sku.Trim();
@@ -91,7 +105,7 @@ public sealed class Product : EntityWithEvents
             throw new InvalidOperationException($"Variant sku '{sku}' already exists for product '{Id}'.");
         }
 
-        variant.UpdateDetails(name, normalizedSku, description, overridePrice);
+        variant.UpdateDetails(name, normalizedSku, description, overridePrice, attributes);
         var price = ResolveVariantPrice(variant);
         AddDomainEvent(new ProductVariantUpdatedDomainEvent
         {
@@ -101,7 +115,7 @@ public sealed class Product : EntityWithEvents
             Name = variant.Name,
             CurrentPrice = price.Amount,
             Currency = price.Currency,
-            IsActive = variant.IsActive
+            IsActive = variant.IsActive,
         });
 
         return variant;
@@ -116,7 +130,7 @@ public sealed class Product : EntityWithEvents
         {
             Id = variant.Id,
             ProductId = Id,
-            Sku = variant.Sku
+            Sku = variant.Sku,
         });
 
         return variant;
@@ -155,7 +169,9 @@ public sealed class Product : EntityWithEvents
     }
 
     public void Deactivate() => IsActive = false;
+
     public void Activate() => IsActive = true;
+
     public void MarkDeleted() => AddDomainEvent(new ProductDeletedDomainEvent { Id = Id });
 
     public static Product Create(string name, string description, string slug, Money basePrice, bool isActive = true)
@@ -180,14 +196,14 @@ public sealed class Product : EntityWithEvents
             Currency = BasePrice.Currency,
             Slug = Slug,
             ImageUrl = ImageUrl,
-            IsActive = IsActive
+            IsActive = IsActive,
         });
     }
 
     private ProductVariant GetVariantById(Guid variantId)
     {
         var variant = _variants.FirstOrDefault(v => v.Id == variantId);
-        return variant ?? throw new System.Collections.Generic.KeyNotFoundException("Invalid product variant id");
+        return variant ?? throw new KeyNotFoundException("Invalid product variant id");
     }
 
     private Money ResolveVariantPrice(ProductVariant variant)

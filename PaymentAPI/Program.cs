@@ -1,16 +1,15 @@
-using System.Net;
 using FluentValidation;
-using GrpcShared.Order.Services;
 using Microsoft.EntityFrameworkCore;
 using PaymentAPI.Domain;
-using PaymentAPI.Services.Grpc;
+using PaymentAPI.Features;
+using ServiceDefaults;
 using Shared.Authentication;
+using Shared.Configuration;
 using Shared.Extensions;
 using Shared.Hosting;
 using Shared.Interceptors;
 using Shared.Middleware;
 using Shared.Services;
-using Shared.Validation;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -18,6 +17,7 @@ using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
 builder.AddCentralizedApiEndpoints();
 
 builder.Services.AddMediator(options =>
@@ -27,8 +27,6 @@ builder.Services.AddMediator(options =>
     }
 );
 
-builder.Services.AddScoped<RequestValidationActionFilter>();
-builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
@@ -37,6 +35,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
+builder.Services.AddServiceDiscovery();
 builder.Services.AddStackExchangeRedisCache(o =>
 {
     o.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379";
@@ -58,10 +57,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 
 builder.Host.UseWolverine(opts =>
 {
-    var rabbitMqHost = builder.Configuration["RabbitMq:Host"] ?? throw new InvalidOperationException();
-    var rabbitMqUsername = builder.Configuration["RabbitMq:Username"] ?? throw new InvalidOperationException();
-    var rabbitMqPassword = builder.Configuration["RabbitMq:Password"] ?? throw new InvalidOperationException();
-    var rabbitMqUrl = string.Format("amqp://{1}:{2}@{0}", rabbitMqHost, rabbitMqUsername, rabbitMqPassword);
+    var rabbitMqUrl = builder.Configuration.GetRabbitMqConnectionString();
 
     var orderingExchange = builder.Configuration["Wolverine:OrderingExchange"] ?? throw new InvalidOperationException();
     var paymentExchange = builder.Configuration["Wolverine:PaymentExchange"] ?? throw new InvalidOperationException();
@@ -86,20 +82,6 @@ builder.Host.UseWolverine(opts =>
     opts.Policies.UseDurableLocalQueues();
 });
 
-builder.Services.AddGrpcClient<OrderSvc.OrderSvcClient>(o =>
-    {
-        o.Address = new Uri(builder.Configuration.GetValue<string>("GrpcServices:Ordering") ?? "http://ordering-api:9085");
-    })
-    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-    {
-        KeepAlivePingDelay = TimeSpan.FromSeconds(30),
-        KeepAlivePingTimeout = TimeSpan.FromSeconds(15),
-        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-        EnableMultipleHttp2Connections = true,
-        AutomaticDecompression = DecompressionMethods.All,
-    });
-builder.Services.AddScoped<IOrderGrpcClientService, OrderGrpcClientService>();
-
 var app = builder.Build();
 
 app.UseGlobalExceptionHandler();
@@ -110,8 +92,9 @@ app.UseAuthentication();
 app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapPaymentEndpoints();
 app.MapOpenApi();
+app.MapDefaultEndpoints();
 
 await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
 

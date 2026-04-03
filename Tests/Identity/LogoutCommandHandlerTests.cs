@@ -1,4 +1,4 @@
-using IdentityAPI.Features.Auth.Commands.Logout;
+using IdentityAPI.Features.Auth.Logout;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
 using Shared.Services;

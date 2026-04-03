@@ -1,17 +1,18 @@
-using System.Net;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using OrderingAPI.Configuration;
 using OrderingAPI.Domain;
+using OrderingAPI.Features;
 using OrderingAPI.Services;
-using OrderingAPI.Services.Grpc;
+using ServiceDefaults;
 using Shared.Authentication;
+using Shared.Configuration;
 using Shared.Extensions;
 using Shared.Hosting;
 using Shared.Interceptors;
 using Shared.Middleware;
 using Shared.Services;
-using Shared.Validation;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.RabbitMQ;
@@ -19,6 +20,7 @@ using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
 builder.AddCentralizedApiEndpoints();
 
 builder.Services.AddMediator(options =>
@@ -28,18 +30,16 @@ builder.Services.AddMediator(options =>
     }
 );
 
-builder.Services.AddGrpc();
-builder.Services.AddScoped<RequestValidationActionFilter>();
-builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.Configure<OrderingSeedOptions>(builder.Configuration.GetSection("OrderingSeed"));
 
-// JWT Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
+builder.Services.AddServiceDiscovery();
 builder.Services.AddStackExchangeRedisCache(o =>
 {
     o.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379";
@@ -54,6 +54,9 @@ builder.Services.AddHybridCache(o =>
 
 var localEventsQueue = builder.Configuration["Wolverine:LocalQueue"] ?? throw new InvalidOperationException();
 var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException();
+var catalogApiAddress = builder.Configuration.GetSection("Services:catalog-api").Exists()
+    ? "http://catalog-api"
+    : builder.Configuration.GetValue<string>("RestServices:Catalog") ?? "http://localhost:5000";
 
 builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 {
@@ -67,18 +70,13 @@ builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 
 builder.Host.UseWolverine(opts =>
 {
-    var rabbitMqHost = builder.Configuration["RabbitMq:Host"] ?? throw new InvalidOperationException();
-    var rabbitMqUsername = builder.Configuration["RabbitMq:Username"] ?? throw new InvalidOperationException();
-    var rabbitMqPassword = builder.Configuration["RabbitMq:Password"] ?? throw new InvalidOperationException();
-    var rabbitMqUrl = string.Format("amqp://{1}:{2}@{0}", rabbitMqHost, rabbitMqUsername, rabbitMqPassword);
+    var rabbitMqUrl = builder.Configuration.GetRabbitMqConnectionString();
 
     var catalogExchange = builder.Configuration["Wolverine:CatalogExchange"] ?? throw new InvalidOperationException();
     var orderingExchange = builder.Configuration["Wolverine:OrderingExchange"] ?? throw new InvalidOperationException();
     var paymentExchange = builder.Configuration["Wolverine:PaymentExchange"] ?? throw new InvalidOperationException();
-    var orderingCatalogQueue = builder.Configuration["Wolverine:OrderingCatalogQueue"] ??
-                               throw new InvalidOperationException();
-    var orderingPaymentQueue = builder.Configuration["Wolverine:OrderingPaymentQueue"] ??
-                               throw new InvalidOperationException();
+    var orderingCatalogQueue = builder.Configuration["Wolverine:OrderingCatalogQueue"] ?? throw new InvalidOperationException();
+    var orderingPaymentQueue = builder.Configuration["Wolverine:OrderingPaymentQueue"] ?? throw new InvalidOperationException();
 
     opts.UseRabbitMq(rabbitMqUrl)
         .DeclareExchange(orderingExchange, ex => ex.ExchangeType = ExchangeType.Topic)
@@ -111,38 +109,32 @@ builder.Host.UseWolverine(opts =>
     opts.Policies.UseDurableLocalQueues();
 });
 
-builder.Services.AddGrpcClient<ProductSvc.ProductSvcClient>(o =>
-    {
-        o.Address = new Uri(builder.Configuration.GetValue<string>("GrpcServices:Catalog") ??
-                            "http://catalog-service:8081"); // h2c by default
-    })
-    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-    {
-        KeepAlivePingDelay = TimeSpan.FromSeconds(30),
-        KeepAlivePingTimeout = TimeSpan.FromSeconds(15),
-        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-        EnableMultipleHttp2Connections = true,
-        AutomaticDecompression = DecompressionMethods.All,
-    });
-builder.Services.AddScoped<IProductGrpcClientService, ProductGrpcClientService>();
+builder.Services.AddHttpClient<ICatalogProductApiClient, CatalogProductApiClient>(client =>
+{
+    client.BaseAddress = new Uri(catalogApiAddress);
+});
 builder.Services.AddScoped<IProductLookupService, ProductLookupService>();
+builder.Services.AddScoped<OrderingSeedService>();
 
 var app = builder.Build();
 
-// Global exception handler
 app.UseGlobalExceptionHandler();
-
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapOrderingEndpoints();
 app.MapOpenApi();
-app.MapGrpcService<OrderGrpcService>();
+app.MapDefaultEndpoints();
 
 await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var orderingSeedService = scope.ServiceProvider.GetRequiredService<OrderingSeedService>();
+    await orderingSeedService.SeedAsync();
+}
 
 await app.StartAsync();
 await WolverineSqlServerDurabilityIndexingExtensions.EnsureWolverineSqlServerDurabilityIndexesAsync(sqlConnectionString, app.Logger);

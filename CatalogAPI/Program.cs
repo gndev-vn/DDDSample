@@ -1,15 +1,17 @@
 using CatalogAPI.Domain;
-using CatalogAPI.GraphQL;
+using CatalogAPI.Features;
+using CatalogAPI.Configuration;
 using CatalogAPI.Services;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
+using ServiceDefaults;
 using Shared.Authentication;
-using Shared.Hosting;
+using Shared.Configuration;
 using Shared.Extensions;
+using Shared.Hosting;
 using Shared.Interceptors;
 using Shared.Middleware;
 using Shared.Services;
-using Shared.Validation;
 using FluentValidation;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
@@ -18,19 +20,16 @@ using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
 builder.AddCentralizedApiEndpoints();
 
 // Service configuration
-builder.Services.AddGrpc();
-builder.Services.AddGraphQLServer()
-    .AddQueryType<Query>()
-    .AddMutationType<Mutation>();
 builder.Services.AddMapster();
-builder.Services.AddScoped<RequestValidationActionFilter>();
-builder.Services.AddControllers(options => options.Filters.AddService<RequestValidationActionFilter>());
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.Configure<CatalogSeedOptions>(builder.Configuration.GetSection("CatalogSeed"));
+builder.Services.AddScoped<CatalogSeedService>();
 
 // Redis for token blacklist
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -64,10 +63,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 
 builder.Host.UseWolverine(opts =>
 {
-    var rabbitMqHost = builder.Configuration["RabbitMq:Host"] ?? throw new InvalidOperationException();
-    var rabbitMqUsername = builder.Configuration["RabbitMq:Username"] ?? throw new InvalidOperationException();
-    var rabbitMqPassword = builder.Configuration["RabbitMq:Password"] ?? throw new InvalidOperationException();
-    var rabbitMqUrl = string.Format("amqp://{1}:{2}@{0}", rabbitMqHost, rabbitMqUsername, rabbitMqPassword);
+    var rabbitMqUrl = builder.Configuration.GetRabbitMqConnectionString();
     var exchange = builder.Configuration["Wolverine:CatalogExchange"] ?? throw new InvalidOperationException();
 
     opts.UseRabbitMq(rabbitMqUrl)
@@ -81,7 +77,6 @@ builder.Host.UseWolverine(opts =>
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.UseDurableLocalQueues();
 });
-
 
 var app = builder.Build();
 
@@ -101,16 +96,17 @@ app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 
 // REST API endpoints
-app.MapControllers();
+app.MapCatalogEndpoints();
 app.MapOpenApi();
-app.MapGraphQL();
-
-// gRPC endpoints
-app.MapGrpcService<ProductGrpcService>();
-app.MapGrpcService<CategoryGrpcService>();
+app.MapDefaultEndpoints();
 
 // Run migration on startup
 await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var catalogSeedService = scope.ServiceProvider.GetRequiredService<CatalogSeedService>();
+    await catalogSeedService.SeedAsync();
+}
 
 // Start the application
 await app.StartAsync();

@@ -1,0 +1,18 @@
+namespace: dddsample
+
+resources:
+- sqlserver
+- mongodb
+- redis
+- rabbitmq
+- catalog-api
+- ordering-api
+- payment-api
+- identity-api
+- namespace.yaml
+- dashboard.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+

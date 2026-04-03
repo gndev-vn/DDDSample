@@ -4,13 +4,14 @@ using System.Text;
 using IdentityAPI.Domain.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Authentication;
 using Shared.Models;
 
 namespace IdentityAPI.Services;
 
 public interface IJwtTokenService
 {
-    Task<string> GenerateTokenAsync(ApplicationUser user, IEnumerable<string> roles);
+    Task<string> GenerateTokenAsync(ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions);
 }
 
 public class JwtTokenService(IOptions<JwtSettings> jwtSettings)
@@ -22,9 +23,11 @@ public class JwtTokenService(IOptions<JwtSettings> jwtSettings)
         new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Value.SecretKey)),
         SecurityAlgorithms.HmacSha256);
 
-    public Task<string> GenerateTokenAsync(ApplicationUser user, IEnumerable<string> roles)
+    public Task<string> GenerateTokenAsync(ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions)
     {
         var resolvedRoles = roles as string[] ?? roles.ToArray();
+        var resolvedPermissions = permissions as string[] ?? permissions.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -35,6 +38,7 @@ public class JwtTokenService(IOptions<JwtSettings> jwtSettings)
         };
 
         claims.AddRange(resolvedRoles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(resolvedPermissions.Select(permission => new Claim(PermissionClaimTypes.Permission, permission)));
 
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,

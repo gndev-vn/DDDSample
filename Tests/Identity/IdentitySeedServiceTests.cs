@@ -63,8 +63,8 @@ public sealed class IdentitySeedServiceTests
         var userManager = BuildUserManagerMock();
         var roleManager = BuildRoleManagerMock();
 
-        roleManager.Setup(m => m.RoleExistsAsync(IdentityRoleNames.Admin)).ReturnsAsync(false);
-        roleManager.Setup(m => m.RoleExistsAsync(IdentityRoleNames.User)).ReturnsAsync(false);
+        roleManager.Setup(m => m.FindByNameAsync(IdentityRoleNames.Admin)).ReturnsAsync((ApplicationRole?)null);
+        roleManager.Setup(m => m.FindByNameAsync(IdentityRoleNames.User)).ReturnsAsync((ApplicationRole?)null);
         roleManager.Setup(m => m.CreateAsync(It.IsAny<ApplicationRole>())).ReturnsAsync(IdentityResult.Success);
 
         userManager.Setup(m => m.FindByEmailAsync("admin@example.com")).ReturnsAsync((ApplicationUser?)null);
@@ -100,7 +100,9 @@ public sealed class IdentitySeedServiceTests
         var userManager = BuildUserManagerMock();
         var roleManager = BuildRoleManagerMock();
 
-        roleManager.Setup(m => m.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+        roleManager.Setup(m => m.FindByNameAsync(IdentityRoleNames.Admin)).ReturnsAsync(new ApplicationRole { Name = IdentityRoleNames.Admin, Permissions = [] });
+        roleManager.Setup(m => m.FindByNameAsync(IdentityRoleNames.User)).ReturnsAsync(new ApplicationRole { Name = IdentityRoleNames.User, Permissions = [] });
+        roleManager.Setup(m => m.UpdateAsync(It.IsAny<ApplicationRole>())).ReturnsAsync(IdentityResult.Success);
         userManager.Setup(m => m.FindByEmailAsync("admin@example.com")).ReturnsAsync(adminUser);
         userManager.Setup(m => m.FindByEmailAsync("user@example.com")).ReturnsAsync(normalUser);
         userManager.Setup(m => m.GetRolesAsync(adminUser)).ReturnsAsync([IdentityRoleNames.Admin]);
@@ -119,5 +121,6 @@ public sealed class IdentitySeedServiceTests
         userManager.Verify(m => m.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
         userManager.Verify(m => m.AddToRoleAsync(adminUser, IdentityRoleNames.Admin), Times.Never);
         userManager.Verify(m => m.AddToRoleAsync(normalUser, IdentityRoleNames.User), Times.Once);
+        roleManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationRole>()), Times.Exactly(2));
     }
 }

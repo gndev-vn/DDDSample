@@ -1,7 +1,8 @@
 using CatalogAPI.Domain;
 using CatalogAPI.Domain.Entities;
-using CatalogAPI.Features.Categories.Commands;
-using CatalogAPI.Features.Categories.Models;
+using CatalogAPI.Features.Categories.CreateCategory;
+using CatalogAPI.Features.Categories.DeleteCategory;
+using CatalogAPI.Features.Categories.UpdateCategory;
 using FluentValidation;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,6 @@ public sealed class CategoryCommandTests : IDisposable
     [Fact]
     public async Task CreateCategory_WithMissingParent_ThrowsNotFound()
     {
-        // Arrange
         await using var dbContext = NewContext();
         var handler = new CreateCategoryCommandHandler(dbContext);
         var command = new CreateCategoryCommand(new CategoryCreateRequest(
@@ -42,14 +42,12 @@ public sealed class CategoryCommandTests : IDisposable
             "Child category",
             Guid.NewGuid()));
 
-        // Act / Assert
         await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
     }
 
     [Fact]
     public async Task CreateCategory_WithValidParent_PersistsParentAndReturnsCreatedCategory()
     {
-        // Arrange
         var parent = new Category("Parent", "Parent category", "parent");
         await using (var seedContext = NewContext())
         {
@@ -65,10 +63,8 @@ public sealed class CategoryCommandTests : IDisposable
             "Child category",
             parent.Id));
 
-        // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         var created = await assertContext.Categories.IgnoreQueryFilters().SingleAsync(x => x.Id == result.Id);
         Assert.Equal("Child", result.Name);
@@ -80,7 +76,6 @@ public sealed class CategoryCommandTests : IDisposable
     [Fact]
     public async Task UpdateCategory_WhenCategoryExists_UpdatesFieldsAndClearsParentForEmptyGuid()
     {
-        // Arrange
         var parent = new Category("Parent", "Parent category", "parent");
         var child = new Category("Child", "Child description", "child", parentId: parent.Id);
         await using (var seedContext = NewContext())
@@ -99,10 +94,8 @@ public sealed class CategoryCommandTests : IDisposable
             Guid.Empty,
             false));
 
-        // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         var updated = await assertContext.Categories.IgnoreQueryFilters().SingleAsync(x => x.Id == child.Id);
         Assert.Equal("Updated child", result.Name);
@@ -115,7 +108,6 @@ public sealed class CategoryCommandTests : IDisposable
     [Fact]
     public async Task UpdateCategory_WhenCategoryMissing_ThrowsKeyNotFoundException()
     {
-        // Arrange
         await using var dbContext = NewContext();
         var handler = new UpdateCategoryCommandHandler(dbContext);
         var command = new UpdateCategoryCommand(new CategoryUpdateRequest(
@@ -125,14 +117,12 @@ public sealed class CategoryCommandTests : IDisposable
             "Description",
             Guid.Empty));
 
-        // Act / Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
     }
 
     [Fact]
     public async Task UpdateCategory_WithMissingParent_ThrowsNotFound()
     {
-        // Arrange
         var category = new Category("Child", "Child category", "child");
         await using (var seedContext = NewContext())
         {
@@ -149,14 +139,12 @@ public sealed class CategoryCommandTests : IDisposable
             "Child category",
             Guid.NewGuid()));
 
-        // Act / Assert
         await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
     }
 
     [Fact]
     public async Task DeleteCategory_WhenCategoryExists_RemovesCategory()
     {
-        // Arrange
         var category = new Category("Delete me", "To delete", "delete-me");
         await using (var seedContext = NewContext())
         {
@@ -167,10 +155,8 @@ public sealed class CategoryCommandTests : IDisposable
         await using var dbContext = NewContext();
         var handler = new DeleteCategoryCommandHandler(dbContext);
 
-        // Act
         var deleted = await handler.Handle(new DeleteCategoryCommand(category.Id), CancellationToken.None);
 
-        // Assert
         Assert.True(deleted);
         await using var assertContext = NewContext();
         Assert.False(await assertContext.Categories.IgnoreQueryFilters().AnyAsync(x => x.Id == category.Id));
@@ -179,11 +165,9 @@ public sealed class CategoryCommandTests : IDisposable
     [Fact]
     public async Task DeleteCategory_WhenCategoryMissing_ThrowsKeyNotFoundException()
     {
-        // Arrange
         await using var dbContext = NewContext();
         var handler = new DeleteCategoryCommandHandler(dbContext);
 
-        // Act / Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             handler.Handle(new DeleteCategoryCommand(Guid.NewGuid()), CancellationToken.None).AsTask());
     }
@@ -284,14 +268,11 @@ public sealed class CategoryCommandTests : IDisposable
     [Fact]
     public void CategoryCreateValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
-        // Arrange
         var validator = new CategoryCreateRequestValidator();
         var request = new CategoryCreateRequest(string.Empty, string.Empty, new string('d', 1001), null);
 
-        // Act
         var result = validator.Validate(request);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(CategoryCreateRequest.Name));
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(CategoryCreateRequest.Slug));
@@ -301,14 +282,11 @@ public sealed class CategoryCommandTests : IDisposable
     [Fact]
     public void CategoryUpdateValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
-        // Arrange
         var validator = new CategoryUpdateRequestValidator();
         var request = new CategoryUpdateRequest(Guid.Empty, string.Empty, string.Empty, new string('d', 1001), Guid.Empty);
 
-        // Act
         var result = validator.Validate(request);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(CategoryUpdateRequest.Id));
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(CategoryUpdateRequest.Name));

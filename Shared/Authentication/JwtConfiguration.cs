@@ -38,7 +38,7 @@ public static class JwtConfiguration
             };
         });
 
-        services.AddAuthorization();
+        services.AddApplicationAuthorization();
 
         return services;
     }

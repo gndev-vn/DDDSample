@@ -1,0 +1,13 @@
+{
+  "TemplatePath": null,
+  "ContainerSettings": {
+    "Registry": "ghcr.io",
+    "RepositoryPrefix": "dddsample",
+    "Tags": [
+      "latest"
+    ],
+    "Builder": "docker",
+    "BuildArgs": null,
+    "Context": null
+  }
+}

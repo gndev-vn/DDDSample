@@ -120,6 +120,31 @@ namespace CatalogAPI.Domain.Migrations
                     b.ToTable("Products", (string)null);
                 });
 
+            modelBuilder.Entity("CatalogAPI.Domain.Entities.ProductAttributeDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ProductAttributeDefinitions", (string)null);
+                });
+
             modelBuilder.Entity("CatalogAPI.Domain.Entities.ProductVariant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -246,6 +271,9 @@ namespace CatalogAPI.Domain.Migrations
 
                             SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
 
+                            b1.Property<Guid>("AttributeId")
+                                .HasColumnType("uniqueidentifier");
+
                             b1.Property<string>("Name")
                                 .IsRequired()
                                 .HasMaxLength(100)
@@ -261,7 +289,8 @@ namespace CatalogAPI.Domain.Migrations
 
                             b1.HasKey("Id");
 
-                            b1.HasIndex("ProductVariantId", "Name");
+                            b1.HasIndex("ProductVariantId", "AttributeId")
+                                .IsUnique();
 
                             b1.ToTable("ProductVariantAttributes", (string)null);
 

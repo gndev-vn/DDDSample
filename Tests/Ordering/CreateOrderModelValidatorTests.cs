@@ -1,4 +1,5 @@
-using OrderingAPI.Features.Orders.Models;
+using OrderingAPI.Features.Orders.CreateOrder;
+using OrderingAPI.Features.Orders.GetOrderById;
 using Shared.Models;
 
 namespace DDDSample.Tests.Ordering;
@@ -8,8 +9,8 @@ public sealed class CreateOrderModelValidatorTests
     [Fact]
     public void Validate_WithMissingShippingAddress_Fails()
     {
-        var validator = new CreateOrderModelValidator();
-        var model = new CreateOrderModel
+        var validator = new CreateOrderRequestValidator();
+        var model = new CreateOrderRequest
         {
             CustomerId = Guid.NewGuid(),
             ShippingAddress = null!,

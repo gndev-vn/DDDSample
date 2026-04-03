@@ -1,7 +1,7 @@
 using FluentValidation.TestHelper;
 using IdentityAPI.Domain.Identity;
-using IdentityAPI.Features.Auth.Commands.GoogleLogin;
-using IdentityAPI.Features.Auth.Models;
+using IdentityAPI.Features.Auth.GoogleLogin;
+using IdentityAPI.Features.Auth.Login;
 using IdentityAPI.Features.Auth.Services;
 using IdentityAPI.Services;
 using Moq;

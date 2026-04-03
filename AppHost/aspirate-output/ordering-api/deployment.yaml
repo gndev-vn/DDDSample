@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ordering-api
+  labels:
+    app: ordering-api
+spec:
+  minReadySeconds: 60
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ordering-api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: ordering-api
+    spec:
+      containers:
+      - name: ordering-api
+        image: ghcr.io/dddsample/ordering-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 8443
+        - name: rest
+          containerPort: 9084
+        - name: grpc
+          containerPort: 9085
+        envFrom:
+        - configMapRef:
+            name: ordering-api-env
+      terminationGracePeriodSeconds: 180

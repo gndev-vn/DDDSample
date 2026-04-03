@@ -1,6 +1,5 @@
 using IdentityAPI.Domain.Identity;
-using IdentityAPI.Features.Auth.Commands.Login;
-using IdentityAPI.Features.Auth.Models;
+using IdentityAPI.Features.Auth.Login;
 using IdentityAPI.Features.Auth.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;

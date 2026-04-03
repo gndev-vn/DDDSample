@@ -1,9 +1,10 @@
 using CatalogAPI.Domain;
 using CatalogAPI.Domain.Entities;
-using CatalogAPI.Features.Products.Commands;
-using CatalogAPI.Features.Products.Models;
-using ProductCreateModel = CatalogAPI.Features.Products.Models.ProductCreateRequest;
-using ProductUpdateModel = CatalogAPI.Features.Products.Models.ProductUpdateRequest;
+using CatalogAPI.Features.Products.CreateProduct;
+using CatalogAPI.Features.Products.DeleteProduct;
+using CatalogAPI.Features.Products.UpdateProduct;
+using ProductCreateModel = CatalogAPI.Features.Products.CreateProduct.ProductCreateRequest;
+using ProductUpdateModel = CatalogAPI.Features.Products.UpdateProduct.ProductUpdateRequest;
 using FluentValidation;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,6 @@ public sealed class ProductCommandTests : IDisposable
     [Fact]
     public async Task CreateProduct_AssignsResolvedCategory()
     {
-        // Arrange
         var category = new Category("Books", "Books", "books");
         await using (var seedContext = NewContext())
         {
@@ -53,10 +53,8 @@ public sealed class ProductCommandTests : IDisposable
             42m,
             "usd"));
 
-        // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         var created = await assertContext.Products.Include(x => x.Category).SingleAsync(x => x.Id == result.Id);
         Assert.Equal(category.Id, created.Category?.Id);
@@ -68,7 +66,6 @@ public sealed class ProductCommandTests : IDisposable
     [Fact]
     public async Task CreateProduct_WhenCategoryMissing_ThrowsNotFound()
     {
-        // Arrange
         await using var dbContext = NewContext();
         var handler = new CreateProductCommandHandler(dbContext);
         var command = new CreateProductCommand(new ProductCreateModel(
@@ -79,14 +76,12 @@ public sealed class ProductCommandTests : IDisposable
             42m,
             "usd"));
 
-        // Act / Assert
         await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
     }
 
     [Fact]
     public async Task UpdateProduct_WhenProductExists_UpdatesFieldsAndCategory()
     {
-        // Arrange
         var oldCategory = new Category("Books", "Books", "books");
         var newCategory = new Category("Patterns", "Patterns", "patterns");
         var product = new Product("DDD Sample", "Original", "ddd-sample", new Shared.ValueObjects.Money(42m, "USD"))
@@ -112,10 +107,8 @@ public sealed class ProductCommandTests : IDisposable
             99.5m,
             "eur"));
 
-        // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
-        // Assert
         await using var assertContext = NewContext();
         var updated = await assertContext.Products.Include(x => x.Category).SingleAsync(x => x.Id == product.Id);
         Assert.Equal("Updated Sample", updated.Name);
@@ -131,7 +124,6 @@ public sealed class ProductCommandTests : IDisposable
     [Fact]
     public async Task UpdateProduct_WhenProductMissing_ThrowsKeyNotFoundException()
     {
-        // Arrange
         var category = new Category("Books", "Books", "books");
         await using (var seedContext = NewContext())
         {
@@ -150,14 +142,12 @@ public sealed class ProductCommandTests : IDisposable
             99.5m,
             "eur"));
 
-        // Act / Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
     }
 
     [Fact]
     public async Task UpdateProduct_WhenCategoryMissing_ThrowsNotFound()
     {
-        // Arrange
         var existingCategory = new Category("Books", "Books", "books");
         var product = new Product("DDD Sample", "Original", "ddd-sample", new Shared.ValueObjects.Money(42m, "USD"))
         {
@@ -182,7 +172,6 @@ public sealed class ProductCommandTests : IDisposable
             99.5m,
             "eur"));
 
-        // Act / Assert
         await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
     }
 
@@ -200,7 +189,6 @@ public sealed class ProductCommandTests : IDisposable
     [Fact]
     public async Task DeleteProduct_WhenProductExists_RemovesProduct()
     {
-        // Arrange
         var category = new Category("Books", "Books", "books");
         var product = new Product("DDD Sample", "Original", "ddd-sample", new Shared.ValueObjects.Money(42m, "USD"))
         {
@@ -217,10 +205,8 @@ public sealed class ProductCommandTests : IDisposable
         await using var dbContext = NewContext();
         var handler = new DeleteProductCommandHandler(dbContext);
 
-        // Act
         var deleted = await handler.Handle(new DeleteProductCommand(product.Id), CancellationToken.None);
 
-        // Assert
         Assert.True(deleted);
         await using var assertContext = NewContext();
         Assert.False(await assertContext.Products.AnyAsync(x => x.Id == product.Id));
@@ -229,11 +215,9 @@ public sealed class ProductCommandTests : IDisposable
     [Fact]
     public async Task DeleteProduct_WhenProductMissing_ThrowsKeyNotFoundException()
     {
-        // Arrange
         await using var dbContext = NewContext();
         var handler = new DeleteProductCommandHandler(dbContext);
 
-        // Act / Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             handler.Handle(new DeleteProductCommand(Guid.NewGuid()), CancellationToken.None).AsTask());
     }
@@ -241,14 +225,11 @@ public sealed class ProductCommandTests : IDisposable
     [Fact]
     public void ProductCreateValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
-        // Arrange
         var validator = new ProductCreateRequestValidator();
         var request = new ProductCreateModel(string.Empty, string.Empty, "desc", Guid.Empty, -1m, "us");
 
-        // Act
         var result = validator.Validate(request);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ProductCreateModel.Name));
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ProductCreateModel.Slug));
@@ -260,14 +241,11 @@ public sealed class ProductCommandTests : IDisposable
     [Fact]
     public void ProductUpdateValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
-        // Arrange
         var validator = new ProductUpdateRequestValidator();
         var request = new ProductUpdateModel(Guid.Empty, string.Empty, string.Empty, "desc", Guid.Empty, -1m, "us");
 
-        // Act
         var result = validator.Validate(request);
 
-        // Assert
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ProductUpdateModel.Id));
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ProductUpdateModel.Name));

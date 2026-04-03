@@ -101,7 +101,7 @@ Important configuration keys:
 
 - `ConnectionStrings:Default`
 - `ConnectionStrings:Redis`
-- `GrpcServices:Ordering`
+- Aspire gRPC service discovery via `http://_grpc.ordering-api` when running under AppHost, with `GrpcServices:Ordering` retained as the explicit fallback for non-Aspire environments
 - `RabbitMq:*`
 - `Wolverine:OrderingExchange`
 - `Wolverine:PaymentExchange`

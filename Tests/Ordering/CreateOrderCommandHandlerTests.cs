@@ -2,8 +2,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using OrderingAPI.Domain;
 using OrderingAPI.Domain.Entities;
-using OrderingAPI.Features.Orders.Commands;
-using OrderingAPI.Features.Orders.Models;
+using OrderingAPI.Features.Orders.CreateOrder;
+using OrderingAPI.Features.Orders.GetOrderById;
 using Shared.Models;
 
 namespace DDDSample.Tests.Ordering;

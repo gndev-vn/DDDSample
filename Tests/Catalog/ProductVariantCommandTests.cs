@@ -1,12 +1,15 @@
 using CatalogAPI.Domain;
 using CatalogAPI.Domain.Entities;
-using CatalogAPI.Features.Products.Commands;
-using CatalogAPI.Features.Products.Models;
+using CatalogAPI.Features.Products.CreateProductVariant;
+using CatalogAPI.Features.Products.DeleteProductVariant;
+using CatalogAPI.Features.Products.UpdateProductVariant;
 using FluentValidation;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Shared.Exceptions;
 using Shared.ValueObjects;
+using CreateVariantAttributeValueRequest = CatalogAPI.Features.Products.CreateProductVariant.ProductVariantAttributeValueRequest;
+using UpdateVariantAttributeValueRequest = CatalogAPI.Features.Products.UpdateProductVariant.ProductVariantAttributeValueRequest;
 
 namespace DDDSample.Tests.Catalog;
 
@@ -34,9 +37,13 @@ public sealed class ProductVariantCommandTests : IDisposable
     [Fact]
     public async Task CreateProductVariant_AssignsParentAndPersistsAttributes()
     {
+        var color = new ProductAttributeDefinition("Color");
+        var size = new ProductAttributeDefinition("Size");
         var product = new Product("Shirt", "Cotton shirt", "shirt", new Money(30m, "USD"));
+
         await using (var seedContext = NewContext())
         {
+            seedContext.ProductAttributeDefinitions.AddRange(color, size);
             seedContext.Products.Add(product);
             await seedContext.SaveChangesAsync();
         }
@@ -50,7 +57,10 @@ public sealed class ProductVariantCommandTests : IDisposable
             product.Id,
             35m,
             "usd",
-            [new VariantAttribute("Color", "Blue"), new VariantAttribute("Size", "M")]));
+            [
+                new CreateVariantAttributeValueRequest(color.Id, "Blue"),
+                new CreateVariantAttributeValueRequest(size.Id, "M"),
+            ]));
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -61,6 +71,7 @@ public sealed class ProductVariantCommandTests : IDisposable
         Assert.Equal(35m, created.OverridePrice!.Amount);
         Assert.Equal("USD", created.OverridePrice.Currency);
         Assert.Equal(2, created.Attributes.Count);
+        Assert.Contains(created.Attributes, attribute => attribute.AttributeId == color.Id && attribute.Value == "Blue");
         Assert.Equal("USD", result.Currency);
         Assert.Equal(35m, result.OverridePrice);
     }
@@ -83,14 +94,21 @@ public sealed class ProductVariantCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateProductVariant_WhenVariantExists_UpdatesFields()
+    public async Task UpdateProductVariant_WhenVariantExists_UpdatesFieldsAndAttributes()
     {
+        var color = new ProductAttributeDefinition("Color");
+        var size = new ProductAttributeDefinition("Size");
         var product = new Product("Shirt", "Cotton shirt", "shirt", new Money(30m, "USD"));
-        var variant = product.AddVariant("Shirt / Blue / M", "shirt-blue-m", "Blue medium shirt",
-            new Money(35m, "USD"), [new VariantAttribute("Color", "Blue")]);
+        var variant = product.AddVariant(
+            "Shirt / Blue / M",
+            "shirt-blue-m",
+            "Blue medium shirt",
+            new Money(35m, "USD"),
+            [new VariantAttribute(color.Id, color.Name, "Blue")]);
 
         await using (var seedContext = NewContext())
         {
+            seedContext.ProductAttributeDefinitions.AddRange(color, size);
             seedContext.Products.Add(product);
             await seedContext.SaveChangesAsync();
         }
@@ -104,7 +122,11 @@ public sealed class ProductVariantCommandTests : IDisposable
             "Navy medium shirt",
             product.Id,
             37.5m,
-            "eur"));
+            "eur",
+            [
+                new UpdateVariantAttributeValueRequest(color.Id, "Navy"),
+                new UpdateVariantAttributeValueRequest(size.Id, "M"),
+            ]));
 
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -115,6 +137,9 @@ public sealed class ProductVariantCommandTests : IDisposable
         Assert.Equal("Navy medium shirt", updated.Description);
         Assert.Equal(37.5m, updated.OverridePrice!.Amount);
         Assert.Equal("EUR", updated.OverridePrice.Currency);
+        Assert.Equal(2, updated.Attributes.Count);
+        Assert.Contains(updated.Attributes, attribute => attribute.AttributeId == color.Id && attribute.Value == "Navy");
+        Assert.Contains(updated.Attributes, attribute => attribute.AttributeId == size.Id && attribute.Value == "M");
         Assert.Equal("EUR", result.Currency);
         Assert.Equal(37.5m, result.OverridePrice);
     }
@@ -122,12 +147,18 @@ public sealed class ProductVariantCommandTests : IDisposable
     [Fact]
     public async Task UpdateProductVariant_WhenParentMissing_ThrowsNotFound()
     {
+        var color = new ProductAttributeDefinition("Color");
         var product = new Product("Shirt", "Cotton shirt", "shirt", new Money(30m, "USD"));
-        var variant = product.AddVariant("Shirt / Blue / M", "shirt-blue-m", "Blue medium shirt",
-            new Money(35m, "USD"), []);
+        var variant = product.AddVariant(
+            "Shirt / Blue / M",
+            "shirt-blue-m",
+            "Blue medium shirt",
+            new Money(35m, "USD"),
+            [new VariantAttribute(color.Id, color.Name, "Blue")]);
 
         await using (var seedContext = NewContext())
         {
+            seedContext.ProductAttributeDefinitions.Add(color);
             seedContext.Products.Add(product);
             await seedContext.SaveChangesAsync();
         }
@@ -141,7 +172,8 @@ public sealed class ProductVariantCommandTests : IDisposable
             "Navy medium shirt",
             Guid.NewGuid(),
             37.5m,
-            "eur"));
+            "eur",
+            [new UpdateVariantAttributeValueRequest(color.Id, "Navy")]));
 
         await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(command, CancellationToken.None).AsTask());
     }
@@ -149,12 +181,18 @@ public sealed class ProductVariantCommandTests : IDisposable
     [Fact]
     public async Task DeleteProductVariant_WhenVariantExists_RemovesVariant()
     {
+        var color = new ProductAttributeDefinition("Color");
         var product = new Product("Shirt", "Cotton shirt", "shirt", new Money(30m, "USD"));
-        var variant = product.AddVariant("Shirt / Blue / M", "shirt-blue-m", "Blue medium shirt",
-            new Money(35m, "USD"), []);
+        var variant = product.AddVariant(
+            "Shirt / Blue / M",
+            "shirt-blue-m",
+            "Blue medium shirt",
+            new Money(35m, "USD"),
+            [new VariantAttribute(color.Id, color.Name, "Blue")]);
 
         await using (var seedContext = NewContext())
         {
+            seedContext.ProductAttributeDefinitions.Add(color);
             seedContext.Products.Add(product);
             await seedContext.SaveChangesAsync();
         }
@@ -183,8 +221,17 @@ public sealed class ProductVariantCommandTests : IDisposable
     public void ProductVariantCreateValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
         var validator = new ProductVariantCreateRequestValidator();
-        var request = new ProductVariantCreateRequest(string.Empty, string.Empty, new string('x', 5000), Guid.Empty,
-            -1m, "us", [new VariantAttribute("Color", "Blue"), new VariantAttribute("color", "Red")]);
+        var request = new ProductVariantCreateRequest(
+            string.Empty,
+            string.Empty,
+            new string('x', 5000),
+            Guid.Empty,
+            -1m,
+            "us",
+            [
+                new CreateVariantAttributeValueRequest(Guid.Empty, string.Empty),
+                new CreateVariantAttributeValueRequest(Guid.Empty, string.Empty),
+            ]);
 
         var result = validator.Validate(request);
 
@@ -201,8 +248,15 @@ public sealed class ProductVariantCommandTests : IDisposable
     public void ProductVariantUpdateValidator_WhenRequestIsInvalid_ReturnsExpectedErrors()
     {
         var validator = new ProductVariantUpdateRequestValidator();
-        var request = new ProductVariantUpdateRequest(Guid.Empty, string.Empty, string.Empty, new string('x', 5000),
-            Guid.Empty, -1m, "us");
+        var request = new ProductVariantUpdateRequest(
+            Guid.Empty,
+            string.Empty,
+            string.Empty,
+            new string('x', 5000),
+            Guid.Empty,
+            -1m,
+            "us",
+            [new UpdateVariantAttributeValueRequest(Guid.Empty, string.Empty)]);
 
         var result = validator.Validate(request);
 
@@ -213,5 +267,9 @@ public sealed class ProductVariantCommandTests : IDisposable
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ProductVariantUpdateRequest.ParentId));
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ProductVariantUpdateRequest.OverridePrice));
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ProductVariantUpdateRequest.Currency));
+        Assert.Contains(result.Errors, x => x.PropertyName == "Attributes[0].AttributeId");
+        Assert.Contains(result.Errors, x => x.PropertyName == "Attributes[0].Value");
     }
 }
+
+

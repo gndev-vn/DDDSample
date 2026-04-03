@@ -1,0 +1,42 @@
+resources:
+- deployment.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: ordering-api-env
+  literals:
+    - OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY=in_memory
+    - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+    - HTTP_PORTS=8080;9084;9085
+    - ConnectionStrings__Default=Server=sqlserver,1433;User ID=sa;Password=ChangeMe_SqlPassword!;TrustServerCertificate=true;Initial Catalog=OrderingAPI
+    - DEFAULT_HOST=sqlserver
+    - DEFAULT_PORT=1433
+    - DEFAULT_USERNAME=sa
+    - DEFAULT_PASSWORD=ChangeMe_SqlPassword!
+    - DEFAULT_URI=mssql://sa:ChangeMe_SqlPassword!@sqlserver:1433/OrderingAPI
+    - DEFAULT_JDBCCONNECTIONSTRING=jdbc:sqlserver://sqlserver:1433;databaseName=OrderingAPI;trustServerCertificate=true
+    - DEFAULT_DATABASENAME=OrderingAPI
+    - ConnectionStrings__Redis=redis:6379,password=ryY3kDG!vmBI5OGJdOVaFM
+    - REDIS_HOST=redis
+    - REDIS_PORT=6379
+    - REDIS_PASSWORD=ryY3kDG!vmBI5OGJdOVaFM
+    - REDIS_URI=http://:{redis-password-uri-encoded.value}@redis:6379
+    - ConnectionStrings__RabbitMq=amqp://{rabbitmq-username-uri-encoded.value}:{rabbitmq-password-uri-encoded.value}@rabbitmq:5672
+    - RABBITMQ_HOST=rabbitmq
+    - RABBITMQ_PORT=5672
+    - RABBITMQ_USERNAME=Ayy11E9E4S5FjWdgSVyQF3
+    - RABBITMQ_PASSWORD=ChangeMe_RabbitMqPassword!
+    - RABBITMQ_URI=amqp://{rabbitmq-username-uri-encoded.value}:{rabbitmq-password-uri-encoded.value}@rabbitmq:5672
+    - CATALOG_API_HTTP=http://catalog-api:8080
+    - services__catalog-api__http__0=http://catalog-api:8080
+    - CATALOG_API_REST=catalog-api:9080
+    - services__catalog-api__http__1=catalog-api:9080
+    - CATALOG_API_GRPC=catalog-api:9081
+    - services__catalog-api__http__2=catalog-api:9081
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+    - OTEL_SERVICE_NAME=ordering-api
+    - ASPNETCORE_URLS=http://+:8080;
+

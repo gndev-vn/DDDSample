@@ -1,0 +1,31 @@
+resources:
+- deployment.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: identity-api-env
+  literals:
+    - OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY=in_memory
+    - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+    - HTTP_PORTS=8080;9088;9089
+    - ConnectionStrings__MongoDB=mongodb://{mongodb-username-uri-encoded.value}:{mongodb-password-uri-encoded.value}@mongodb:27017/identitydb?authSource=admin&amp;authMechanism=SCRAM-SHA-256
+    - MONGODB_HOST=mongodb
+    - MONGODB_PORT=27017
+    - MONGODB_USERNAME=jWKuHUia!4mySUV2ZZw8V7
+    - MONGODB_PASSWORD=ChangeMe_MongoPassword!
+    - MONGODB_AUTHENTICATIONDATABASE=admin
+    - MONGODB_AUTHENTICATIONMECHANISM=SCRAM-SHA-256
+    - MONGODB_URI=mongodb://{mongodb-username-uri-encoded.value}:{mongodb-password-uri-encoded.value}@mongodb:27017/identitydb?authSource=admin&amp;authMechanism=SCRAM-SHA-256
+    - MONGODB_DATABASENAME=identitydb
+    - ConnectionStrings__Redis=redis:6379,password=ryY3kDG!vmBI5OGJdOVaFM
+    - REDIS_HOST=redis
+    - REDIS_PORT=6379
+    - REDIS_PASSWORD=ryY3kDG!vmBI5OGJdOVaFM
+    - REDIS_URI=http://:{redis-password-uri-encoded.value}@redis:6379
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+    - OTEL_SERVICE_NAME=identity-api
+    - ASPNETCORE_URLS=http://+:8080;
+

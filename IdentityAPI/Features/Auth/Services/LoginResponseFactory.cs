@@ -1,5 +1,5 @@
 using IdentityAPI.Domain.Identity;
-using IdentityAPI.Features.Auth.Models;
+using IdentityAPI.Features.Auth.Login;
 using IdentityAPI.Services;
 using Microsoft.Extensions.Options;
 using Shared.Models;
@@ -11,7 +11,10 @@ public interface ILoginResponseFactory
     Task<LoginResponse> CreateAsync(ApplicationUser user, IEnumerable<string> roles, CancellationToken cancellationToken);
 }
 
-public sealed class LoginResponseFactory(IJwtTokenService jwtTokenService, IOptions<JwtSettings> jwtSettings)
+public sealed class LoginResponseFactory(
+    IJwtTokenService jwtTokenService,
+    IRolePermissionService rolePermissionService,
+    IOptions<JwtSettings> jwtSettings)
     : ILoginResponseFactory
 {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
@@ -21,7 +24,8 @@ public sealed class LoginResponseFactory(IJwtTokenService jwtTokenService, IOpti
         cancellationToken.ThrowIfCancellationRequested();
 
         var resolvedRoles = roles as string[] ?? roles.ToArray();
-        var token = await jwtTokenService.GenerateTokenAsync(user, resolvedRoles);
+        var resolvedPermissions = await rolePermissionService.GetPermissionsAsync(resolvedRoles, cancellationToken);
+        var token = await jwtTokenService.GenerateTokenAsync(user, resolvedRoles, resolvedPermissions);
 
         return new LoginResponse(
             Success: true,
@@ -34,7 +38,8 @@ public sealed class LoginResponseFactory(IJwtTokenService jwtTokenService, IOpti
                 user.Email ?? string.Empty,
                 user.FirstName,
                 user.LastName,
-                resolvedRoles
+                resolvedRoles,
+                resolvedPermissions
             )
         );
     }

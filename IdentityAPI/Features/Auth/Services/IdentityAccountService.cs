@@ -1,5 +1,5 @@
 using IdentityAPI.Domain.Identity;
-using IdentityAPI.Features.Auth.Models;
+using IdentityAPI.Features.Auth.Register;
 using IdentityAPI.Services;
 using Microsoft.AspNetCore.Identity;
 using Shared.Exceptions;

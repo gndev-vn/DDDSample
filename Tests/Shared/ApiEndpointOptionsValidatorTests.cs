@@ -12,8 +12,7 @@ public sealed class ApiEndpointOptionsValidatorTests
     {
         var options = new ApiEndpointOptions
         {
-            Restful = new ApiTransportEndpointOptions { Http = 5000, Https = 5002 },
-            Grpc = new ApiTransportEndpointOptions { Http = 5001, Https = 5003 }
+            Restful = new ApiTransportEndpointOptions { Http = 5000, Https = 5002 }
         };
 
         var result = _validator.Validate(Options.DefaultName, options);
@@ -26,8 +25,7 @@ public sealed class ApiEndpointOptionsValidatorTests
     {
         var options = new ApiEndpointOptions
         {
-            Restful = new ApiTransportEndpointOptions { Http = 5000 },
-            Grpc = new ApiTransportEndpointOptions { Http = 5000 }
+            Restful = new ApiTransportEndpointOptions { Http = 5000, Https = 5000 }
         };
 
         var result = _validator.Validate(Options.DefaultName, options);
@@ -43,8 +41,7 @@ public sealed class ApiEndpointOptionsValidatorTests
     {
         var options = new ApiEndpointOptions
         {
-            Restful = new ApiTransportEndpointOptions { Http = port },
-            Grpc = new ApiTransportEndpointOptions { Http = 5001 }
+            Restful = new ApiTransportEndpointOptions { Http = port }
         };
 
         var result = _validator.Validate(Options.DefaultName, options);
