@@ -32,6 +32,7 @@ public sealed class GetUsersHandler(
                 user.Email ?? string.Empty,
                 user.FirstName,
                 user.LastName,
+                user.CustomerId?.ToString(),
                 roles,
                 permissions,
                 user.IsActive,

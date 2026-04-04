@@ -22,7 +22,10 @@ const editingRoleId = ref<string | null>(null);
 const initialRoleSnapshot = ref('');
 
 const canViewRoles = computed(() => authStore.hasPermission(appPermissions.roles.view));
-const canManageRoles = computed(() => authStore.hasPermission(appPermissions.roles.manage));
+const canCreateRoles = computed(() => authStore.hasPermission(appPermissions.roles.create));
+const canUpdateRoles = computed(() => authStore.hasPermission(appPermissions.roles.update));
+const canDeleteRoles = computed(() => authStore.hasPermission(appPermissions.roles.delete));
+const canManageRoles = computed(() => canCreateRoles.value || canUpdateRoles.value || canDeleteRoles.value);
 
 const roleForm = reactive<CreateRoleRequest>({ name: '', description: '', permissions: [] });
 
@@ -47,11 +50,15 @@ const roleSnapshot = computed(() =>
 );
 const roleHasChanges = computed(() => roleSnapshot.value !== initialRoleSnapshot.value);
 const canSaveRole = computed(() => {
-  if (!canManageRoles.value || savingRole.value || !roleForm.name.trim()) {
+  if (savingRole.value || !roleForm.name.trim()) {
     return false;
   }
 
-  return editingRoleId.value ? roleHasChanges.value : true;
+  if (editingRoleId.value) {
+    return canUpdateRoles.value && roleHasChanges.value;
+  }
+
+  return canCreateRoles.value;
 });
 
 function setOutcome(message: string | null, error: string | null = null) {
@@ -120,8 +127,18 @@ async function refreshRoles() {
 }
 
 async function saveRole() {
-  if (!authStore.token || !canManageRoles.value) {
-    setOutcome(null, 'Role management permission is required to save roles.');
+  if (!authStore.token) {
+    setOutcome(null, 'Sign in before saving roles.');
+    return;
+  }
+
+  if (editingRoleId.value && !canUpdateRoles.value) {
+    setOutcome(null, 'Role update permission is required to save role permissions.');
+    return;
+  }
+
+  if (!editingRoleId.value && !canCreateRoles.value) {
+    setOutcome(null, 'Role create permission is required to create roles.');
     return;
   }
 
@@ -178,6 +195,7 @@ onMounted(() => {
     <div v-if="feedback" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ feedback }}</div>
     <div v-if="errorMessage" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ errorMessage }}</div>
     <div v-if="!canViewRoles" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">The current account does not have permission to view roles.</div>
+    <div v-else-if="!canManageRoles" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">The current account can review roles, but create and update actions require separate permissions.</div>
 
     <article class="section-panel">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -185,7 +203,10 @@ onMounted(() => {
           <h4 class="section-title">Role definitions</h4>
           <p class="mt-2 text-sm text-slate-600">{{ filteredRoles.length }} of {{ roles.length }} role definition(s).</p>
         </div>
-        <button class="btn-primary" :disabled="!canManageRoles" @click="openRoleDialog()"><span class="button-icon" aria-hidden="true">＋</span><span>New role</span></button>
+        <button class="btn-primary" :disabled="!canCreateRoles" @click="openRoleDialog()">
+          <span class="button-icon" aria-hidden="true">＋</span>
+          <span>New role</span>
+        </button>
       </div>
 
       <div class="mt-5 table-shell">
@@ -212,7 +233,9 @@ onMounted(() => {
               </td>
               <td class="px-5 py-4 text-slate-600">{{ formatDate(role.createdAt) }}</td>
               <td class="px-5 py-4">
-                <button class="icon-button" :disabled="!canManageRoles" title="Edit permissions" aria-label="Edit role permissions" @click="openRoleDialog(role)"><span class="icon-glyph">✎</span></button>
+                <button class="icon-button" :disabled="!canUpdateRoles" title="Edit permissions" aria-label="Edit role permissions" @click="openRoleDialog(role)">
+                  <span class="icon-glyph">✎</span>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -222,8 +245,8 @@ onMounted(() => {
       </div>
     </article>
 
-    <EntityDialog :open="isRoleDialogOpen" :title="editingRoleId ? 'Edit role permissions' : 'New role'" description="Assign permissions to control exactly what the role can read or manage." width-class="max-w-4xl" @close="isRoleDialogOpen = false">
-      <div class="grid gap-5">
+    <EntityDialog :open="isRoleDialogOpen" :title="editingRoleId ? 'Edit role permissions' : 'New role'" description="Assign permissions to control exactly what the role can do on each entity." width-class="max-w-4xl" @close="isRoleDialogOpen = false">
+      <div class="grid gap-6">
         <div class="grid gap-4 md:grid-cols-2">
           <label>
             <span class="field-label">Role name</span>
@@ -245,7 +268,7 @@ onMounted(() => {
             <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p class="font-semibold text-slate-900">{{ group.label }}</p>
-                <p class="mt-1 text-sm text-slate-500">Choose the access level for this entity.</p>
+                <p class="mt-1 text-sm text-slate-500">Choose the actions available for this entity.</p>
               </div>
               <div class="flex flex-wrap gap-2">
                 <button
@@ -263,10 +286,12 @@ onMounted(() => {
           </div>
         </div>
 
-        <button class="btn-primary" :disabled="!canSaveRole" @click="saveRole"><span v-if="savingRole" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">💾</span><span>{{ savingRole ? 'Saving role...' : editingRoleId ? 'Save permissions' : 'Create role' }}</span></button>
+        <button class="btn-primary" :disabled="!canSaveRole" @click="saveRole">
+          <span v-if="savingRole" class="button-spinner" aria-hidden="true" />
+          <span v-else class="button-icon" aria-hidden="true">✓</span>
+          <span>{{ savingRole ? 'Saving role...' : editingRoleId ? 'Save permissions' : 'Create role' }}</span>
+        </button>
       </div>
     </EntityDialog>
   </section>
 </template>
-
-

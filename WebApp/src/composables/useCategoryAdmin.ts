@@ -15,7 +15,6 @@ export function useCategoryAdmin() {
   const deleting = ref<string | null>(null);
   const error = ref<string | null>(null);
   const success = ref<string | null>(null);
-
   const categories = ref<CategoryModel[]>([]);
   const isCategoryDialogOpen = ref(false);
   const catalogSearch = ref('');
@@ -31,7 +30,10 @@ export function useCategoryAdmin() {
   });
 
   const canViewCategories = computed(() => authStore.hasPermission(appPermissions.categories.view));
-  const canManageCategories = computed(() => authStore.hasPermission(appPermissions.categories.manage));
+  const canCreateCategories = computed(() => authStore.hasPermission(appPermissions.categories.create));
+  const canUpdateCategories = computed(() => authStore.hasPermission(appPermissions.categories.update));
+  const canDeleteCategories = computed(() => authStore.hasPermission(appPermissions.categories.delete));
+  const canManageCategories = computed(() => canCreateCategories.value || canUpdateCategories.value || canDeleteCategories.value);
   const canViewCurrentPage = computed(() => canViewCategories.value);
   const canManageCurrentPage = computed(() => canManageCategories.value);
 
@@ -128,7 +130,17 @@ export function useCategoryAdmin() {
   }
 
   async function saveCategory() {
-    if (!authStore.token || !canManageCategories.value || !categoryCanSave.value) {
+    if (!authStore.token || !categoryCanSave.value) {
+      return;
+    }
+
+    if (categoryForm.id && !canUpdateCategories.value) {
+      setOutcome(null, 'Category update permission is required to save category changes.');
+      return;
+    }
+
+    if (!categoryForm.id && !canCreateCategories.value) {
+      setOutcome(null, 'Category create permission is required to create categories.');
       return;
     }
 
@@ -169,8 +181,8 @@ export function useCategoryAdmin() {
   }
 
   async function deleteCategory(category: CategoryModel) {
-    if (!authStore.token || !canManageCategories.value) {
-      setOutcome(null, 'Category management permission is required to manage categories.');
+    if (!authStore.token || !canDeleteCategories.value) {
+      setOutcome(null, 'Category delete permission is required to delete categories.');
       return;
     }
 
@@ -235,6 +247,9 @@ export function useCategoryAdmin() {
     categoryForm,
     canViewCurrentPage,
     canManageCurrentPage,
+    canCreateCategories,
+    canUpdateCategories,
+    canDeleteCategories,
     canManageCategories,
     filteredCategories,
     categoryCanSave,

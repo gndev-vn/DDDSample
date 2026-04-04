@@ -126,14 +126,14 @@ public sealed class IdentityEndpointContractTests
 
     [Theory]
     [InlineData("GetRoles", Permissions.Roles.View)]
-    [InlineData("CreateRole", Permissions.Roles.Manage)]
-    [InlineData("AssignRole", Permissions.Roles.Manage)]
-    [InlineData("UpdateRolePermissions", Permissions.Roles.Manage)]
+    [InlineData("CreateRole", Permissions.Roles.Create)]
+    [InlineData("AssignRole", Permissions.Roles.Update)]
+    [InlineData("UpdateRolePermissions", Permissions.Roles.Update)]
     [InlineData("GetUsers", Permissions.Users.View)]
     [InlineData("GetUser", Permissions.Users.View)]
-    [InlineData("CreateUser", Permissions.Users.Manage)]
-    [InlineData("UpdateUser", Permissions.Users.Manage)]
-    [InlineData("DeleteUser", Permissions.Users.Manage)]
+    [InlineData("CreateUser", Permissions.Users.Create)]
+    [InlineData("UpdateUser", Permissions.Users.Update)]
+    [InlineData("DeleteUser", Permissions.Users.Delete)]
     public void Identity_Admin_Endpoints_UsePermissionPolicies(string endpointName, string policyName)
     {
         var endpoint = GetEndpointByName(endpointName);
@@ -156,3 +156,4 @@ public sealed class IdentityEndpointContractTests
             .Single(endpoint => endpoint.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName == endpointName);
     }
 }
+

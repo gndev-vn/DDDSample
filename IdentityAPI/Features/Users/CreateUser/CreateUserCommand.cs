@@ -22,11 +22,17 @@ public sealed class CreateUserHandler(
             .Where(role => !string.IsNullOrWhiteSpace(role))
             .Select(role => role.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+            .ToList();
 
-        if (normalizedRoles.Length == 0)
+        if (normalizedRoles.Count == 0)
         {
             throw new BusinessException("User creation failed", ["At least one valid role is required."]);
+        }
+
+        var customerId = ParseCustomerId(request.Request.CustomerId);
+        if (customerId.HasValue && !normalizedRoles.Contains(IdentityRoleNames.Customer, StringComparer.OrdinalIgnoreCase))
+        {
+            normalizedRoles.Add(IdentityRoleNames.Customer);
         }
 
         var missingRoles = new List<string>();
@@ -51,6 +57,7 @@ public sealed class CreateUserHandler(
             request.Request.LastName.Trim(),
             utcNow);
         user.IsActive = request.Request.IsActive;
+        user.SetCustomerLink(customerId, utcNow);
 
         var createResult = await userManager.CreateAsync(user, request.Request.Password);
         if (!createResult.Succeeded)
@@ -72,10 +79,14 @@ public sealed class CreateUserHandler(
             user.Email ?? string.Empty,
             user.FirstName,
             user.LastName,
+            user.CustomerId?.ToString(),
             normalizedRoles,
             permissions,
             user.IsActive,
             user.CreatedAt,
             user.UpdatedAt);
     }
+
+    private static Guid? ParseCustomerId(string? customerId)
+        => string.IsNullOrWhiteSpace(customerId) ? null : Guid.Parse(customerId);
 }

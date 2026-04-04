@@ -23,18 +23,39 @@ public sealed class OrderingSeedService(
             return;
         }
 
+        await EnsureCustomersAsync(cancellationToken);
         await EnsureProductCachesAsync(cancellationToken);
         await EnsureOrdersAsync(cancellationToken);
+        await EnsureOrderCustomerSnapshotsAsync(cancellationToken);
 
         logger.LogInformation("[OrderingAPI] Ordering seed completed.");
     }
 
+    private async Task EnsureCustomersAsync(CancellationToken cancellationToken)
+    {
+        var customersById = await dbContext.Customers.ToDictionaryAsync(customer => customer.Id, cancellationToken);
+
+        foreach (var seed in CustomerSeeds)
+        {
+            if (customersById.TryGetValue(seed.Id, out var existing))
+            {
+                existing.Update(seed.DisplayName, seed.Email, seed.PhoneNumber, seed.IsActive);
+                logger.LogInformation("[OrderingAPI] Refreshed seed customer {CustomerId}.", seed.Id);
+                continue;
+            }
+
+            await dbContext.Customers.AddAsync(Customer.Create(seed.Id, seed.DisplayName, seed.Email, seed.PhoneNumber, seed.IsActive), cancellationToken);
+            logger.LogInformation("[OrderingAPI] Seeded customer {CustomerId}.", seed.Id);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task EnsureProductCachesAsync(CancellationToken cancellationToken)
     {
-        var productCachesBySku = await dbContext.ProductCaches
-            .ToDictionaryAsync(cache => cache.Sku, StringComparer.OrdinalIgnoreCase, cancellationToken);
-
+        var productCachesBySku = await dbContext.ProductCaches.ToDictionaryAsync(cache => cache.Sku, StringComparer.OrdinalIgnoreCase, cancellationToken);
         var now = DateTime.UtcNow;
+
         foreach (var seed in ProductCacheSeeds)
         {
             if (productCachesBySku.TryGetValue(seed.Sku, out var existing))
@@ -81,11 +102,9 @@ public sealed class OrderingSeedService(
 
     private async Task EnsureOrdersAsync(CancellationToken cancellationToken)
     {
-        var existingCustomerIds = await dbContext.Orders
-            .Select(order => order.CustomerId)
-            .ToListAsync(cancellationToken);
-
+        var existingCustomerIds = await dbContext.Orders.Select(order => order.CustomerId).ToListAsync(cancellationToken);
         var existingCustomerIdSet = existingCustomerIds.ToHashSet();
+        var customersById = await dbContext.Customers.ToDictionaryAsync(customer => customer.Id, cancellationToken);
 
         foreach (var seed in OrderSeeds)
         {
@@ -95,16 +114,21 @@ public sealed class OrderingSeedService(
                 continue;
             }
 
-            var lines = seed.Lines.Select(line => new OrderLine(
-                new Sku(line.Sku),
-                Quantity.Of(line.Quantity),
-                new Money(line.UnitPrice, line.Currency))
+            if (!customersById.TryGetValue(seed.CustomerId, out var customer))
+            {
+                throw new InvalidOperationException($"Seed customer '{seed.CustomerId}' was not found.");
+            }
+
+            var lines = seed.Lines.Select(line => new OrderLine(new Sku(line.Sku), Quantity.Of(line.Quantity), new Money(line.UnitPrice, line.Currency))
             {
                 ProductId = line.ProductId
             }).ToList();
 
             var order = Order.Create(
-                seed.CustomerId,
+                customer.Id,
+                customer.DisplayName,
+                customer.Email,
+                customer.PhoneNumber,
                 lines,
                 new Address(
                     seed.ShippingAddress.Line1,
@@ -136,11 +160,48 @@ public sealed class OrderingSeedService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    private async Task EnsureOrderCustomerSnapshotsAsync(CancellationToken cancellationToken)
+    {
+        var customersById = await dbContext.Customers.ToDictionaryAsync(customer => customer.Id, cancellationToken);
+        var orders = await dbContext.Orders.ToListAsync(cancellationToken);
+        var updated = false;
+
+        foreach (var order in orders)
+        {
+            if (!string.IsNullOrWhiteSpace(order.CustomerName) && !string.IsNullOrWhiteSpace(order.CustomerEmail))
+            {
+                continue;
+            }
+
+            if (customersById.TryGetValue(order.CustomerId, out var customer))
+            {
+                order.RestoreCustomerSnapshot(customer.Id, customer.DisplayName, customer.Email, customer.PhoneNumber);
+            }
+            else
+            {
+                order.RestoreCustomerSnapshot(order.CustomerId, $"Customer {order.CustomerId.ToString()[..8]}", $"customer-{order.CustomerId:N}@unknown.local", null);
+            }
+
+            updated = true;
+        }
+
+        if (updated)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    private static readonly OrderingCustomerSeed[] CustomerSeeds =
+    [
+        new(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alex Nguyen", "alex.nguyen@example.com", "+84 901 111 111", true),
+        new(Guid.Parse("22222222-2222-2222-2222-222222222222"), "Jamie Tran", "jamie.tran@example.com", "+84 902 222 222", true),
+    ];
+
     private static readonly OrderingProductCacheSeed[] ProductCacheSeeds =
     [
         new(Guid.Parse("1f4b328d-15bf-4dd2-9a06-7b44f78f2d01"), "DDD-HOODIE-BLK-M", "DDD Hoodie / Black / M", 59.90m, "USD", "https://images.example.local/catalog/ddd-hoodie.png", true),
         new(Guid.Parse("e22c58c3-4e8b-4623-90a6-a5ecb1308902"), "ASPIRE-MUG-WHT-12OZ", "Aspire Mug / White / 12oz", 18.50m, "USD", "https://images.example.local/catalog/aspire-mug.png", true),
-        new(Guid.Parse("57db4428-e3c0-4a3c-9e9e-3ca1d5df1203"), "NOTEBOOK-A5-DOT", "Clean Architecture Notebook / A5", 14.00m, "USD", "https://images.example.local/catalog/clean-architecture-notebook.png", true)
+        new(Guid.Parse("57db4428-e3c0-4a3c-9e9e-3ca1d5df1203"), "NOTEBOOK-A5-DOT", "Clean Architecture Notebook / A5", 14.00m, "USD", "https://images.example.local/catalog/clean-architecture-notebook.png", true),
     ];
 
     private static readonly OrderingSeedOrder[] OrderSeeds =
@@ -162,23 +223,9 @@ public sealed class OrderingSeedService(
             ])
     ];
 
-    private sealed record OrderingProductCacheSeed(
-        Guid Id,
-        string Sku,
-        string Name,
-        decimal CurrentPrice,
-        string Currency,
-        string ImageUrl,
-        bool IsActive);
-
-    private sealed record OrderingSeedOrder(
-        Guid CustomerId,
-        OrderStatus Status,
-        OrderingSeedAddress ShippingAddress,
-        OrderingSeedAddress? BillingAddress,
-        OrderingSeedOrderLine[] Lines);
-
+    private sealed record OrderingCustomerSeed(Guid Id, string DisplayName, string Email, string? PhoneNumber, bool IsActive);
+    private sealed record OrderingProductCacheSeed(Guid Id, string Sku, string Name, decimal CurrentPrice, string Currency, string ImageUrl, bool IsActive);
+    private sealed record OrderingSeedOrder(Guid CustomerId, OrderStatus Status, OrderingSeedAddress ShippingAddress, OrderingSeedAddress? BillingAddress, OrderingSeedOrderLine[] Lines);
     private sealed record OrderingSeedOrderLine(Guid ProductId, string Sku, int Quantity, decimal UnitPrice, string Currency);
-
     private sealed record OrderingSeedAddress(string Line1, string? Line2, string Ward, string District, string City, string Province);
 }

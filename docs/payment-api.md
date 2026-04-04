@@ -9,7 +9,7 @@
 - `Domain` contains the payment aggregate, domain events, EF mappings, and migrations
 - `Services` contains infrastructure adapters such as the Ordering gRPC client
 
-The service persists payments in SQL Server, publishes integration events through Wolverine + RabbitMQ, and uses gRPC to read order data from `OrderingAPI`.
+The service persists payments in SQL Server, publishes integration events through Wolverine + Kafka, and uses gRPC to read order data from `OrderingAPI`.
 
 ## Payment lifecycle
 
@@ -17,7 +17,7 @@ The service persists payments in SQL Server, publishes integration events throug
 sequenceDiagram
     participant Client
     participant Ordering as OrderingAPI
-    participant Bus as RabbitMQ/Wolverine
+    participant Bus as Kafka/Wolverine
     participant Payment as PaymentAPI
     participant gRPC as Ordering gRPC
 
@@ -102,10 +102,10 @@ Important configuration keys:
 - `ConnectionStrings:Default`
 - `ConnectionStrings:Redis`
 - Aspire gRPC service discovery via `http://_grpc.ordering-api` when running under AppHost, with `GrpcServices:Ordering` retained as the explicit fallback for non-Aspire environments
-- `RabbitMq:*`
-- `Wolverine:OrderingExchange`
-- `Wolverine:PaymentExchange`
-- `Wolverine:PaymentOrderingQueue`
+- `Kafka:BootstrapServers`
+- `Wolverine:DeadLetterTopic`
+- `Wolverine:PaymentTopicPartitions`
+- `Wolverine:PaymentOrderingGroup`
 - `Wolverine:LocalQueue`
 
 ## Testing scope
@@ -125,5 +125,6 @@ Automated coverage added for:
 Current gaps that remain reasonable for a first vertical slice:
 
 - controller-level tests for `PaymentAPI`
-- end-to-end cross-process messaging tests with RabbitMQ
+- end-to-end cross-process messaging tests with Kafka
 - gRPC server endpoints for `PaymentAPI` itself if another service later needs payment reads
+

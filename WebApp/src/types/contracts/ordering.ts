@@ -7,6 +7,30 @@ export interface AddressInput {
   ward: string;
 }
 
+export interface CustomerModel {
+  id: string;
+  displayName: string;
+  email: string;
+  phoneNumber?: string | null;
+  isActive: boolean;
+  orderCount: number;
+}
+
+export interface CreateCustomerRequest {
+  displayName: string;
+  email: string;
+  phoneNumber?: string | null;
+  isActive: boolean;
+}
+
+export interface UpdateCustomerRequest {
+  id: string;
+  displayName: string;
+  email: string;
+  phoneNumber?: string | null;
+  isActive: boolean;
+}
+
 export interface OrderLineInput {
   productId: string;
   name: string;
@@ -39,6 +63,9 @@ export interface OrderModel {
   shippingAddress?: AddressInput | null;
   lines: OrderLineModel[];
   customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
 }
 
 export interface ProductCacheModel {

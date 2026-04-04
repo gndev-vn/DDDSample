@@ -22,6 +22,12 @@ public class UpdateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
             throw new KeyNotFoundException();
         }
 
+        Customer? customer = null;
+        if (order.CustomerId != command.Model.CustomerId)
+        {
+            customer = await ResolveCustomerAsync(command.Model.CustomerId, cancellationToken);
+        }
+
         var shippingAddress = command.Model.ShippingAddress?.Adapt<Address>() ?? throw new ArgumentException("Shipping address is required");
         var normalizedSkuMap = await ResolveProductCacheMapAsync(command.Model.Lines, cancellationToken);
         var lines = command.Model.Lines.Select(line => ToOrderLine(line, normalizedSkuMap)).ToList();
@@ -31,13 +37,17 @@ public class UpdateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
         {
             dbContext.OrderLines.RemoveRange(existingLines);
             await dbContext.SaveChangesAsync(cancellationToken);
-
             dbContext.ChangeTracker.Clear();
             order = await LoadOrderAsync(command.Model.Id, cancellationToken);
             if (order == null)
             {
                 throw new KeyNotFoundException();
             }
+        }
+
+        if (customer is not null)
+        {
+            order.ChangeCustomer(customer.Id, customer.DisplayName, customer.Email, customer.PhoneNumber);
         }
 
         order.Update(shippingAddress, lines);
@@ -51,10 +61,32 @@ public class UpdateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
         return ToOrderModel(order, normalizedSkuMap);
     }
 
+    private async Task<Customer> ResolveCustomerAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        var customer = await dbContext.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == customerId, cancellationToken)
+            ?? throw new NotFoundException("Customer", customerId);
+
+        if (!customer.IsActive)
+        {
+            throw new BusinessRuleException($"Customer '{customer.DisplayName}' is inactive.");
+        }
+
+        return customer;
+    }
+
     private async Task<Dictionary<string, ProductCache>> ResolveProductCacheMapAsync(IEnumerable<OrderLineModel> lines, CancellationToken cancellationToken)
     {
-        var requestedSkus = lines.Select(line => new Sku(line.Sku).Value).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var products = await dbContext.ProductCaches.Where(product => requestedSkus.Contains(product.Sku)).ToListAsync(cancellationToken);
+        var requestedSkus = lines
+            .Select(line => new Sku(line.Sku).Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var products = await dbContext.ProductCaches
+            .Where(product => requestedSkus.Contains(product.Sku))
+            .ToListAsync(cancellationToken);
+
         return products.ToDictionary(product => product.Sku, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -97,6 +129,9 @@ public class UpdateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
         {
             Id = order.Id,
             CustomerId = order.CustomerId,
+            CustomerName = order.CustomerName,
+            CustomerEmail = order.CustomerEmail,
+            CustomerPhone = order.CustomerPhone,
             Status = order.Status,
             ShippingAddress = order.ShippingAddress == null ? null : new AddressModel(
                 order.ShippingAddress.Line1,

@@ -8,11 +8,25 @@ import { useUiStore } from '../stores/ui';
 import type {
   AddressInput,
   CreateOrderRequest,
+  CustomerModel,
   OrderLineModel,
   OrderModel,
   ProductCacheModel,
   ProductVariantResponse,
 } from '../types/contracts';
+
+type CreateOrderLineDraft = {
+  id: string;
+  variantId: string;
+  quantity: number;
+};
+
+type SearchableOption = {
+  value: string;
+  label: string;
+  description?: string;
+  keywords?: string[];
+};
 
 export function useOrdersAdmin() {
   const authStore = useAuthStore();
@@ -22,11 +36,13 @@ export function useOrdersAdmin() {
   const submitting = ref(false);
   const saving = ref(false);
   const deletingOrderId = ref<string | null>(null);
-  const actionOrderId = ref<string | null>(null);
+  const payingOrderId = ref<string | null>(null);
+  const cancelingOrderId = ref<string | null>(null);
   const error = ref<string | null>(null);
   const success = ref<string | null>(null);
   const orders = ref<OrderModel[]>([]);
   const variants = ref<ProductVariantResponse[]>([]);
+  const customers = ref<CustomerModel[]>([]);
   const cachedProducts = reactive<Record<string, ProductCacheModel[]>>({});
   const selectedOrderId = ref('');
   const isOrderDialogOpen = ref(false);
@@ -34,9 +50,8 @@ export function useOrdersAdmin() {
   const orderSearch = ref('');
 
   const createForm = reactive({
-    customerId: authStore.user?.id ?? crypto.randomUUID(),
-    selectedVariantId: '',
-    quantity: 1,
+    customerId: '',
+    lines: [] as CreateOrderLineDraft[],
     shippingAddress: {
       line1: '',
       line2: '',
@@ -75,13 +90,84 @@ export function useOrdersAdmin() {
     lines: [],
   });
 
-  const selectedVariant = computed(() =>
-    variants.value.find((variant) => variant.id === createForm.selectedVariantId) ?? null,
+  const selectedOrder = computed(() => orders.value.find((order) => order.id === selectedOrderId.value) ?? null);
+  const canViewOrders = computed(() => authStore.hasPermission(appPermissions.orders.view));
+  const canCreateOrders = computed(() => authStore.hasPermission(appPermissions.orders.create));
+  const canUpdateOrders = computed(() => authStore.hasPermission(appPermissions.orders.update));
+  const canDeleteOrders = computed(() => authStore.hasPermission(appPermissions.orders.delete));
+  const canManageOrders = computed(() => canCreateOrders.value || canUpdateOrders.value || canDeleteOrders.value);
+
+  const customerOptions = computed<SearchableOption[]>(() => {
+    const optionMap = new Map<string, SearchableOption>();
+
+    for (const customer of customers.value) {
+      if (!customer.isActive && customer.id !== editForm.customerId && customer.id !== createForm.customerId) {
+        continue;
+      }
+
+      optionMap.set(customer.id, {
+        value: customer.id,
+        label: customer.displayName,
+        description: [customer.email, customer.phoneNumber, customer.isActive ? null : 'Inactive']
+          .filter(Boolean)
+          .join(' · '),
+        keywords: [customer.email, customer.phoneNumber ?? ''],
+      });
+    }
+
+    for (const order of orders.value) {
+      if (optionMap.has(order.customerId)) {
+        continue;
+      }
+
+      optionMap.set(order.customerId, {
+        value: order.customerId,
+        label: order.customerName || `Customer ${order.customerId.slice(0, 8)}`,
+        description: [order.customerEmail, order.customerPhone].filter(Boolean).join(' · '),
+        keywords: [order.customerEmail, order.customerPhone ?? ''],
+      });
+    }
+
+    return [...optionMap.values()].sort((left, right) => left.label.localeCompare(right.label));
+  });
+
+  const variantOptions = computed<SearchableOption[]>(() =>
+    variants.value.map((variant) => ({
+      value: variant.id,
+      label: variant.name,
+      description: `${variant.sku} · ${variant.currency} ${variant.overridePrice.toFixed(2)}`,
+      keywords: [variant.sku],
+    })),
   );
 
-  const selectedOrder = computed(() =>
-    orders.value.find((order) => order.id === selectedOrderId.value) ?? null,
-  );
+  const filteredOrders = computed(() => {
+    const search = orderSearch.value.trim().toLowerCase();
+    if (!search) {
+      return orders.value;
+    }
+
+    return orders.value.filter((order) =>
+      [
+        order.id,
+        order.customerName,
+        order.customerEmail,
+        order.customerPhone ?? '',
+        orderStatusLabel(order.status),
+        order.lines.map((line) => `${line.name} ${line.sku} ${line.productId}`).join(' '),
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(search),
+    );
+  });
+
+  const createOrderCanSubmit = computed(() => {
+    if (!createForm.customerId.trim() || createForm.lines.length === 0) {
+      return false;
+    }
+
+    return createForm.lines.every((line) => line.variantId.trim() && Number.isFinite(line.quantity) && line.quantity > 0);
+  });
 
   const hasOrderChanges = computed(() => {
     if (!selectedOrder.value) {
@@ -90,14 +176,7 @@ export function useOrdersAdmin() {
 
     return JSON.stringify({
       customerId: editForm.customerId.trim(),
-      shippingAddress: {
-        line1: editForm.shippingAddress.line1.trim(),
-        line2: editForm.shippingAddress.line2?.trim() ?? '',
-        city: editForm.shippingAddress.city.trim(),
-        province: editForm.shippingAddress.province.trim(),
-        district: editForm.shippingAddress.district.trim(),
-        ward: editForm.shippingAddress.ward.trim(),
-      },
+      shippingAddress: normalizeAddress(editForm.shippingAddress),
       lines: editForm.lines.map((line) => ({
         id: line.id,
         productId: line.productId,
@@ -109,14 +188,7 @@ export function useOrdersAdmin() {
       })),
     }) !== JSON.stringify({
       customerId: selectedOrder.value.customerId.trim(),
-      shippingAddress: {
-        line1: selectedOrder.value.shippingAddress?.line1?.trim() ?? '',
-        line2: selectedOrder.value.shippingAddress?.line2?.trim() ?? '',
-        city: selectedOrder.value.shippingAddress?.city?.trim() ?? '',
-        province: selectedOrder.value.shippingAddress?.province?.trim() ?? '',
-        district: selectedOrder.value.shippingAddress?.district?.trim() ?? '',
-        ward: selectedOrder.value.shippingAddress?.ward?.trim() ?? '',
-      },
+      shippingAddress: normalizeAddress(selectedOrder.value.shippingAddress),
       lines: selectedOrder.value.lines.map((line) => ({
         id: line.id,
         productId: line.productId,
@@ -127,28 +199,6 @@ export function useOrdersAdmin() {
         currency: line.currency.trim(),
       })),
     });
-  });
-
-  const canViewOrders = computed(() => authStore.hasPermission(appPermissions.orders.view));
-  const canManageOrders = computed(() => authStore.hasPermission(appPermissions.orders.manage));
-
-  const filteredOrders = computed(() => {
-    const search = orderSearch.value.trim().toLowerCase();
-    if (!search) {
-      return orders.value;
-    }
-
-    return orders.value.filter((order) =>
-      [
-        order.id,
-        order.customerId,
-        orderStatusLabel(order.status),
-        order.lines.map((line) => `${line.name} ${line.sku} ${line.productId}`).join(' '),
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(search),
-    );
   });
 
   function cloneAddress(address?: AddressInput | null): AddressInput {
@@ -162,8 +212,35 @@ export function useOrdersAdmin() {
     };
   }
 
-  function cloneLines(lines: OrderLineModel[]): OrderLineModel[] {
+  function normalizeAddress(address?: AddressInput | null) {
+    return {
+      line1: address?.line1?.trim() ?? '',
+      line2: address?.line2?.trim() ?? '',
+      city: address?.city?.trim() ?? '',
+      province: address?.province?.trim() ?? '',
+      district: address?.district?.trim() ?? '',
+      ward: address?.ward?.trim() ?? '',
+    };
+  }
+
+  function cloneLines(lines: OrderLineModel[]) {
     return lines.map((line) => ({ ...line }));
+  }
+
+  function createDraftLine(variantId = variants.value[0]?.id ?? ''): CreateOrderLineDraft {
+    return {
+      id: crypto.randomUUID(),
+      variantId,
+      quantity: 1,
+    };
+  }
+
+  function variantForCreateLine(variantId: string) {
+    return variants.value.find((variant) => variant.id === variantId) ?? null;
+  }
+
+  function variantForOrderLine(productId: string) {
+    return variants.value.find((variant) => variant.id === productId) ?? null;
   }
 
   function setOutcome(message: string | null, failure: string | null = null) {
@@ -172,9 +249,8 @@ export function useOrdersAdmin() {
   }
 
   function resetCreateForm() {
-    createForm.customerId = authStore.user?.id ?? crypto.randomUUID();
-    createForm.selectedVariantId = variants.value[0]?.id ?? '';
-    createForm.quantity = 1;
+    createForm.customerId = customers.value.find((customer) => customer.isActive)?.id ?? '';
+    createForm.lines = [createDraftLine()];
     createForm.shippingAddress = cloneAddress();
     createForm.billingSameAsShipping = true;
     createForm.billingAddress = cloneAddress();
@@ -205,10 +281,64 @@ export function useOrdersAdmin() {
     isCreateOrderDialogOpen.value = true;
   }
 
+  function addCreateLine() {
+    createForm.lines.push(createDraftLine());
+  }
+
+  function removeCreateLine(lineId: string) {
+    if (createForm.lines.length === 1) {
+      createForm.lines = [createDraftLine()];
+      return;
+    }
+
+    createForm.lines = createForm.lines.filter((line) => line.id !== lineId);
+  }
+
+  function selectCreateLineVariant(lineId: string, variantId: string) {
+    createForm.lines = createForm.lines.map((line) => (line.id === lineId ? { ...line, variantId } : line));
+  }
+
+  function addEditLine() {
+    editForm.lines.push({
+      id: crypto.randomUUID(),
+      productId: '',
+      name: '',
+      sku: '',
+      quantity: 1,
+      unitPrice: 0,
+      currency: 'USD',
+    });
+  }
+
+  function removeEditLine(lineId: string) {
+    editForm.lines = editForm.lines.filter((line) => line.id !== lineId);
+  }
+
+  function selectEditLineVariant(lineId: string, variantId: string) {
+    const variant = variantForOrderLine(variantId);
+    if (!variant) {
+      return;
+    }
+
+    editForm.lines = editForm.lines.map((line) =>
+      line.id === lineId
+        ? {
+            ...line,
+            productId: variant.id,
+            name: variant.name,
+            sku: variant.sku,
+            unitPrice: variant.overridePrice,
+            currency: variant.currency,
+          }
+        : line,
+    );
+  }
+
   async function refresh() {
     if (!authStore.token || !canViewOrders.value) {
       orders.value = [];
       variants.value = [];
+      customers.value = [];
       selectedOrderId.value = '';
       applySelectedOrder(null);
       loading.value = false;
@@ -219,20 +349,22 @@ export function useOrdersAdmin() {
     setOutcome(null, null);
 
     try {
-      const [orderResult, variantResult] = await Promise.all([
+      const [orderResult, variantResult, customerResult] = await Promise.all([
         orderingApi.getOrders(authStore.token),
         catalogApi.getProductVariants(authStore.token),
+        orderingApi.getCustomers(authStore.token),
       ]);
 
       orders.value = orderResult;
       variants.value = variantResult.filter((variant) => variant.isActive);
+      customers.value = customerResult;
 
-      if (!createForm.selectedVariantId && variants.value.length > 0) {
-        createForm.selectedVariantId = variants.value[0].id;
+      if (createForm.lines.length === 0) {
+        resetCreateForm();
       }
 
-      if (!selectedOrderId.value && orders.value.length > 0) {
-        selectedOrderId.value = orders.value[0].id;
+      if (selectedOrderId.value && !orders.value.some((order) => order.id === selectedOrderId.value)) {
+        selectedOrderId.value = '';
       }
 
       applySelectedOrder(orders.value.find((order) => order.id === selectedOrderId.value) ?? null);
@@ -244,40 +376,45 @@ export function useOrdersAdmin() {
   }
 
   async function submitOrder() {
-    if (!authStore.token || !canManageOrders.value) {
-      setOutcome(null, 'Order management permission is required to create orders.');
+    if (!authStore.token || !canCreateOrders.value) {
+      setOutcome(null, 'Order create permission is required to create orders.');
       return;
     }
 
-    if (!selectedVariant.value) {
-      setOutcome(null, 'Select a product variant before creating an order.');
+    if (!createOrderCanSubmit.value) {
+      setOutcome(null, 'Select a customer and add at least one valid variant line before creating an order.');
       return;
     }
 
     submitting.value = true;
     setOutcome(null, null);
 
-    const billingAddress = createForm.billingSameAsShipping
-      ? { ...createForm.shippingAddress }
-      : { ...createForm.billingAddress };
-
-    const request: CreateOrderRequest = {
-      customerId: createForm.customerId,
-      shippingAddress: { ...createForm.shippingAddress },
-      billingAddress,
-      lines: [
-        {
-          productId: selectedVariant.value.id,
-          name: selectedVariant.value.name,
-          sku: selectedVariant.value.sku,
-          quantity: createForm.quantity,
-          unitPrice: selectedVariant.value.overridePrice,
-          currency: selectedVariant.value.currency,
-        },
-      ],
-    };
-
     try {
+      const billingAddress = createForm.billingSameAsShipping
+        ? cloneAddress(createForm.shippingAddress)
+        : cloneAddress(createForm.billingAddress);
+
+      const request: CreateOrderRequest = {
+        customerId: createForm.customerId.trim(),
+        shippingAddress: cloneAddress(createForm.shippingAddress),
+        billingAddress,
+        lines: createForm.lines.map((line) => {
+          const variant = variantForCreateLine(line.variantId);
+          if (!variant) {
+            throw new Error('Every order line must reference a valid product variant.');
+          }
+
+          return {
+            productId: variant.id,
+            name: variant.name,
+            sku: variant.sku,
+            quantity: line.quantity,
+            unitPrice: variant.overridePrice,
+            currency: variant.currency,
+          };
+        }),
+      };
+
       const createdOrder = await orderingApi.createOrder(authStore.token, request);
       resetCreateForm();
       isCreateOrderDialogOpen.value = false;
@@ -285,6 +422,7 @@ export function useOrdersAdmin() {
       if (createdOrder) {
         selectedOrderId.value = createdOrder.id;
       }
+
       uiStore.pushToast('Order created successfully.', 'success');
       setOutcome('Order created successfully.');
     } catch (cause) {
@@ -295,8 +433,8 @@ export function useOrdersAdmin() {
   }
 
   async function saveOrder() {
-    if (!authStore.token || !canManageOrders.value || !editForm.id) {
-      setOutcome(null, 'Select an order and sign in as an administrator before saving.');
+    if (!authStore.token || !editForm.id || !canUpdateOrders.value) {
+      setOutcome(null, 'Order update permission is required to save order changes.');
       return;
     }
 
@@ -307,7 +445,7 @@ export function useOrdersAdmin() {
       await orderingApi.updateOrder(authStore.token, {
         id: editForm.id,
         customerId: editForm.customerId,
-        shippingAddress: { ...editForm.shippingAddress },
+        shippingAddress: cloneAddress(editForm.shippingAddress),
         lines: editForm.lines.map((line) => ({ ...line })),
       });
 
@@ -322,12 +460,17 @@ export function useOrdersAdmin() {
   }
 
   async function runOrderAction(orderId: string, action: 'pay' | 'cancel') {
-    if (!authStore.token || !canManageOrders.value) {
-      setOutcome(null, 'Order management permission is required to manage order lifecycle.');
+    if (!authStore.token || !canUpdateOrders.value) {
+      setOutcome(null, 'Order update permission is required to change order state.');
       return;
     }
 
-    actionOrderId.value = orderId;
+    if (action === 'pay') {
+      payingOrderId.value = orderId;
+    } else {
+      cancelingOrderId.value = orderId;
+    }
+
     setOutcome(null, null);
 
     try {
@@ -364,13 +507,17 @@ export function useOrdersAdmin() {
     } catch (cause) {
       setOutcome(null, cause instanceof Error ? cause.message : 'Order action failed.');
     } finally {
-      actionOrderId.value = null;
+      if (action === 'pay') {
+        payingOrderId.value = null;
+      } else {
+        cancelingOrderId.value = null;
+      }
     }
   }
 
   async function deleteOrder(orderId: string) {
-    if (!authStore.token || !canManageOrders.value) {
-      setOutcome(null, 'Order management permission is required to delete orders.');
+    if (!authStore.token || !canDeleteOrders.value) {
+      setOutcome(null, 'Order delete permission is required to delete orders.');
       return;
     }
 
@@ -394,6 +541,7 @@ export function useOrdersAdmin() {
         applySelectedOrder(null);
         isOrderDialogOpen.value = false;
       }
+
       await refresh();
       uiStore.pushToast('Order deleted successfully.', 'success');
       setOutcome('Order deleted successfully.');
@@ -416,22 +564,6 @@ export function useOrdersAdmin() {
     }
   }
 
-  function addLine() {
-    editForm.lines.push({
-      id: crypto.randomUUID(),
-      productId: '',
-      name: '',
-      sku: '',
-      quantity: 1,
-      unitPrice: 0,
-      currency: 'USD',
-    });
-  }
-
-  function removeLine(lineId: string) {
-    editForm.lines = editForm.lines.filter((line) => line.id !== lineId);
-  }
-
   watch(selectedOrder, (order) => {
     applySelectedOrder(order);
     if (order) {
@@ -448,11 +580,13 @@ export function useOrdersAdmin() {
     submitting,
     saving,
     deletingOrderId,
-    actionOrderId,
+    payingOrderId,
+    cancelingOrderId,
     error,
     success,
     orders,
-    variants,
+    customerOptions,
+    variantOptions,
     cachedProducts,
     selectedOrderId,
     isOrderDialogOpen,
@@ -460,20 +594,28 @@ export function useOrdersAdmin() {
     orderSearch,
     createForm,
     editForm,
-    selectedVariant,
     selectedOrder,
-    hasOrderChanges,
+    canCreateOrders,
+    canUpdateOrders,
+    canDeleteOrders,
     canManageOrders,
     filteredOrders,
+    createOrderCanSubmit,
+    hasOrderChanges,
+    variantForCreateLine,
+    variantForOrderLine,
     openOrderDialog,
     openCreateOrderDialog,
+    addCreateLine,
+    removeCreateLine,
+    selectCreateLineVariant,
+    addEditLine,
+    removeEditLine,
+    selectEditLineVariant,
     refresh,
     submitOrder,
     saveOrder,
     runOrderAction,
     deleteOrder,
-    addLine,
-    removeLine,
   };
 }
-

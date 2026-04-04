@@ -25,5 +25,9 @@ public sealed class UpdateUserValidator : AbstractValidator<UpdateUserRequest>
         RuleFor(x => x.LastName)
             .NotEmpty().WithMessage("Last name is required")
             .MaximumLength(100).WithMessage("Last name must not exceed 100 characters");
+
+        RuleFor(x => x.CustomerId)
+            .Must(value => string.IsNullOrWhiteSpace(value) || Guid.TryParse(value, out _))
+            .WithMessage("Customer id must be a valid GUID when provided.");
     }
 }

@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Wolverine.Attributes;
 using OrderingAPI.Domain;
 using Shared.Messaging.Catalog;
 
 namespace OrderingAPI.Messaging;
 
+[ScheduleRetry(typeof(DbUpdateException), 5, 15, 30)]
+[RetryNow(typeof(TimeoutException), 50, 100, 250)]
 public class ProductDeletedEventConsumer
 {
     public static async Task HandleAsync(ProductDeletedEvent @event, ILogger<ProductDeletedEventConsumer> logger,
@@ -21,3 +24,4 @@ public class ProductDeletedEventConsumer
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
+

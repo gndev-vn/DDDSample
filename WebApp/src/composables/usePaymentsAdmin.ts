@@ -25,7 +25,8 @@ export function usePaymentsAdmin() {
   );
 
   const canViewPayments = computed(() => authStore.hasPermission(appPermissions.payments.view));
-  const canManagePayments = computed(() => authStore.hasPermission(appPermissions.payments.manage));
+  const canUpdatePayments = computed(() => authStore.hasPermission(appPermissions.payments.update));
+  const canManagePayments = computed(() => canUpdatePayments.value);
 
   const filteredPayments = computed(() => {
     const search = paymentSearch.value.trim().toLowerCase();
@@ -89,8 +90,8 @@ export function usePaymentsAdmin() {
   }
 
   async function completePayment(payment: PaymentModel) {
-    if (!authStore.token || !canManagePayments.value) {
-      setOutcome(null, 'Payment management permission is required to complete payments.');
+    if (!authStore.token || !canUpdatePayments.value) {
+      setOutcome(null, 'Payment update permission is required to complete payments.');
       return;
     }
 
@@ -122,8 +123,8 @@ export function usePaymentsAdmin() {
   }
 
   async function failPayment(payment: PaymentModel) {
-    if (!authStore.token || !canManagePayments.value) {
-      setOutcome(null, 'Payment management permission is required to fail payments.');
+    if (!authStore.token || !canUpdatePayments.value) {
+      setOutcome(null, 'Payment update permission is required to fail payments.');
       return;
     }
 
@@ -169,6 +170,7 @@ export function usePaymentsAdmin() {
     isPaymentDialogOpen,
     paymentSearch,
     selectedPayment,
+    canUpdatePayments,
     canManagePayments,
     filteredPayments,
     stateFor,
@@ -178,4 +180,3 @@ export function usePaymentsAdmin() {
     failPayment,
   };
 }
-

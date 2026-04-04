@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Wolverine.Attributes;
+using Shared.Messaging.Catalog;
 using OrderingAPI.Domain;
 using OrderingAPI.Domain.Entities;
-using Shared.Messaging.Catalog;
 
 namespace OrderingAPI.Messaging;
 
+[ScheduleRetry(typeof(DbUpdateException), 5, 15, 30)]
+[RetryNow(typeof(TimeoutException), 50, 100, 250)]
 public class ProductCreatedEventConsumer
 {
     public static async Task HandleAsync(ProductCreatedEvent @event, ILogger<ProductCreatedEventConsumer> logger,
@@ -33,3 +36,4 @@ public class ProductCreatedEventConsumer
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
+

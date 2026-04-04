@@ -1,6 +1,10 @@
+using Wolverine.Attributes;
+using Shared.Messaging;
+
 namespace Shared.Messaging.Order;
 
-public class OrderPaidEvent
+[Topic(KafkaTopics.Ordering.OrderPaid)]
+public sealed class OrderPaidEvent
 {
     public Guid Id { get; set; }
     public decimal Total { get; set; }

@@ -10,6 +10,9 @@ public sealed class UpdateOrderCommandTests
     {
         var existingOrder = Order.Create(
             Guid.NewGuid(),
+            "Alex Nguyen",
+            "alex@example.com",
+            "+84 901 000 111",
             [new OrderLine(new Sku("SKU-1"), Quantity.Of(1), new Money(10m, "USD"))],
             new Address("Old line", null, "Old ward", "Old district", "Old city", "Old province"));
         var updatedShipping = new Address("New line", null, "New ward", "New district", "New city", "New province");
@@ -24,3 +27,4 @@ public sealed class UpdateOrderCommandTests
         Assert.Equal(3, existingOrder.Lines.Single().Quantity.Value);
     }
 }
+

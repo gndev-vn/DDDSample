@@ -6,7 +6,7 @@ This repository currently contains the four backend services, shared libraries, 
 
 `ServiceDefaults` has been introduced as the first step of the Aspire migration. It centralizes shared health checks, OpenTelemetry setup, service discovery, and resilient `HttpClient` defaults so the API projects can share one consistent platform baseline and emit telemetry to the Aspire dashboard during local runs.
 
-`AppHost` now models the local distributed application in code. It defines SQL Server, MongoDB, Redis, RabbitMQ, the four API projects, and the Vue web app with explicit resource references and startup ordering.
+`AppHost` now models the local distributed application in code. It defines SQL Server, MongoDB, Redis, Kafka, the four API projects, and the Vue web app with explicit resource references and startup ordering.
 
 ```mermaid
 graph TB
@@ -30,7 +30,7 @@ graph TB
         Redis[(Redis<br/>Token Blacklist<br/>Cache)]
         MongoDB[(MongoDB<br/>Identity Data)]
         SQLServer[(SQL Server<br/>Catalog, Orders & Payments)]
-        RabbitMQ[RabbitMQ<br/>Message Bus]
+        Kafka[Kafka<br/>Message Bus]
     end
 
     Browser -->|HTTP/REST| WebApp
@@ -45,16 +45,16 @@ graph TB
     Identity -->|User Data| MongoDB
     
     Catalog -->|Product Data| SQLServer
-    Catalog -->|Events| RabbitMQ
+    Catalog -->|Events| Kafka
     Catalog -->|Validate Token| Redis
     
     Ordering -->|Order Data| SQLServer
-    Ordering -->|Subscribe Events| RabbitMQ
+    Ordering -->|Subscribe Events| Kafka
     Ordering -->|gRPC| Catalog
     Ordering -->|Validate Token| Redis
 
     Payment -->|Payment Data| SQLServer
-    Payment -->|Events| RabbitMQ
+    Payment -->|Events| Kafka
     Payment -->|gRPC| Ordering
     Payment -->|Validate Token| Redis
 
@@ -162,7 +162,7 @@ Current AppHost responsibilities:
   - SQL Server for `CatalogAPI`, `OrderingAPI`, and `PaymentAPI`
   - MongoDB for `IdentityAPI`
   - Redis
-  - RabbitMQ
+  - Kafka
 - defines project resources for:
   - `CatalogAPI`
   - `OrderingAPI`
@@ -175,7 +175,7 @@ Current AppHost responsibilities:
   - SQL connection strings as `ConnectionStrings__Default`
   - Redis connection strings as `ConnectionStrings__Redis`
   - MongoDB connection string and database name for `IdentityAPI`
-  - RabbitMQ as `ConnectionStrings__RabbitMq`, with a shared compatibility helper so existing Wolverine setup can still read legacy `RabbitMq:*` settings when needed
+  - Kafka bootstrap servers as `Kafka__BootstrapServers` for the messaging services
 
 ### Kubernetes manifests with aspirate
 
@@ -186,7 +186,7 @@ Generated resources include:
 - SQL Server
 - MongoDB
 - Redis
-- RabbitMQ
+- Kafka
 - `CatalogAPI`
 - `OrderingAPI`
 - `PaymentAPI`
@@ -201,7 +201,7 @@ Current generation assumptions:
 - repository prefix: `dddsample`
 - image tag: `latest`
 - image pull policy: `IfNotPresent`
-- secret handling was disabled for generation, so placeholder values such as `ChangeMe_SqlPassword!`, `ChangeMe_MongoPassword!`, and `ChangeMe_RabbitMqPassword!` are present in the generated kustomize files
+- secret handling was disabled for generation, so placeholder values such as `ChangeMe_SqlPassword!`, `ChangeMe_MongoPassword!`, and `the local Kafka setup does not require broker credentials by default` are present in the generated kustomize files
 
 Before applying to a real cluster, replace the placeholder registry/repository settings and regenerate with real secret handling or updated parameter values.
 
@@ -249,7 +249,7 @@ graph TB
         MongoDB[MongoDB Driver]
         Identity[ASP.NET Identity]
         Redis[Redis Cache]
-        RabbitMQ[Wolverine + RabbitMQ]
+        Kafka[Wolverine + Kafka]
     end
 
     Endpoints --> CQRS
@@ -260,7 +260,7 @@ graph TB
     Handlers --> Entities
     Entities --> ValueObjects
     Entities --> DomainEvents
-    DomainEvents --> RabbitMQ
+    DomainEvents --> Kafka
     Handlers --> EF
     Handlers --> MongoDB
     Handlers --> Identity
@@ -332,7 +332,7 @@ graph LR
         PA_Wolverine[Wolverine]
     end
 
-    subgraph "RabbitMQ"
+    subgraph "Kafka"
         OrderingExchange[ordering.exchange]
         PaymentExchange[payment.exchange]
         PaymentQueue[payment-ordering.queue]
@@ -356,7 +356,7 @@ Catalog variant writes now follow the same domain-event flow as products:
 
 - `CreateProductVariantCommand`, `UpdateProductVariantCommand`, and `DeleteProductVariantCommand` load the owning `Product` aggregate and mutate variants through aggregate methods rather than writing `DbSet<ProductVariant>` directly.
 - The `Product` aggregate raises `ProductVariantCreatedDomainEvent`, `ProductVariantUpdatedDomainEvent`, and `ProductVariantDeletedDomainEvent`.
-- Wolverine handlers translate those domain events into integration events on RabbitMQ topics:
+- Wolverine handlers translate those domain events into integration events on Kafka topics:
   - `catalog.product-variant.created`
   - `catalog.product-variant.updated`
   - `catalog.product-variant.deleted`
@@ -383,20 +383,20 @@ Catalog variant writes now follow the same domain-event flow as products:
 sequenceDiagram
     participant Client
     participant Ordering
-    participant RabbitMQ
+    participant Kafka
     participant Payment
     participant OrderingGrpc as Ordering gRPC
 
     Client->>Ordering: Create order
-    Ordering->>RabbitMQ: ordering.order.created
-    RabbitMQ->>Payment: OrderCreatedEvent
+    Ordering->>Kafka: ordering.order.created
+    Kafka->>Payment: OrderCreatedEvent
     Payment->>OrderingGrpc: GetById(orderId)
     OrderingGrpc-->>Payment: Order snapshot
     Payment->>Payment: Create pending payment
 
     Client->>Payment: Complete payment
-    Payment->>RabbitMQ: payment.completed
-    RabbitMQ->>Ordering: PaymentCompletedEvent
+    Payment->>Kafka: payment.completed
+    Kafka->>Ordering: PaymentCompletedEvent
     Ordering->>Ordering: Mark order as paid
 ```
 
@@ -490,7 +490,7 @@ mindmap
       REST API
       gRPC
       GraphQL
-      RabbitMQ
+      Kafka
     Authentication
       JWT
       ASP.NET Identity
@@ -526,7 +526,7 @@ graph TB
             SQL_Container[sqlserver:1433]
             Mongo_Container[mongodb:27017]
             Redis_Container[redis:6379]
-            Rabbit_Container[rabbitmq:5672/15672]
+            Kafka_Container[kafka:9092]
         end
         
         subgraph "Network"
@@ -591,3 +591,5 @@ graph TB
 - No dedicated API gateway project is included in this repository
 - Service boundaries are still enforced mostly by conventions and folder structure, not separate domain/application/infrastructure assemblies
 - Test coverage is present but currently focused on key regression paths rather than full end-to-end scenarios
+
+

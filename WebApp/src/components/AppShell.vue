@@ -31,6 +31,7 @@ const navigationGroups = [
   {
     label: 'Operations',
     items: [
+      { name: 'customers', label: 'Customers', description: 'Customer records and order ownership' },
       { name: 'orders', label: 'Orders', description: 'Order queue and lifecycle actions' },
       { name: 'payments', label: 'Payments', description: 'Transaction review and resolution' },
     ],
@@ -38,7 +39,6 @@ const navigationGroups = [
 ];
 
 const mobileNavigation = navigationGroups.flatMap((group) => group.items);
-
 const authCaption = computed(() => {
   if (!authStore.user) {
     return 'No active session';
@@ -72,7 +72,7 @@ async function signOut() {
             Business Admin
           </h1>
           <p class="mt-3 text-sm leading-6 text-[var(--color-ink-muted)]">
-            Domain-oriented workspace for identity, catalog entities, orders, and payments.
+            Domain-oriented workspace for identity, catalog entities, customers, orders, and payments.
           </p>
         </div>
 
@@ -101,12 +101,7 @@ async function signOut() {
           <p class="workspace-label">Session</p>
           <p class="mt-3 text-sm font-medium text-[var(--color-ink)]">{{ authCaption }}</p>
           <div class="mt-4 flex flex-wrap gap-2">
-            <button
-              class="btn-secondary"
-              :disabled="authStore.loading"
-              title="Re-check the current token and operator profile without leaving the page."
-              @click="refreshSession"
-            >
+            <button class="btn-secondary" :disabled="authStore.loading" title="Re-check the current token and operator profile without leaving the page." @click="refreshSession">
               <span v-if="authStore.loading" class="button-spinner" aria-hidden="true" />
               <span v-else class="button-icon" aria-hidden="true">↻</span>
               <span>{{ authStore.loading ? 'Verifying...' : 'Verify session' }}</span>
@@ -151,12 +146,7 @@ async function signOut() {
                 {{ authCaption }}
               </div>
               <div class="flex flex-wrap gap-2">
-                <button
-                  class="btn-secondary"
-                  :disabled="authStore.loading"
-                  title="Re-check the current token and operator profile without leaving the page."
-                  @click="refreshSession"
-                >
+                <button class="btn-secondary" :disabled="authStore.loading" title="Re-check the current token and operator profile without leaving the page." @click="refreshSession">
                   <span v-if="authStore.loading" class="button-spinner" aria-hidden="true" />
                   <span v-else class="button-icon" aria-hidden="true">↻</span>
                   <span>{{ authStore.loading ? 'Verifying...' : 'Verify session' }}</span>

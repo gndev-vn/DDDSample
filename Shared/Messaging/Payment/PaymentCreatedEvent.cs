@@ -1,9 +1,10 @@
 using Wolverine.Attributes;
+using Shared.Messaging;
 
 namespace Shared.Messaging.Payment;
 
-[Topic("payment.created")]
-public class PaymentCreatedEvent
+[Topic(KafkaTopics.Payment.PaymentCreated)]
+public sealed class PaymentCreatedEvent
 {
     public Guid PaymentId { get; set; }
     public Guid OrderId { get; set; }

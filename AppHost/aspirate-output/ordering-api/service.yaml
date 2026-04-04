@@ -9,14 +9,5 @@ spec:
     app: ordering-api
   ports:
   - name: http
-    port: 8080
-    targetPort: 8080
-  - name: https
-    port: 8443
-    targetPort: 8443
-  - name: rest
-    port: 9084
-    targetPort: 9084
-  - name: grpc
-    port: 9085
-    targetPort: 9085
+    port: 5104
+    targetPort: 5104

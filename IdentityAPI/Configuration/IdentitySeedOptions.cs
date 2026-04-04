@@ -5,6 +5,7 @@ public sealed class IdentitySeedOptions
     public bool Enabled { get; set; }
     public SeedUserOptions Admin { get; set; } = new();
     public SeedUserOptions User { get; set; } = new();
+    public SeedUserOptions Customer { get; set; } = new();
 }
 
 public sealed class SeedUserOptions
@@ -14,4 +15,5 @@ public sealed class SeedUserOptions
     public string Password { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? CustomerId { get; set; }
 }

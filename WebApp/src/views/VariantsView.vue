@@ -69,7 +69,7 @@ const summaryCards = computed(() => [
             </p>
           </div>
 
-          <button class="btn-primary" :disabled="!admin.canManageCurrentPage.value" @click="admin.openVariantDialog()">
+          <button class="btn-primary" :disabled="!admin.canCreateVariants.value" @click="admin.openVariantDialog()">
             <span class="button-icon" aria-hidden="true">＋</span>
             <span>New variant</span>
           </button>
@@ -107,13 +107,11 @@ const summaryCards = computed(() => [
                 <td class="px-4 py-4">
                   <div class="flex flex-wrap gap-2">
                     <button class="icon-button" title="Details" aria-label="View variant details" @click="admin.openExistingVariantDialog(variant)">
-                      <span class="icon-glyph">👁</span>
-                      <span>Details</span>
+                      <span class="icon-glyph">✎</span>
                     </button>
-                    <button class="icon-button icon-button-danger" :disabled="admin.deleting.value === variant.id || !admin.canManageVariants.value" title="Delete" aria-label="Delete variant" @click="admin.deleteVariant(variant)">
+                    <button class="icon-button icon-button-danger" :disabled="admin.deleting.value === variant.id || !admin.canDeleteVariants.value" title="Delete" aria-label="Delete variant" @click="admin.deleteVariant(variant)">
                       <span v-if="admin.deleting.value === variant.id" class="button-spinner" aria-hidden="true" />
-                      <span v-else class="icon-glyph">🗑</span>
-                      <span>{{ admin.deleting.value === variant.id ? 'Deleting...' : 'Delete' }}</span>
+                      <span v-else class="icon-glyph">✕</span>
                     </button>
                   </div>
                 </td>
@@ -137,8 +135,8 @@ const summaryCards = computed(() => [
         </div>
 
         <div class="space-y-3">
-          <input v-model="admin.newAttributeName.value" class="text-input" :disabled="admin.creatingAttribute.value || !admin.canManageVariants.value" placeholder="New attribute definition" />
-          <button class="btn-secondary w-full" :disabled="admin.creatingAttribute.value || !admin.canManageVariants.value || !admin.newAttributeName.value.trim()" @click="admin.createAttributeDefinition">
+          <input v-model="admin.newAttributeName.value" class="text-input" :disabled="admin.creatingAttribute.value || !admin.canCreateVariants.value" placeholder="New attribute definition" />
+          <button class="btn-secondary w-full" :disabled="admin.creatingAttribute.value || !admin.canCreateVariants.value || !admin.newAttributeName.value.trim()" @click="admin.createAttributeDefinition">
             <span v-if="admin.creatingAttribute.value" class="button-spinner" aria-hidden="true" />
             <span v-else class="button-icon" aria-hidden="true">＋</span>
             <span>{{ admin.creatingAttribute.value ? 'Creating...' : 'Add definition' }}</span>
@@ -161,7 +159,7 @@ const summaryCards = computed(() => [
 
     <EntityDialog :open="admin.isVariantDialogOpen.value" title="Variant details" description="Create or update a sellable variant with reusable attribute assignments." width-class="max-w-6xl" @close="admin.isVariantDialogOpen.value = false">
       <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.95fr)]">
-        <div class="space-y-4">
+        <div class="grid gap-6">
           <label>
             <span class="field-label">Parent product</span>
             <select v-model="admin.variantForm.parentId" class="select-input">
@@ -169,10 +167,7 @@ const summaryCards = computed(() => [
               <option v-for="product in admin.products.value" :key="product.id" :value="product.id">{{ product.name }}</option>
             </select>
           </label>
-          <div class="rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
-            <span class="field-label">Product context</span>
-            <p class="mt-2 font-medium text-slate-900">{{ admin.products.value.find((product) => product.id === admin.variantForm.parentId)?.name || 'Select a product' }}</p>
-          </div>
+
           <label>
             <span class="field-label">Name</span>
             <input v-model="admin.variantForm.name" class="text-input" />
@@ -201,25 +196,27 @@ const summaryCards = computed(() => [
           v-model="admin.variantForm.attributes"
           v-model:newDefinitionName="admin.newAttributeName.value"
           :definitions="admin.attributeDefinitions.value"
-          :disabled="admin.saving.value || !admin.canManageVariants.value"
+          :disabled="admin.saving.value || !(admin.variantForm.id ? admin.canUpdateVariants.value : admin.canCreateVariants.value)"
           :creating-definition="admin.creatingAttribute.value"
-          :can-manage-definitions="admin.canManageVariants.value"
+          :can-manage-definitions="admin.canCreateVariants.value"
           @create-definition="admin.createAttributeDefinition"
         />
       </div>
 
       <div class="mt-6 flex flex-wrap gap-2">
-        <button class="btn-primary" :disabled="admin.saving.value || !admin.canManageVariants.value || !admin.variantCanSave.value" @click="admin.saveVariant">
+        <button class="btn-primary" :disabled="admin.saving.value || !(admin.variantForm.id ? admin.canUpdateVariants.value : admin.canCreateVariants.value) || !admin.variantCanSave.value" @click="admin.saveVariant">
           <span v-if="admin.saving.value" class="button-spinner" aria-hidden="true" />
-          <span v-else class="button-icon" aria-hidden="true">💾</span>
+          <span v-else class="button-icon" aria-hidden="true">✓</span>
           <span>{{ admin.saving.value ? 'Saving...' : admin.variantForm.id ? 'Save variant' : 'Add variant' }}</span>
         </button>
-        <button v-if="admin.selectedVariant.value" class="btn-danger" :disabled="admin.deleting.value === admin.selectedVariant.value.id || !admin.canManageVariants.value" @click="admin.deleteVariant(admin.selectedVariant.value)">
+        <button v-if="admin.selectedVariant.value" class="btn-danger" :disabled="admin.deleting.value === admin.selectedVariant.value.id || !admin.canDeleteVariants.value" @click="admin.deleteVariant(admin.selectedVariant.value)">
           Delete variant
         </button>
       </div>
     </EntityDialog>
   </section>
 </template>
+
+
 
 

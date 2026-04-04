@@ -25,10 +25,25 @@ const emit = defineEmits<{
   'create-definition': [];
 }>();
 
-const canAddAttribute = computed(() =>
-  props.definitions.some((definition) =>
+const availableDefinitions = computed(() =>
+  props.definitions.filter((definition) =>
     !props.modelValue.some((attribute) => attribute.attributeId === definition.id),
   ),
+);
+
+const searchedDefinitions = computed(() => {
+  const search = props.newDefinitionName.trim().toLowerCase();
+  if (!search) {
+    return availableDefinitions.value;
+  }
+
+  return availableDefinitions.value.filter((definition) => definition.name.toLowerCase().includes(search));
+});
+
+const canCreateDefinitionFromSearch = computed(() =>
+  props.canManageDefinitions &&
+  props.newDefinitionName.trim().length > 0 &&
+  !props.definitions.some((definition) => definition.name.toLowerCase() === props.newDefinitionName.trim().toLowerCase()),
 );
 
 const attributePreview = computed(() =>
@@ -41,18 +56,12 @@ function updateRows(next: ProductVariantAttributeValueRequest[]) {
   emit('update:modelValue', next);
 }
 
-function addAttributeRow() {
-  const available = props.definitions.find((definition) =>
-    !props.modelValue.some((attribute) => attribute.attributeId === definition.id),
-  );
-  if (!available) {
-    return;
-  }
-
+function addAttributeRow(attributeId: string) {
   updateRows([
     ...props.modelValue,
-    { attributeId: available.id, value: '' },
+    { attributeId, value: '' },
   ]);
+  emit('update:newDefinitionName', '');
 }
 
 function updateAttribute(index: number, patch: Partial<ProductVariantAttributeValueRequest>) {
@@ -101,7 +110,7 @@ function handleAttributeValueInput(index: number, event: Event) {
       <div>
         <h4 class="section-title">Attribute assignments</h4>
         <p class="mt-2 text-sm text-[var(--color-ink-muted)]">
-          Build each variant from reusable attribute definitions so operators stay consistent.
+          Search the reusable attribute library, click a result to add it, then fill in the value.
         </p>
       </div>
       <div class="attribute-library-badge">
@@ -110,24 +119,44 @@ function handleAttributeValueInput(index: number, event: Event) {
     </div>
 
     <div class="attribute-library-panel space-y-3">
-      <div class="flex flex-col gap-3 md:flex-row">
+      <div>
         <input
           :value="newDefinitionName"
           class="text-input"
-          :disabled="disabled || !canManageDefinitions"
-          placeholder="Create a new reusable attribute, e.g. Material"
+          :disabled="disabled"
+          placeholder="Search or create an attribute, e.g. Material"
           @input="handleDefinitionNameInput"
         />
+      </div>
+
+      <div v-if="searchedDefinitions.length" class="space-y-2 rounded-2xl bg-white p-2 ring-1 ring-slate-100">
         <button
-          class="btn-secondary"
-          :disabled="disabled || !canManageDefinitions || creatingDefinition || !newDefinitionName.trim()"
-          @click="emit('create-definition')"
+          v-for="definition in searchedDefinitions"
+          :key="definition.id"
+          class="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-slate-50"
+          :disabled="disabled"
+          type="button"
+          @click="addAttributeRow(definition.id)"
         >
-          <span v-if="creatingDefinition" class="button-spinner" aria-hidden="true" />
-          <span v-else class="button-icon" aria-hidden="true">＋</span>
-          <span>{{ creatingDefinition ? 'Creating...' : 'Add attribute definition' }}</span>
+          <span class="font-medium text-slate-900">{{ definition.name }}</span>
+          <span class="text-xs text-slate-500">Add</span>
         </button>
       </div>
+
+      <button
+        v-else-if="canCreateDefinitionFromSearch"
+        class="btn-secondary"
+        :disabled="disabled || creatingDefinition || !canManageDefinitions"
+        @click="emit('create-definition')"
+      >
+        <span v-if="creatingDefinition" class="button-spinner" aria-hidden="true" />
+        <span v-else class="button-icon" aria-hidden="true">＋</span>
+        <span>{{ creatingDefinition ? 'Creating...' : `Create attribute "${newDefinitionName.trim()}"` }}</span>
+      </button>
+
+      <p v-else-if="newDefinitionName.trim().length" class="text-sm text-[var(--color-ink-muted)]">
+        That attribute is already assigned to this variant.
+      </p>
 
       <div v-if="definitions.length" class="flex flex-wrap gap-2">
         <span v-for="definition in definitions" :key="definition.id" class="attribute-chip attribute-chip-neutral">
@@ -140,41 +169,28 @@ function handleAttributeValueInput(index: number, event: Event) {
       </p>
     </div>
 
-    <div v-if="definitions.length" class="space-y-3">
-      <div v-if="modelValue.length" class="space-y-3">
-        <div v-for="(attribute, index) in modelValue" :key="index" class="attribute-row">
-          <select
-            class="select-input"
-            :disabled="disabled"
-            :value="attribute.attributeId"
-            @change="handleAttributeDefinitionChange(index, $event)"
-          >
-            <option v-for="definition in optionsFor(index)" :key="definition.id" :value="definition.id">
-              {{ definition.name }}
-            </option>
-          </select>
-          <input
-            class="text-input"
-            :disabled="disabled"
-            :value="attribute.value"
-            placeholder="Value"
-            @input="handleAttributeValueInput(index, $event)"
-          />
-          <button class="icon-button" :disabled="disabled" title="Remove attribute" aria-label="Remove attribute" @click="removeAttribute(index)">
-            <span class="icon-glyph">✕</span>
-            <span>Remove</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <button class="btn-secondary" :disabled="disabled || !canAddAttribute" @click="addAttributeRow">
-          <span class="button-icon" aria-hidden="true">＋</span>
-          <span>Add attribute</span>
+    <div v-if="definitions.length && modelValue.length" class="space-y-3">
+      <div v-for="(attribute, index) in modelValue" :key="index" class="attribute-row">
+        <select
+          class="select-input"
+          :disabled="disabled"
+          :value="attribute.attributeId"
+          @change="handleAttributeDefinitionChange(index, $event)"
+        >
+          <option v-for="definition in optionsFor(index)" :key="definition.id" :value="definition.id">
+            {{ definition.name }}
+          </option>
+        </select>
+        <input
+          class="text-input"
+          :disabled="disabled"
+          :value="attribute.value"
+          placeholder="Value"
+          @input="handleAttributeValueInput(index, $event)"
+        />
+        <button class="icon-button" :disabled="disabled" title="Remove attribute" aria-label="Remove attribute" @click="removeAttribute(index)">
+          <span class="icon-glyph">✕</span>
         </button>
-        <p class="text-sm text-[var(--color-ink-muted)]">
-          {{ modelValue.length }} assigned / {{ definitions.length }} available
-        </p>
       </div>
     </div>
 
@@ -185,3 +201,4 @@ function handleAttributeValueInput(index: number, event: Event) {
     </div>
   </section>
 </template>
+

@@ -8,8 +8,8 @@ generatorOptions:
 configMapGenerator:
 - name: mongodb-env
   literals:
-    - MONGO_INITDB_ROOT_USERNAME=jWKuHUia!4mySUV2ZZw8V7
-    - MONGO_INITDB_ROOT_PASSWORD=ChangeMe_MongoPassword!
+    - MONGO_INITDB_ROOT_USERNAME=q!aGCgQlvS1yFvB1WCBiFB
+    - MONGO_INITDB_ROOT_PASSWORD=identity_password
     - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     - OTEL_SERVICE_NAME=mongodb
 

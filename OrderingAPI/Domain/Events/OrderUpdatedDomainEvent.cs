@@ -17,13 +17,19 @@ public class OrderUpdatedDomainEventHandler
 {
     public static async Task HandleAsync(OrderUpdatedDomainEvent @event, IMessageBus bus, ILogger logger)
     {
-        logger.LogInformation("[OrderingAPI] Publishing OrderUpdatedEvent for order {OrderId} with total {Total} {Currency}",
-            @event.Id, @event.Total, @event.Currency);
+        logger.LogInformation(
+            "[OrderingAPI] Publishing OrderUpdatedEvent for order {OrderId} with total {Total} {Currency}",
+            @event.Id,
+            @event.Total,
+            @event.Currency);
+
         await bus.PublishAsync(new OrderUpdatedEvent
         {
             Id = @event.Id,
             ShippingAddress = @event.ShippingAddress,
-            BillingAddress = @event.BillingAddress
+            BillingAddress = @event.BillingAddress,
+            Total = @event.Total,
+            Currency = @event.Currency
         });
     }
 }

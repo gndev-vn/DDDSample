@@ -15,15 +15,15 @@ public static class PaymentEndpoints
         var paymentReads = app.MapGroup("/api/Payments")
             .WithTags("Payments")
             .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Payments.View });
-        var paymentWrites = app.MapGroup("/api/Payments")
+        var paymentUpdates = app.MapGroup("/api/Payments")
             .WithTags("Payments")
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Payments.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Payments.Update });
 
         GetPaymentsEndpoint.Map(paymentReads);
         GetPaymentByIdEndpoint.Map(paymentReads);
         GetPaymentByOrderIdEndpoint.Map(paymentReads);
-        CompletePaymentEndpoint.Map(paymentWrites);
-        FailPaymentEndpoint.Map(paymentWrites);
+        CompletePaymentEndpoint.Map(paymentUpdates);
+        FailPaymentEndpoint.Map(paymentUpdates);
 
         return app;
     }

@@ -1,45 +1,66 @@
 export const appPermissions = {
   roles: {
     view: 'identity.roles.view',
-    manage: 'identity.roles.manage',
+    create: 'identity.roles.create',
+    update: 'identity.roles.update',
+    delete: 'identity.roles.delete',
   },
   users: {
     view: 'identity.users.view',
-    manage: 'identity.users.manage',
+    create: 'identity.users.create',
+    update: 'identity.users.update',
+    delete: 'identity.users.delete',
   },
   categories: {
     view: 'catalog.categories.view',
-    manage: 'catalog.categories.manage',
+    create: 'catalog.categories.create',
+    update: 'catalog.categories.update',
+    delete: 'catalog.categories.delete',
   },
   products: {
     view: 'catalog.products.view',
-    manage: 'catalog.products.manage',
+    create: 'catalog.products.create',
+    update: 'catalog.products.update',
+    delete: 'catalog.products.delete',
   },
   variants: {
     view: 'catalog.variants.view',
-    manage: 'catalog.variants.manage',
+    create: 'catalog.variants.create',
+    update: 'catalog.variants.update',
+    delete: 'catalog.variants.delete',
+  },
+  customers: {
+    view: 'ordering.customers.view',
+    create: 'ordering.customers.create',
+    update: 'ordering.customers.update',
+    delete: 'ordering.customers.delete',
   },
   orders: {
     view: 'ordering.orders.view',
-    manage: 'ordering.orders.manage',
+    create: 'ordering.orders.create',
+    update: 'ordering.orders.update',
+    delete: 'ordering.orders.delete',
   },
   payments: {
     view: 'payment.payments.view',
-    manage: 'payment.payments.manage',
+    create: 'payment.payments.create',
+    update: 'payment.payments.update',
+    delete: 'payment.payments.delete',
   },
 } as const;
 
 export const permissionGroups = [
-  { label: 'Roles', permissions: [appPermissions.roles.view, appPermissions.roles.manage] },
-  { label: 'Users', permissions: [appPermissions.users.view, appPermissions.users.manage] },
-  { label: 'Categories', permissions: [appPermissions.categories.view, appPermissions.categories.manage] },
-  { label: 'Products', permissions: [appPermissions.products.view, appPermissions.products.manage] },
-  { label: 'Variants', permissions: [appPermissions.variants.view, appPermissions.variants.manage] },
-  { label: 'Orders', permissions: [appPermissions.orders.view, appPermissions.orders.manage] },
-  { label: 'Payments', permissions: [appPermissions.payments.view, appPermissions.payments.manage] },
+  { label: 'Roles', permissions: [appPermissions.roles.view, appPermissions.roles.create, appPermissions.roles.update] },
+  { label: 'Users', permissions: [appPermissions.users.view, appPermissions.users.create, appPermissions.users.update, appPermissions.users.delete] },
+  { label: 'Categories', permissions: [appPermissions.categories.view, appPermissions.categories.create, appPermissions.categories.update, appPermissions.categories.delete] },
+  { label: 'Products', permissions: [appPermissions.products.view, appPermissions.products.create, appPermissions.products.update, appPermissions.products.delete] },
+  { label: 'Variants', permissions: [appPermissions.variants.view, appPermissions.variants.create, appPermissions.variants.update, appPermissions.variants.delete] },
+  { label: 'Customers', permissions: [appPermissions.customers.view, appPermissions.customers.create, appPermissions.customers.update, appPermissions.customers.delete] },
+  { label: 'Orders', permissions: [appPermissions.orders.view, appPermissions.orders.create, appPermissions.orders.update, appPermissions.orders.delete] },
+  { label: 'Payments', permissions: [appPermissions.payments.view, appPermissions.payments.update] },
 ] as const;
 
-const permissionActionOrder = ['view', 'manage'] as const;
+const permissionActionOrder = ['view', 'create', 'update', 'delete'] as const;
 
 export function formatPermission(permission: string) {
   const parts = permission.split('.');

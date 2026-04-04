@@ -17,7 +17,6 @@ public sealed class ProductVariantControllerContractTests
     public void Create_UsesCatalogProductVariantCreateRequestContract()
     {
         var endpoint = GetEndpointByName("CreateProductVariant");
-
         var acceptsMetadata = endpoint.Metadata.GetMetadata<IAcceptsMetadata>();
 
         Assert.NotNull(acceptsMetadata);
@@ -28,7 +27,6 @@ public sealed class ProductVariantControllerContractTests
     public void Create_DocumentsCreatedResponse()
     {
         var endpoint = GetEndpointByName("CreateProductVariant");
-
         var metadata = endpoint.Metadata.OfType<IProducesResponseTypeMetadata>().ToList();
 
         Assert.Contains(metadata, item =>
@@ -37,23 +35,21 @@ public sealed class ProductVariantControllerContractTests
     }
 
     [Theory]
-    [InlineData("CreateProductVariant")]
-    [InlineData("UpdateProductVariant")]
-    [InlineData("DeleteProductVariant")]
-    public void Write_Actions_RequireVariantManagePermission(string endpointName)
+    [InlineData("CreateProductVariant", Permissions.Variants.Create)]
+    [InlineData("UpdateProductVariant", Permissions.Variants.Update)]
+    [InlineData("DeleteProductVariant", Permissions.Variants.Delete)]
+    public void Write_Actions_RequireExpectedVariantPermission(string endpointName, string policyName)
     {
         var endpoint = GetEndpointByName(endpointName);
-
         var authorizeData = endpoint.Metadata.OfType<IAuthorizeData>().ToList();
 
-        Assert.Contains(authorizeData, item => item.Policy == Permissions.Variants.Manage);
+        Assert.Contains(authorizeData, item => item.Policy == policyName);
     }
 
     [Fact]
     public void Delete_DocumentsNotFoundResponse()
     {
         var endpoint = GetEndpointByName("DeleteProductVariant");
-
         var metadata = endpoint.Metadata.OfType<IProducesResponseTypeMetadata>().ToList();
 
         Assert.Contains(metadata, item =>

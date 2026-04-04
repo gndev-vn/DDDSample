@@ -28,6 +28,7 @@ public class GetUserHandler(
             user.Email ?? string.Empty,
             user.FirstName,
             user.LastName,
+            user.CustomerId?.ToString(),
             roles,
             permissions,
             user.IsActive,

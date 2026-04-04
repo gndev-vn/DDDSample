@@ -39,7 +39,8 @@ public sealed class LoginResponseFactory(
                 user.FirstName,
                 user.LastName,
                 resolvedRoles,
-                resolvedPermissions
+                resolvedPermissions,
+                user.CustomerId?.ToString()
             )
         );
     }

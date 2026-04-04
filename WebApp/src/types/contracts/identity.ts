@@ -21,6 +21,7 @@ export interface UserProfile {
   email: string;
   firstName: string;
   lastName: string;
+  customerId?: string | null;
   roles: string[];
   permissions: string[];
   isActive: boolean;
@@ -60,6 +61,7 @@ export interface CreateUserRequest {
   lastName: string;
   isActive: boolean;
   roles: string[];
+  customerId?: string | null;
 }
 
 export interface UpdateUserRequest {
@@ -69,6 +71,7 @@ export interface UpdateUserRequest {
   firstName: string;
   lastName: string;
   isActive: boolean;
+  customerId?: string | null;
 }
 
 export interface AssignRolesRequest {

@@ -4,7 +4,7 @@ resources:
 - sqlserver
 - mongodb
 - redis
-- rabbitmq
+- kafka
 - catalog-api
 - ordering-api
 - payment-api

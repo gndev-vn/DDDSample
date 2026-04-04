@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Wolverine.Attributes;
 using OrderingAPI.Domain;
 using OrderingAPI.Domain.Entities;
 using Shared.Messaging.Catalog;
 
 namespace OrderingAPI.Messaging;
 
+[ScheduleRetry(typeof(DbUpdateException), 5, 15, 30)]
+[RetryNow(typeof(TimeoutException), 50, 100, 250)]
 public class ProductUpdatedEventConsumer
 {
     public static async Task HandleAsync(ProductUpdatedEvent @event, ILogger<ProductUpdatedEventConsumer> logger,
@@ -30,6 +33,7 @@ public class ProductUpdatedEventConsumer
         }
         else
         {
+            cache.Sku = @event.Slug;
             cache.Name = @event.Name;
             cache.CurrentPrice = @event.CurrentPrice;
             cache.Currency = @event.Currency;

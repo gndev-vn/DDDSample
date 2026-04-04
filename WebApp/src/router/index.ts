@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useUiStore } from '../stores/ui';
 import AuthView from '../views/AuthView.vue';
 import CategoriesView from '../views/CategoriesView.vue';
+import CustomersView from '../views/CustomersView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import OrdersView from '../views/OrdersView.vue';
 import PaymentsView from '../views/PaymentsView.vue';
@@ -21,6 +22,7 @@ const router = createRouter({
     { path: '/variants', name: 'variants', component: VariantsView, meta: { title: 'Product variants' } },
     { path: '/catalog', redirect: { name: 'products' } },
     { path: '/identity', redirect: { name: 'users' } },
+    { path: '/customers', name: 'customers', component: CustomersView, meta: { title: 'Customers' } },
     { path: '/orders', name: 'orders', component: OrdersView, meta: { title: 'Orders' } },
     { path: '/payments', name: 'payments', component: PaymentsView, meta: { title: 'Payments' } },
   ],

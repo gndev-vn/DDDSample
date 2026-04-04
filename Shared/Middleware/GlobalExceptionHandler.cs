@@ -47,7 +47,12 @@ public class GlobalExceptionHandler(RequestDelegate next, ILogger<GlobalExceptio
             BusinessException businessEx => new
             {
                 StatusCode = (int)HttpStatusCode.BadRequest,
-                Response = ApiResponse.Error(businessEx.Message)
+                Response = ApiResponse.Error(businessEx.Message, businessEx.Errors)
+            },
+            DomainException domainEx => new
+            {
+                StatusCode = (int)HttpStatusCode.BadRequest,
+                Response = ApiResponse.Error(domainEx.Message)
             },
             ArgumentException or ArgumentNullException => new
             {

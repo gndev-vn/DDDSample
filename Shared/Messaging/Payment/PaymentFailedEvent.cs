@@ -1,9 +1,10 @@
 using Wolverine.Attributes;
+using Shared.Messaging;
 
 namespace Shared.Messaging.Payment;
 
-[Topic("payment.failed")]
-public class PaymentFailedEvent
+[Topic(KafkaTopics.Payment.PaymentFailed)]
+public sealed class PaymentFailedEvent
 {
     public Guid PaymentId { get; set; }
     public Guid OrderId { get; set; }

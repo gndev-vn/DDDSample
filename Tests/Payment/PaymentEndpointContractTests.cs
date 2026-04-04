@@ -29,12 +29,12 @@ public sealed class PaymentEndpointContractTests
     [Theory]
     [InlineData("CompletePayment")]
     [InlineData("FailPayment")]
-    public void Payment_Mutations_RequireManagePermission(string endpointName)
+    public void Payment_Mutations_RequireUpdatePermission(string endpointName)
     {
         var endpoint = GetEndpointByName(endpointName);
         var authorizeData = endpoint.Metadata.OfType<IAuthorizeData>().ToList();
 
-        Assert.Contains(authorizeData, item => item.Policy == Permissions.Payments.Manage);
+        Assert.Contains(authorizeData, item => item.Policy == Permissions.Payments.Update);
     }
 
     [Fact]
@@ -62,3 +62,4 @@ public sealed class PaymentEndpointContractTests
             .Single(endpoint => endpoint.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName == endpointName);
     }
 }
+

@@ -2,35 +2,36 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: sqlserver
+  name: kafka
   labels:
-    app: sqlserver
+    app: kafka
 spec:
-  serviceName: "sqlserver"
+  serviceName: "kafka"
   replicas: 1
   selector:
     matchLabels:
-      app: sqlserver
+      app: kafka
   template:
     metadata:
       labels:
-        app: sqlserver
+        app: kafka
     spec:
       containers:
-        - name: sqlserver
-          image: mcr.microsoft.com/mssql/server:2022-latest
+        - name: kafka
+          image: docker.io/confluentinc/confluent-local:8.1.1
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 1433
+            - containerPort: 9092
+            - containerPort: 9093
           envFrom:
             - configMapRef:
-                name: sqlserver-env
+                name: kafka-env
           volumeMounts:
-            - name: apphost-feed4158f1-sqlserver-data
-              mountPath: /var/opt/mssql
+            - name: apphost-feed4158f1-kafka-data
+              mountPath: /var/lib/kafka/data
   volumeClaimTemplates:
     - metadata:
-        name: apphost-feed4158f1-sqlserver-data
+        name: apphost-feed4158f1-kafka-data
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:

@@ -1,8 +1,9 @@
 using Wolverine.Attributes;
+using Shared.Messaging;
 
 namespace Shared.Messaging.Catalog;
 
-[Topic("catalog.product-variant.created")]
+[Topic(KafkaTopics.Catalog.ProductVariantCreated)]
 public sealed class ProductVariantCreatedEvent
 {
     public Guid Id { get; set; }

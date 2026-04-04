@@ -36,19 +36,12 @@ public sealed class Product : EntityWithEvents
     }
 
     public Money? BasePrice { get; set; }
-
     public bool IsActive { get; set; } = true;
-
     public string Slug { get; set; } = string.Empty;
-
     public string Name { get; set; } = string.Empty;
-
     public string Description { get; set; } = string.Empty;
-
     public string ImageUrl { get; set; } = string.Empty;
-
     public IReadOnlyList<ProductVariant> Variants => _variants;
-
     public Category? Category { get; set; }
 
     public ProductVariant AddVariant(
@@ -73,17 +66,7 @@ public sealed class Product : EntityWithEvents
         };
 
         _variants.Add(variant);
-        var price = ResolveVariantPrice(variant);
-        AddDomainEvent(new ProductVariantCreatedDomainEvent
-        {
-            Id = variant.Id,
-            ProductId = Id,
-            Sku = variant.Sku,
-            Name = variant.Name,
-            CurrentPrice = price.Amount,
-            Currency = price.Currency,
-            IsActive = variant.IsActive,
-        });
+        AddDomainEvent(BuildVariantCreatedEvent(variant));
 
         return variant;
     }
@@ -106,17 +89,7 @@ public sealed class Product : EntityWithEvents
         }
 
         variant.UpdateDetails(name, normalizedSku, description, overridePrice, attributes);
-        var price = ResolveVariantPrice(variant);
-        AddDomainEvent(new ProductVariantUpdatedDomainEvent
-        {
-            Id = variant.Id,
-            ProductId = Id,
-            Sku = variant.Sku,
-            Name = variant.Name,
-            CurrentPrice = price.Amount,
-            Currency = price.Currency,
-            IsActive = variant.IsActive,
-        });
+        AddDomainEvent(BuildVariantUpdatedEvent(variant));
 
         return variant;
     }
@@ -172,7 +145,20 @@ public sealed class Product : EntityWithEvents
 
     public void Activate() => IsActive = true;
 
-    public void MarkDeleted() => AddDomainEvent(new ProductDeletedDomainEvent { Id = Id });
+    public void MarkDeleted()
+    {
+        foreach (var variant in _variants)
+        {
+            AddDomainEvent(new ProductVariantDeletedDomainEvent
+            {
+                Id = variant.Id,
+                ProductId = Id,
+                Sku = variant.Sku,
+            });
+        }
+
+        AddDomainEvent(new ProductDeletedDomainEvent { Id = Id });
+    }
 
     public static Product Create(string name, string description, string slug, Money basePrice, bool isActive = true)
         => new(name, description, slug, basePrice, isActive);
@@ -198,12 +184,47 @@ public sealed class Product : EntityWithEvents
             ImageUrl = ImageUrl,
             IsActive = IsActive,
         });
+
+        foreach (var variant in _variants.Where(v => v.OverridePrice is null))
+        {
+            AddDomainEvent(BuildVariantUpdatedEvent(variant));
+        }
     }
 
     private ProductVariant GetVariantById(Guid variantId)
     {
         var variant = _variants.FirstOrDefault(v => v.Id == variantId);
         return variant ?? throw new KeyNotFoundException("Invalid product variant id");
+    }
+
+    private ProductVariantCreatedDomainEvent BuildVariantCreatedEvent(ProductVariant variant)
+    {
+        var price = ResolveVariantPrice(variant);
+        return new ProductVariantCreatedDomainEvent
+        {
+            Id = variant.Id,
+            ProductId = Id,
+            Sku = variant.Sku,
+            Name = variant.Name,
+            CurrentPrice = price.Amount,
+            Currency = price.Currency,
+            IsActive = variant.IsActive,
+        };
+    }
+
+    private ProductVariantUpdatedDomainEvent BuildVariantUpdatedEvent(ProductVariant variant)
+    {
+        var price = ResolveVariantPrice(variant);
+        return new ProductVariantUpdatedDomainEvent
+        {
+            Id = variant.Id,
+            ProductId = Id,
+            Sku = variant.Sku,
+            Name = variant.Name,
+            CurrentPrice = price.Amount,
+            Currency = price.Currency,
+            IsActive = variant.IsActive,
+        };
     }
 
     private Money ResolveVariantPrice(ProductVariant variant)

@@ -1,18 +1,22 @@
+using Confluent.Kafka;
 using FluentValidation;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
 using PaymentAPI.Domain;
 using PaymentAPI.Features;
+using PaymentAPI.Features.Payments.CreatePayment;
 using ServiceDefaults;
 using Shared.Authentication;
 using Shared.Configuration;
 using Shared.Extensions;
 using Shared.Hosting;
 using Shared.Interceptors;
+using Shared.Messaging;
 using Shared.Middleware;
 using Shared.Services;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
-using Wolverine.RabbitMQ;
+using Wolverine.Kafka;
 using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,12 +25,10 @@ builder.AddServiceDefaults();
 builder.AddCentralizedApiEndpoints();
 
 builder.Services.AddMediator(options =>
-    {
-        options.Assemblies = [typeof(Program)];
-        options.ServiceLifetime = ServiceLifetime.Scoped;
-    }
-);
-
+{
+    options.Assemblies = [typeof(Program)];
+    options.ServiceLifetime = ServiceLifetime.Scoped;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
@@ -43,6 +45,11 @@ builder.Services.AddStackExchangeRedisCache(o =>
 
 var localEventsQueue = builder.Configuration["Wolverine:LocalQueue"] ?? throw new InvalidOperationException();
 var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException();
+var kafkaBootstrapServers = builder.Configuration.GetKafkaBootstrapServers();
+var paymentOrderingGroup = builder.Configuration["Wolverine:PaymentOrderingGroup"] ?? throw new InvalidOperationException();
+var paymentTopicPartitions = builder.Configuration.GetValue<int?>("Wolverine:PaymentTopicPartitions") ?? 6;
+var kafkaReplicationFactor = (short)(builder.Configuration.GetValue<int?>("Wolverine:KafkaReplicationFactor") ?? 1);
+var deadLetterTopic = builder.Configuration["Wolverine:DeadLetterTopic"] ?? "ddd.kafka.dead-letter";
 
 builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 {
@@ -57,25 +64,41 @@ builder.Services.AddDbContext<AppDbContext>((sp, opt) =>
 
 builder.Host.UseWolverine(opts =>
 {
-    var rabbitMqUrl = builder.Configuration.GetRabbitMqConnectionString();
+    opts.MessagePartitioning.ByPropertyNamed("OrderId", "Id", "PaymentId", "CustomerId");
+    opts.Policies.PropagateGroupIdToPartitionKey();
 
-    var orderingExchange = builder.Configuration["Wolverine:OrderingExchange"] ?? throw new InvalidOperationException();
-    var paymentExchange = builder.Configuration["Wolverine:PaymentExchange"] ?? throw new InvalidOperationException();
-    var paymentOrderingQueue = builder.Configuration["Wolverine:PaymentOrderingQueue"] ?? throw new InvalidOperationException();
-
-    opts.UseRabbitMq(rabbitMqUrl)
-        .DeclareExchange(orderingExchange, ex =>
+    opts.UseKafka(kafkaBootstrapServers)
+        .ConfigureProducers(config =>
         {
-            ex.ExchangeType = ExchangeType.Topic;
-            ex.BindTopic("ordering.order.created").ToQueue(paymentOrderingQueue);
+            config.Acks = Acks.All;
+            config.EnableIdempotence = true;
+            config.CompressionType = CompressionType.Snappy;
+            config.MessageSendMaxRetries = 5;
+            config.RetryBackoffMs = 250;
+            config.AllowAutoCreateTopics = false;
         })
-        .DeclareExchange(paymentExchange, ex => ex.ExchangeType = ExchangeType.Topic)
-        .DeclareQueue(paymentOrderingQueue)
-        .AutoProvision();
+        .ConfigureConsumers(config =>
+        {
+            config.AllowAutoCreateTopics = false;
+            config.AutoOffsetReset = AutoOffsetReset.Earliest;
+        })
+        .DeadLetterQueueTopicName(deadLetterTopic)
+        .AutoProvision(_ => { });
 
     opts.LocalQueue(localEventsQueue).MaximumParallelMessages(8);
-    opts.ListenToRabbitQueue(paymentOrderingQueue);
-    opts.PublishAllMessages().ToRabbitTopics(paymentExchange);
+    opts.ListenToKafkaTopics(KafkaTopics.Ordering.PaymentWorkflowTopics)
+        .ConfigureConsumer(config =>
+        {
+            config.GroupId = paymentOrderingGroup;
+            config.AutoOffsetReset = AutoOffsetReset.Earliest;
+        })
+        .EnableNativeDeadLetterQueue();
+
+    opts.PublishAllMessages().ToKafkaTopics().Specification(spec =>
+    {
+        spec.NumPartitions = paymentTopicPartitions;
+        spec.ReplicationFactor = kafkaReplicationFactor;
+    });
 
     opts.PersistMessagesWithSqlServer(sqlConnectionString, schema: "wolverine");
     opts.UseEntityFrameworkCoreTransactions();
@@ -85,7 +108,6 @@ builder.Host.UseWolverine(opts =>
 var app = builder.Build();
 
 app.UseGlobalExceptionHandler();
-
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();

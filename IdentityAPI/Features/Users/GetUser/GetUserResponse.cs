@@ -6,6 +6,7 @@ public record GetUserResponse(
     string Email,
     string FirstName,
     string LastName,
+    string? CustomerId,
     IEnumerable<string> Roles,
     IEnumerable<string> Permissions,
     bool IsActive,

@@ -11,6 +11,7 @@ public class ApplicationUser : MongoIdentityUser<Guid>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
+    public Guid? CustomerId { get; set; }
 
     /// <summary>
     /// Google account subject identifier ("sub" claim). Null for users who registered with a password.
@@ -58,6 +59,12 @@ public class ApplicationUser : MongoIdentityUser<Guid>
     public void LinkGoogleAccount(string googleId, DateTime utcNow)
     {
         GoogleId = googleId;
+        UpdatedAt = utcNow;
+    }
+
+    public void SetCustomerLink(Guid? customerId, DateTime utcNow)
+    {
+        CustomerId = customerId;
         UpdatedAt = utcNow;
     }
 }

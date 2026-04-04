@@ -1,5 +1,5 @@
 resources:
-- statefulset.yaml
+- deployment.yaml
 - service.yaml
 
 generatorOptions:
@@ -9,7 +9,7 @@ configMapGenerator:
 - name: sqlserver-env
   literals:
     - ACCEPT_EULA=Y
-    - MSSQL_SA_PASSWORD=ChangeMe_SqlPassword!
+    - MSSQL_SA_PASSWORD=051093@Galvin
     - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
     - OTEL_SERVICE_NAME=sqlserver
 

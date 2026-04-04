@@ -32,12 +32,14 @@ public sealed class IdentitySeedService(
                 Permissions.Products.View,
                 Permissions.Variants.View,
                 Permissions.Orders.View,
-                Permissions.Payments.View
+                Permissions.Payments.View,
             ],
             cancellationToken);
+        await EnsureRoleAsync(IdentityRoleNames.Customer, "Customer storefront role", [], cancellationToken);
 
         await EnsureUserAsync(options.Admin, IdentityRoleNames.Admin, cancellationToken);
         await EnsureUserAsync(options.User, IdentityRoleNames.User, cancellationToken);
+        await EnsureUserAsync(options.Customer, IdentityRoleNames.Customer, cancellationToken);
     }
 
     private async Task EnsureRoleAsync(string roleName, string description, IEnumerable<string> permissions, CancellationToken cancellationToken)
@@ -64,7 +66,7 @@ public sealed class IdentitySeedService(
             Name = roleName,
             Description = description,
             CreatedAt = DateTime.UtcNow,
-            Permissions = permissions.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(permission => permission).ToList()
+            Permissions = permissions.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(permission => permission).ToList(),
         });
         if (!result.Succeeded)
         {
@@ -88,6 +90,7 @@ public sealed class IdentitySeedService(
                 seedUser.FirstName,
                 seedUser.LastName,
                 DateTime.UtcNow);
+            user.SetCustomerLink(ParseCustomerId(seedUser.CustomerId), DateTime.UtcNow);
 
             var createResult = await userManager.CreateAsync(user, seedUser.Password);
             if (!createResult.Succeeded)
@@ -99,6 +102,23 @@ public sealed class IdentitySeedService(
         }
         else
         {
+            var updated = false;
+            var seededCustomerId = ParseCustomerId(seedUser.CustomerId);
+            if (user.CustomerId != seededCustomerId)
+            {
+                user.SetCustomerLink(seededCustomerId, DateTime.UtcNow);
+                updated = true;
+            }
+
+            if (updated)
+            {
+                var updateResult = await userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    throw new InvalidOperationException($"Failed to update seeded user '{seedUser.Email}': {FormatErrors(updateResult)}");
+                }
+            }
+
             logger.LogInformation("[IdentityAPI] Seed user {Email} already exists.", seedUser.Email);
         }
 
@@ -137,6 +157,9 @@ public sealed class IdentitySeedService(
             throw new InvalidOperationException($"Identity seed password is required for role '{roleName}'.");
         }
     }
+
+    private static Guid? ParseCustomerId(string? customerId)
+        => string.IsNullOrWhiteSpace(customerId) ? null : Guid.Parse(customerId);
 
     private static string FormatErrors(IdentityResult result)
         => string.Join(", ", result.Errors.Select(error => error.Description));

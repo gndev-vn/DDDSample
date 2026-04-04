@@ -101,3 +101,4 @@ public sealed class ProductCacheConsumerTests : IDisposable
         Assert.False(await assertContext.ProductCaches.AnyAsync(x => x.Id == productId));
     }
 }
+

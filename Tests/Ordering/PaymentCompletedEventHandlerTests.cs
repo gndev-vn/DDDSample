@@ -35,6 +35,9 @@ public sealed class PaymentCompletedEventHandlerTests : IDisposable
     {
         var order = Order.Create(
             Guid.NewGuid(),
+            "Alex Nguyen",
+            "alex@example.com",
+            "+84 901 000 111",
             [new OrderLine(new Sku("SKU-001"), Quantity.Of(1), new Money(40m, "USD"))],
             new Address("123 Main", null, "Ward 1", "District 1", "HCMC", "HCM"));
 
@@ -103,3 +106,5 @@ public sealed class PaymentCompletedEventHandlerTests : IDisposable
         Assert.Equal(OrderStatus.Paid, order.Status);
     }
 }
+
+

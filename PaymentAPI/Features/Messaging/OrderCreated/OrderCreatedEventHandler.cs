@@ -3,9 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using PaymentAPI.Domain;
 using PaymentAPI.Features.Payments.CreatePayment;
 using Shared.Messaging.Order;
+using Wolverine.Attributes;
 
 namespace PaymentAPI.Features.Messaging.OrderCreated;
 
+[ScheduleRetry(typeof(DbUpdateException), 5, 15, 30)]
+[RetryNow(typeof(TimeoutException), 50, 100, 250)]
 public class OrderCreatedEventHandler
 {
     public static async Task HandleAsync(
@@ -31,3 +34,4 @@ public class OrderCreatedEventHandler
         logger.LogInformation("[PaymentAPI] Created pending payment {PaymentId} for order {OrderId}", payment.Id, payment.OrderId);
     }
 }
+

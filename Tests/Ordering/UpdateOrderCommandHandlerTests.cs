@@ -36,6 +36,9 @@ public sealed class UpdateOrderCommandHandlerTests : IDisposable
     {
         var order = Order.Create(
             Guid.NewGuid(),
+            "Alex Nguyen",
+            "alex@example.com",
+            "+84 901 000 111",
             lines ?? [new OrderLine(new Sku("SKU-001"), Quantity.Of(2), new Money(10m, "USD"))],
             shippingAddress ?? OldShipping(),
             billingAddress);
@@ -313,3 +316,4 @@ public sealed class UpdateOrderCommandHandlerTests : IDisposable
         Assert.Contains("modified", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
+

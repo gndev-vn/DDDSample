@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SearchableSelect from '../components/ui/SearchableSelect.vue';
 import EntityDialog from '../components/ui/EntityDialog.vue';
 import { formatDate } from '../lib/formatters';
 import { useUsersAdmin } from '../composables/useUsersAdmin';
@@ -12,6 +13,7 @@ const {
   errorMessage,
   users,
   roleNames,
+  customerOptions,
   isUserDialogOpen,
   isCreateUserDialogOpen,
   userSearch,
@@ -19,11 +21,16 @@ const {
   editUserForm,
   assignedRoles,
   selectedUser,
+  canCreateUsers,
+  canUpdateUsers,
+  canDeleteUsers,
   canManageUsers,
+  canViewCustomers,
   hasUserChanges,
   filteredUsers,
   activeUserCount,
   adminUserCount,
+  customerAccountCount,
   openUserDialog,
   openCreateUserDialog,
   toggleRoleSelection,
@@ -31,6 +38,7 @@ const {
   handleCreateUser,
   handleSaveUser,
   handleDeleteUser,
+  describeLinkedCustomer,
 } = useUsersAdmin();
 </script>
 
@@ -40,12 +48,11 @@ const {
       <div>
         <h3 class="section-title">Users</h3>
         <p class="mt-2 text-sm leading-6 text-slate-600">
-          Manage operator accounts, activation state, and role assignments from one production-focused workspace.
+          Manage operator and customer identity accounts, activation state, and role assignments from one production-focused workspace.
         </p>
       </div>
-
       <div class="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
-        <input v-model="userSearch" class="toolbar-search" placeholder="Search users by name, email, username, role..." />
+        <input v-model="userSearch" class="toolbar-search" placeholder="Search users by name, email, username, role, customer..." />
         <button class="btn-secondary" :disabled="adminLoading" @click="refreshAdminData()">
           <span v-if="adminLoading" class="button-spinner" aria-hidden="true" />
           <span v-else class="button-icon" aria-hidden="true">↻</span>
@@ -68,6 +75,7 @@ const {
       <article class="summary-tile min-w-[180px] flex-1"><p class="workspace-label">Users</p><p class="mt-3 display-value">{{ users.length }}</p></article>
       <article class="summary-tile min-w-[180px] flex-1"><p class="workspace-label">Active users</p><p class="mt-3 display-value">{{ activeUserCount }}</p></article>
       <article class="summary-tile min-w-[180px] flex-1"><p class="workspace-label">Admins</p><p class="mt-3 display-value">{{ adminUserCount }}</p></article>
+      <article class="summary-tile min-w-[180px] flex-1"><p class="workspace-label">Customer accounts</p><p class="mt-3 display-value">{{ customerAccountCount }}</p></article>
     </div>
 
     <article class="section-panel">
@@ -76,7 +84,7 @@ const {
           <h4 class="section-title">User directory</h4>
           <p class="mt-2 text-sm text-slate-600">{{ filteredUsers.length }} of {{ users.length }} user account(s).</p>
         </div>
-        <button class="btn-primary" :disabled="!canManageUsers" @click="openCreateUserDialog"><span class="button-icon" aria-hidden="true">＋</span><span>New user</span></button>
+        <button class="btn-primary" :disabled="!canCreateUsers" @click="openCreateUserDialog"><span class="button-icon" aria-hidden="true">＋</span><span>New user</span></button>
       </div>
 
       <div class="mt-5 table-shell">
@@ -86,6 +94,7 @@ const {
               <th class="px-5 py-4">User</th>
               <th class="px-5 py-4">Username</th>
               <th class="px-5 py-4">Roles</th>
+              <th class="px-5 py-4">Linked customer</th>
               <th class="px-5 py-4">Status</th>
               <th class="px-5 py-4">Actions</th>
             </tr>
@@ -106,11 +115,12 @@ const {
                   </span>
                 </div>
               </td>
+              <td class="px-5 py-4 align-top text-sm text-slate-700">{{ describeLinkedCustomer(user) }}</td>
               <td class="px-5 py-4 align-top text-slate-700">{{ user.isActive ? 'Active' : 'Inactive' }}</td>
               <td class="px-5 py-4 align-top">
                 <div class="flex flex-wrap gap-2">
                   <button class="icon-button" title="Details" aria-label="View user details" @click="openUserDialog(user)"><span class="icon-glyph">👁</span></button>
-                  <button class="icon-button icon-button-danger" title="Delete" aria-label="Delete user" :disabled="deletingUserId === user.id || !canManageUsers" @click="handleDeleteUser(user)"><span v-if="deletingUserId === user.id" class="button-spinner" aria-hidden="true" /><span v-else class="icon-glyph">🗑</span></button>
+                  <button class="icon-button icon-button-danger" title="Delete" aria-label="Delete user" :disabled="deletingUserId === user.id || !canDeleteUsers" @click="handleDeleteUser(user)"><span v-if="deletingUserId === user.id" class="button-spinner" aria-hidden="true" /><span v-else class="icon-glyph">✕</span></button>
                 </div>
               </td>
             </tr>
@@ -123,13 +133,19 @@ const {
       </div>
     </article>
 
-    <EntityDialog :open="isUserDialogOpen" title="User details" description="Update user profile fields, status, and role assignment." width-class="max-w-4xl" @close="isUserDialogOpen = false">
+    <EntityDialog :open="isUserDialogOpen" title="User details" description="Update profile fields, linked customer, status, and role assignment." width-class="max-w-4xl" @close="isUserDialogOpen = false">
       <div v-if="selectedUser" class="grid gap-4">
         <div class="grid gap-4 md:grid-cols-2">
           <label><span class="field-label">Username</span><input v-model="editUserForm.username" class="text-input" /></label>
           <label><span class="field-label">Email</span><input v-model="editUserForm.email" class="text-input" type="email" /></label>
           <label><span class="field-label">First name</span><input v-model="editUserForm.firstName" class="text-input" /></label>
           <label><span class="field-label">Last name</span><input v-model="editUserForm.lastName" class="text-input" /></label>
+        </div>
+
+        <div v-if="canViewCustomers" class="grid gap-2">
+          <span class="field-label">Linked customer</span>
+          <SearchableSelect v-model="editUserForm.customerId" :options="customerOptions" placeholder="Search customers by name, email, or phone..." empty-label="No customers available." />
+          <p class="text-xs text-slate-500">Selecting a customer automatically keeps the Customer role assigned for storefront access.</p>
         </div>
 
         <div class="grid gap-4 md:grid-cols-3">
@@ -149,19 +165,24 @@ const {
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <button class="btn-primary" :disabled="savingUser || !assignedRoles.length || !canManageUsers || !hasUserChanges" @click="handleSaveUser"><span v-if="savingUser" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">💾</span><span>{{ savingUser ? 'Saving changes...' : 'Save user changes' }}</span></button>
-          <button class="btn-danger" :disabled="deletingUserId === selectedUser.id || !canManageUsers" @click="handleDeleteUser(selectedUser)"><span v-if="deletingUserId === selectedUser.id" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">🗑</span><span>{{ deletingUserId === selectedUser.id ? 'Deleting...' : 'Delete user' }}</span></button>
+          <button class="btn-primary" :disabled="savingUser || !assignedRoles.length || !canUpdateUsers || !hasUserChanges" @click="handleSaveUser"><span v-if="savingUser" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">✓</span><span>{{ savingUser ? 'Saving changes...' : 'Save user changes' }}</span></button>
+          <button class="btn-danger" :disabled="deletingUserId === selectedUser.id || !canDeleteUsers" @click="handleDeleteUser(selectedUser)"><span v-if="deletingUserId === selectedUser.id" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">✕</span><span>{{ deletingUserId === selectedUser.id ? 'Deleting...' : 'Delete user' }}</span></button>
         </div>
       </div>
     </EntityDialog>
 
-    <EntityDialog :open="isCreateUserDialogOpen" title="New user" description="Create an operator account and assign initial roles." width-class="max-w-4xl" @close="isCreateUserDialogOpen = false">
+    <EntityDialog :open="isCreateUserDialogOpen" title="New user" description="Create an operator or customer account and assign initial roles." width-class="max-w-4xl" @close="isCreateUserDialogOpen = false">
       <div class="grid gap-4 md:grid-cols-2">
         <label><span class="field-label">Username</span><input v-model="createUserForm.username" class="text-input" /></label>
         <label><span class="field-label">Email</span><input v-model="createUserForm.email" class="text-input" type="email" /></label>
         <label><span class="field-label">First name</span><input v-model="createUserForm.firstName" class="text-input" /></label>
         <label><span class="field-label">Last name</span><input v-model="createUserForm.lastName" class="text-input" /></label>
         <label class="md:col-span-2"><span class="field-label">Temporary password</span><input v-model="createUserForm.password" class="text-input" type="password" autocomplete="new-password" /></label>
+        <div v-if="canViewCustomers" class="md:col-span-2 grid gap-2">
+          <span class="field-label">Linked customer</span>
+          <SearchableSelect v-model="createUserForm.customerId" :options="customerOptions" placeholder="Search customers to enable storefront login..." empty-label="No customers available." />
+          <p class="text-xs text-slate-500">Choose a customer to create a customer-side login account tied to that customer record.</p>
+        </div>
         <label class="md:col-span-2 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700"><input v-model="createUserForm.isActive" type="checkbox" />Create account as active</label>
         <div class="md:col-span-2">
           <span class="field-label">Initial roles</span>
@@ -172,11 +193,8 @@ const {
             </label>
           </div>
         </div>
-        <button class="btn-primary md:col-span-2" :disabled="creatingUser || !canManageUsers" @click="handleCreateUser"><span v-if="creatingUser" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">＋</span><span>{{ creatingUser ? 'Creating user...' : 'Create user' }}</span></button>
+        <button class="btn-primary md:col-span-2" :disabled="creatingUser || !canCreateUsers" @click="handleCreateUser"><span v-if="creatingUser" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">＋</span><span>{{ creatingUser ? 'Creating user...' : 'Create user' }}</span></button>
       </div>
     </EntityDialog>
   </section>
 </template>
-
-
-

@@ -33,8 +33,11 @@ public sealed class CreateOrderCommandHandlerTests : IDisposable
     public async Task Handle_WhenProductExistsInLocalCache_UsesCachedPriceAndProductId()
     {
         var productId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+
         await using (var seedContext = NewContext())
         {
+            seedContext.Customers.Add(Customer.Create(customerId, "Alex Nguyen", "alex@example.com", "+84 901 000 111", true));
             seedContext.ProductCaches.Add(new ProductCache
             {
                 Id = productId,
@@ -50,7 +53,7 @@ public sealed class CreateOrderCommandHandlerTests : IDisposable
         await using var dbContext = NewContext();
         var handler = new CreateOrderCommandHandler(dbContext);
         var command = new CreateOrderCommand(
-            Guid.NewGuid(),
+            customerId,
             [new OrderLineModel { Sku = "sku-1", Quantity = 2, UnitPrice = 5m, Currency = "VND" }],
             new AddressModel("123 Main", null, "City", "Province", "District", "Ward"),
             null);
@@ -64,5 +67,10 @@ public sealed class CreateOrderCommandHandlerTests : IDisposable
         Assert.Equal(25m, line.Total.Amount);
         Assert.Equal("USD", line.Total.Currency);
         Assert.Equal("Cached Product", result.Lines.Single().Name);
+        Assert.Equal(customerId, result.CustomerId);
+        Assert.Equal("Alex Nguyen", result.CustomerName);
+        Assert.Equal("alex@example.com", result.CustomerEmail);
+        Assert.Equal("+84 901 000 111", result.CustomerPhone);
     }
 }
+

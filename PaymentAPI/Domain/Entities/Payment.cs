@@ -42,6 +42,24 @@ public class Payment : EntityWithEvents
 
     public static Payment CreatePending(Guid orderId, Money amount) => new(orderId, amount);
 
+    public void SynchronizePendingAmount(Money newAmount)
+    {
+        ArgumentNullException.ThrowIfNull(newAmount);
+
+        if (Status != PaymentStatus.Pending)
+        {
+            throw new DomainException("Only pending payments can be synchronized");
+        }
+
+        if (Amount == newAmount)
+        {
+            return;
+        }
+
+        Amount = newAmount;
+        UpdatedAtUtc = DateTime.UtcNow;
+    }
+
     public void Complete(string transactionReference)
     {
         if (Status != PaymentStatus.Pending)

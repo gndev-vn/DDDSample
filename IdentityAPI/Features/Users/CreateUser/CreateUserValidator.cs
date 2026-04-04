@@ -1,4 +1,5 @@
 using FluentValidation;
+using IdentityAPI.Domain.Identity;
 
 namespace IdentityAPI.Features.Users.CreateUser;
 
@@ -29,5 +30,13 @@ public sealed class CreateUserValidator : AbstractValidator<CreateUserRequest>
 
         RuleFor(x => x.Roles)
             .NotEmpty().WithMessage("At least one role is required");
+
+        RuleFor(x => x.CustomerId)
+            .Must(value => string.IsNullOrWhiteSpace(value) || Guid.TryParse(value, out _))
+            .WithMessage("Customer id must be a valid GUID when provided.");
+
+        RuleFor(x => x.CustomerId)
+            .NotEmpty().WithMessage("Customer selection is required when assigning the Customer role.")
+            .When(x => x.Roles.Any(role => string.Equals(role?.Trim(), IdentityRoleNames.Customer, StringComparison.OrdinalIgnoreCase)));
     }
 }

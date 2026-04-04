@@ -43,14 +43,21 @@ public sealed class OrderingSeedServiceTests : IDisposable
         await service.SeedAsync();
 
         await using var assertContext = NewContext();
+        var customers = await assertContext.Customers.ToListAsync();
         var productCaches = await assertContext.ProductCaches.ToListAsync();
         var orders = await assertContext.Orders.Include(order => order.Lines).ToListAsync();
 
+        Assert.Equal(2, customers.Count);
         Assert.Equal(3, productCaches.Count);
         Assert.Equal(2, orders.Count);
-        Assert.Contains(productCaches, cache => cache.Sku == "DDD-HOODIE-BLK-M");
+        Assert.Contains(customers, customer => customer.Email == "alex.nguyen@example.com");
         Assert.Contains(orders, order => order.Status == OrderStatus.Submitted);
         Assert.Contains(orders, order => order.Status == OrderStatus.Paid);
-        Assert.All(orders, order => Assert.NotEmpty(order.Lines));
+        Assert.All(orders, order =>
+        {
+          Assert.NotEmpty(order.CustomerName);
+          Assert.NotEmpty(order.CustomerEmail);
+          Assert.NotEmpty(order.Lines);
+        });
     }
 }

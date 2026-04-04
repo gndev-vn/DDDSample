@@ -13,7 +13,7 @@ public sealed class LoginResponseFactoryTests
     public async Task CreateAsync_UsesProvidedRolesAndPermissionsForTokenAndResponse()
     {
         var expectedRoles = new[] { "User", "Admin" };
-        var expectedPermissions = new[] { "catalog.products.view", "ordering.orders.manage" };
+        var expectedPermissions = new[] { "catalog.products.view", "ordering.orders.update" };
         var user = ApplicationUser.CreateLocal("alice", "alice@example.com", "Alice", "Smith", DateTime.UtcNow);
         user.Id = Guid.NewGuid();
         var jwtSettings = Options.Create(new JwtSettings
@@ -52,3 +52,4 @@ public sealed class LoginResponseFactoryTests
             It.Is<IEnumerable<string>>(permissions => permissions.SequenceEqual(expectedPermissions))), Times.Once);
     }
 }
+

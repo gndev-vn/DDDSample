@@ -1,7 +1,48 @@
 import { apiRequest } from '../lib/http';
-import type { CreateOrderRequest, OrderModel, ProductCacheModel, UpdateOrderRequest } from '../types/contracts';
+import type {
+  CreateCustomerRequest,
+  CreateOrderRequest,
+  CustomerModel,
+  OrderModel,
+  ProductCacheModel,
+  UpdateCustomerRequest,
+  UpdateOrderRequest,
+} from '../types/contracts';
 
 export const orderingApi = {
+  async getCustomers(token: string, search?: string): Promise<CustomerModel[]> {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    const response = await apiRequest<CustomerModel[]>('ordering', '/api/Customers' + query, { token });
+    return response.data ?? [];
+  },
+
+  async createCustomer(token: string, request: CreateCustomerRequest): Promise<CustomerModel | null> {
+    const response = await apiRequest<CustomerModel>('ordering', '/api/Customers', {
+      method: 'POST',
+      token,
+      body: request,
+    });
+
+    return response.data ?? null;
+  },
+
+  async updateCustomer(token: string, request: UpdateCustomerRequest): Promise<CustomerModel | null> {
+    const response = await apiRequest<CustomerModel>('ordering', '/api/Customers/' + request.id, {
+      method: 'PUT',
+      token,
+      body: request,
+    });
+
+    return response.data ?? null;
+  },
+
+  async deleteCustomer(token: string, customerId: string): Promise<void> {
+    await apiRequest<null>('ordering', '/api/Customers/' + customerId, {
+      method: 'DELETE',
+      token,
+    });
+  },
+
   async getOrders(token?: string | null): Promise<OrderModel[]> {
     const response = await apiRequest<OrderModel[]>('ordering', '/api/Orders', { token });
     return response.data ?? [];
@@ -18,7 +59,7 @@ export const orderingApi = {
   },
 
   async updateOrder(token: string, request: UpdateOrderRequest): Promise<OrderModel | null> {
-    const response = await apiRequest<OrderModel>('ordering', `/api/Orders/${request.id}`, {
+    const response = await apiRequest<OrderModel>('ordering', '/api/Orders/' + request.id, {
       method: 'PUT',
       token,
       body: request,
@@ -28,7 +69,7 @@ export const orderingApi = {
   },
 
   async payOrder(token: string, orderId: string): Promise<boolean> {
-    const response = await apiRequest<boolean>('ordering', `/api/Orders/${orderId}/pay`, {
+    const response = await apiRequest<boolean>('ordering', '/api/Orders/' + orderId + '/pay', {
       method: 'POST',
       token,
     });
@@ -37,7 +78,7 @@ export const orderingApi = {
   },
 
   async cancelOrder(token: string, orderId: string): Promise<boolean> {
-    const response = await apiRequest<boolean>('ordering', `/api/Orders/${orderId}/cancel`, {
+    const response = await apiRequest<boolean>('ordering', '/api/Orders/' + orderId + '/cancel', {
       method: 'POST',
       token,
     });
@@ -46,19 +87,14 @@ export const orderingApi = {
   },
 
   async deleteOrder(token: string, orderId: string): Promise<void> {
-    await apiRequest<null>('ordering', `/api/Orders/${orderId}`, {
+    await apiRequest<null>('ordering', '/api/Orders/' + orderId, {
       method: 'DELETE',
       token,
     });
   },
 
   async getProductsInOrder(orderId: string, token?: string | null): Promise<ProductCacheModel[]> {
-    const response = await apiRequest<ProductCacheModel[]>(
-      'ordering',
-      `/api/ProductsCache/orders/${orderId}`,
-      { token },
-    );
-
+    const response = await apiRequest<ProductCacheModel[]>('ordering', '/api/ProductsCache/orders/' + orderId, { token });
     return response.data ?? [];
   },
 };

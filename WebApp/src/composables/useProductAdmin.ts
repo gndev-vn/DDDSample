@@ -82,10 +82,16 @@ export function useProductAdmin() {
   });
 
   const canViewProducts = computed(() => authStore.hasPermission(appPermissions.products.view));
-  const canManageProducts = computed(() => authStore.hasPermission(appPermissions.products.manage));
-  const canManageVariants = computed(() => authStore.hasPermission(appPermissions.variants.manage));
+  const canCreateProducts = computed(() => authStore.hasPermission(appPermissions.products.create));
+  const canUpdateProducts = computed(() => authStore.hasPermission(appPermissions.products.update));
+  const canDeleteProducts = computed(() => authStore.hasPermission(appPermissions.products.delete));
+  const canManageProducts = computed(() => canCreateProducts.value || canUpdateProducts.value || canDeleteProducts.value);
+  const canCreateVariants = computed(() => authStore.hasPermission(appPermissions.variants.create));
+  const canUpdateVariants = computed(() => authStore.hasPermission(appPermissions.variants.update));
+  const canDeleteVariants = computed(() => authStore.hasPermission(appPermissions.variants.delete));
+  const canManageVariants = computed(() => canCreateVariants.value || canUpdateVariants.value || canDeleteVariants.value);
   const canViewCurrentPage = computed(() => canViewProducts.value);
-  const canManageCurrentPage = computed(() => canManageProducts.value);
+  const canManageCurrentPage = computed(() => canManageProducts.value || canManageVariants.value);
 
   const selectedProduct = computed(() =>
     products.value.find((product) => product.id === selectedProductId.value) ?? null,
@@ -244,7 +250,7 @@ export function useProductAdmin() {
   }
 
   async function createAttributeDefinition() {
-    if (!authStore.token || !canManageVariants.value || !newAttributeName.value.trim()) {
+    if (!authStore.token || !canCreateVariants.value || !newAttributeName.value.trim()) {
       return;
     }
 
@@ -396,7 +402,17 @@ export function useProductAdmin() {
   }
 
   async function saveProduct() {
-    if (!authStore.token || !canManageProducts.value || !productCanSave.value) {
+    if (!authStore.token || !productCanSave.value) {
+      return;
+    }
+
+    if (productForm.id && !canUpdateProducts.value) {
+      setOutcome(null, 'Product update permission is required to save product changes.');
+      return;
+    }
+
+    if (!productForm.id && !canCreateProducts.value) {
+      setOutcome(null, 'Product create permission is required to create products.');
       return;
     }
 
@@ -459,7 +475,17 @@ export function useProductAdmin() {
   }
 
   async function saveVariant() {
-    if (!authStore.token || !canManageVariants.value || !variantCanSave.value) {
+    if (!authStore.token || !variantCanSave.value) {
+      return;
+    }
+
+    if (variantForm.id && !canUpdateVariants.value) {
+      setOutcome(null, 'Variant update permission is required to save variant changes.');
+      return;
+    }
+
+    if (!variantForm.id && !canCreateVariants.value) {
+      setOutcome(null, 'Variant create permission is required to create variants.');
       return;
     }
 
@@ -548,8 +574,8 @@ export function useProductAdmin() {
   }
 
   async function deleteProduct(product: ProductResponse) {
-    if (!authStore.token || !canManageProducts.value) {
-      setOutcome(null, 'Product management permission is required to manage products.');
+    if (!authStore.token || !canDeleteProducts.value) {
+      setOutcome(null, 'Product delete permission is required to delete products.');
       return;
     }
 
@@ -585,8 +611,8 @@ export function useProductAdmin() {
   }
 
   async function deleteVariant(variant: ProductVariantResponse) {
-    if (!authStore.token || !canManageVariants.value) {
-      setOutcome(null, 'Variant management permission is required to manage variants.');
+    if (!authStore.token || !canDeleteVariants.value) {
+      setOutcome(null, 'Variant delete permission is required to delete variants.');
       return;
     }
 
@@ -677,7 +703,13 @@ export function useProductAdmin() {
     creatingAttribute,
     canViewCurrentPage,
     canManageCurrentPage,
+    canCreateProducts,
+    canUpdateProducts,
+    canDeleteProducts,
     canManageProducts,
+    canCreateVariants,
+    canUpdateVariants,
+    canDeleteVariants,
     canManageVariants,
     filteredProducts,
     productCanSave,
@@ -698,3 +730,4 @@ export function useProductAdmin() {
     deleteVariant,
   };
 }
+

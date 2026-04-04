@@ -1,24 +1,26 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using OrderingAPI.Domain;
-using OrderingAPI.Features.Orders.GetOrderById;
 using Shared.Models;
 
 namespace OrderingAPI.Features.Orders.GetOrders;
 
-public record GetOrdersQuery : IRequest<List<OrderModel>>;
+public record GetOrdersQuery : IRequest<List<OrderingAPI.Features.Orders.GetOrderById.OrderModel>>;
 
-public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<GetOrdersQuery, List<OrderModel>>
+public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<GetOrdersQuery, List<OrderingAPI.Features.Orders.GetOrderById.OrderModel>>
 {
-    public async ValueTask<List<OrderModel>> Handle(GetOrdersQuery request, CancellationToken cancellationToken)
+    public async ValueTask<List<OrderingAPI.Features.Orders.GetOrderById.OrderModel>> Handle(GetOrdersQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.Orders
             .AsNoTracking()
-            .Select(o => new OrderModel
+            .Select(o => new OrderingAPI.Features.Orders.GetOrderById.OrderModel
             {
                 Id = o.Id,
                 Status = o.Status,
                 CustomerId = o.CustomerId,
+                CustomerName = o.CustomerName,
+                CustomerEmail = o.CustomerEmail,
+                CustomerPhone = o.CustomerPhone,
                 ShippingAddress = o.ShippingAddress == null ? null : new AddressModel(
                     o.ShippingAddress.Line1,
                     string.IsNullOrWhiteSpace(o.ShippingAddress.Line2) ? null : o.ShippingAddress.Line2,
@@ -26,7 +28,7 @@ public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<Get
                     o.ShippingAddress.Province,
                     o.ShippingAddress.District,
                     o.ShippingAddress.Ward),
-                Lines = o.Lines.Select(l => new OrderLineModel
+                Lines = o.Lines.Select(l => new OrderingAPI.Features.Orders.GetOrderById.OrderLineModel
                 {
                     ProductId = l.ProductId,
                     Name = dbContext.ProductCaches.Where(p => p.Id == l.ProductId).Select(p => p.Name).FirstOrDefault() ?? string.Empty,
@@ -36,6 +38,6 @@ public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<Get
                     Currency = l.Total.Currency
                 }).ToList()
             })
-            .ToListAsync(cancellationToken: cancellationToken);
+            .ToListAsync(cancellationToken);
     }
 }

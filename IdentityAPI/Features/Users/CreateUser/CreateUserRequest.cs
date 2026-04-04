@@ -7,4 +7,5 @@ public sealed record CreateUserRequest(
     string FirstName,
     string LastName,
     bool IsActive,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    string? CustomerId = null);

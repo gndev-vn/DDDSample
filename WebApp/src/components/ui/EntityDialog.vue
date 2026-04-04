@@ -1,15 +1,44 @@
 <script setup lang="ts">
-defineProps<{
+import { computed, onBeforeUnmount, watch } from 'vue';
+
+const props = withDefaults(defineProps<{
   open: boolean;
   title: string;
   description?: string;
   widthClass?: string;
   closable?: boolean;
-}>();
+}>(), {
+  closable: true,
+});
 
 const emit = defineEmits<{
   close: [];
 }>();
+
+const isClosable = computed(() => props.closable !== false);
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && props.open && isClosable.value) {
+    emit('close');
+  }
+}
+
+watch(
+  () => props.open,
+  (open) => {
+    if (open) {
+      window.addEventListener('keydown', handleKeydown);
+      return;
+    }
+
+    window.removeEventListener('keydown', handleKeydown);
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>
@@ -25,7 +54,7 @@ const emit = defineEmits<{
             <p v-if="description" class="mt-2 text-sm text-slate-600">{{ description }}</p>
           </div>
           <button
-            v-if="true"
+            v-if="isClosable"
             class="dialog-close-button"
             type="button"
             title="Close dialog"

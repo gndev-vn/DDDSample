@@ -6,6 +6,7 @@ namespace OrderingAPI.Domain;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<ProductCache> ProductCaches => Set<ProductCache>();

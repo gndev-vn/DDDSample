@@ -32,7 +32,6 @@ export function useVariantAdmin() {
   const error = ref<string | null>(null);
   const success = ref<string | null>(null);
   const creatingAttribute = ref(false);
-
   const products = ref<ProductResponse[]>([]);
   const variants = ref<ProductVariantResponse[]>([]);
   const attributeDefinitions = ref<ProductAttributeDefinitionModel[]>([]);
@@ -53,7 +52,10 @@ export function useVariantAdmin() {
   });
 
   const canViewVariants = computed(() => authStore.hasPermission(appPermissions.variants.view));
-  const canManageVariants = computed(() => authStore.hasPermission(appPermissions.variants.manage));
+  const canCreateVariants = computed(() => authStore.hasPermission(appPermissions.variants.create));
+  const canUpdateVariants = computed(() => authStore.hasPermission(appPermissions.variants.update));
+  const canDeleteVariants = computed(() => authStore.hasPermission(appPermissions.variants.delete));
+  const canManageVariants = computed(() => canCreateVariants.value || canUpdateVariants.value || canDeleteVariants.value);
   const canViewCurrentPage = computed(() => canViewVariants.value);
   const canManageCurrentPage = computed(() => canManageVariants.value);
 
@@ -134,7 +136,7 @@ export function useVariantAdmin() {
   }
 
   async function createAttributeDefinition() {
-    if (!authStore.token || !canManageVariants.value || !newAttributeName.value.trim()) {
+    if (!authStore.token || !canCreateVariants.value || !newAttributeName.value.trim()) {
       return;
     }
 
@@ -201,7 +203,17 @@ export function useVariantAdmin() {
   }
 
   async function saveVariant() {
-    if (!authStore.token || !canManageVariants.value || !variantCanSave.value) {
+    if (!authStore.token || !variantCanSave.value) {
+      return;
+    }
+
+    if (variantForm.id && !canUpdateVariants.value) {
+      setOutcome(null, 'Variant update permission is required to save variant changes.');
+      return;
+    }
+
+    if (!variantForm.id && !canCreateVariants.value) {
+      setOutcome(null, 'Variant create permission is required to create variants.');
       return;
     }
 
@@ -250,8 +262,8 @@ export function useVariantAdmin() {
   }
 
   async function deleteVariant(variant: ProductVariantResponse) {
-    if (!authStore.token || !canManageVariants.value) {
-      setOutcome(null, 'Variant management permission is required to manage variants.');
+    if (!authStore.token || !canDeleteVariants.value) {
+      setOutcome(null, 'Variant delete permission is required to delete variants.');
       return;
     }
 
@@ -321,6 +333,9 @@ export function useVariantAdmin() {
     creatingAttribute,
     canViewCurrentPage,
     canManageCurrentPage,
+    canCreateVariants,
+    canUpdateVariants,
+    canDeleteVariants,
     canManageVariants,
     filteredVariants,
     variantCanSave,

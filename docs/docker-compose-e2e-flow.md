@@ -946,7 +946,7 @@ Observed highlights:
 
 - seeded identity bootstrap for a clean startup experience
 - protected admin writes in Catalog
-- asynchronous cross-service propagation through Wolverine and RabbitMQ
+- asynchronous cross-service propagation through Wolverine and Kafka
 - Ordering read model decoupled from Catalog live queries
 - automatic payment creation from order events
 - payment completion flowing back into Ordering
@@ -983,3 +983,9 @@ If you need the shortest live demo path tomorrow, do this:
 9. point at the event logs for `OrderCreatedEvent` and `PaymentCompletedEvent`
 
 That gives you auth, write model, read model, eventing, eventual consistency, and payment workflow in a compact demo.
+
+
+## Customer login seed
+- Customer user: `alex.nguyen@example.com` / `customer123`
+- Linked Ordering customer: `Alex Nguyen` (`11111111-1111-1111-1111-111111111111`)
+

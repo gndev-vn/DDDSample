@@ -62,7 +62,7 @@ const summaryCards = computed(() => [
           <p class="workspace-label">Category workspace</p>
         </div>
 
-        <button class="btn-primary" :disabled="!admin.canManageCurrentPage.value" @click="admin.openCategoryDialog()">
+        <button class="btn-primary" :disabled="!admin.canCreateCategories.value" @click="admin.openCategoryDialog()">
           <span class="button-icon" aria-hidden="true">＋</span>
           <span>New category</span>
         </button>
@@ -94,7 +94,7 @@ const summaryCards = computed(() => [
               <td class="px-4 py-4">
                 <div class="flex flex-wrap gap-2">
                   <button class="icon-button" title="Details" aria-label="View category details" @click="admin.openCategoryDialog(category)"><span class="icon-glyph">👁</span></button>
-                  <button class="icon-button icon-button-danger" :disabled="admin.deleting.value === category.id || !admin.canManageCategories.value" title="Delete" aria-label="Delete category" @click="admin.deleteCategory(category)"><span v-if="admin.deleting.value === category.id" class="button-spinner" aria-hidden="true" /><span v-else class="icon-glyph">🗑</span></button>
+                  <button class="icon-button icon-button-danger" :disabled="admin.deleting.value === category.id || !admin.canDeleteCategories.value" title="Delete" aria-label="Delete category" @click="admin.deleteCategory(category)"><span v-if="admin.deleting.value === category.id" class="button-spinner" aria-hidden="true" /><span v-else class="icon-glyph">✕</span></button>
                 </div>
               </td>
             </tr>
@@ -135,12 +135,12 @@ const summaryCards = computed(() => [
           Keep category active
         </label>
         <div class="flex flex-wrap gap-2">
-          <button class="btn-primary" :disabled="admin.saving.value || !admin.canManageCategories.value || !admin.categoryCanSave.value" @click="admin.saveCategory">
+          <button class="btn-primary" :disabled="admin.saving.value || !(admin.categoryForm.id ? admin.canUpdateCategories.value : admin.canCreateCategories.value) || !admin.categoryCanSave.value" @click="admin.saveCategory">
             <span v-if="admin.saving.value" class="button-spinner" aria-hidden="true" />
-            <span v-else class="button-icon" aria-hidden="true">💾</span>
+            <span v-else class="button-icon" aria-hidden="true">✓</span>
             <span>{{ admin.saving.value ? 'Saving...' : admin.categoryForm.id ? 'Save category' : 'Create category' }}</span>
           </button>
-          <button v-if="admin.selectedCategory.value" class="btn-danger" :disabled="admin.deleting.value === admin.selectedCategory.value.id || !admin.canManageCategories.value" @click="admin.deleteCategory(admin.selectedCategory.value)">
+          <button v-if="admin.selectedCategory.value" class="btn-danger" :disabled="admin.deleting.value === admin.selectedCategory.value.id || !admin.canDeleteCategories.value" @click="admin.deleteCategory(admin.selectedCategory.value)">
             Delete category
           </button>
         </div>
@@ -148,5 +148,6 @@ const summaryCards = computed(() => [
     </EntityDialog>
   </section>
 </template>
+
 
 

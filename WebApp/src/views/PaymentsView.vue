@@ -107,7 +107,7 @@ const {
       @close="isPaymentDialogOpen = false"
     >
       <div v-if="selectedPayment" class="grid gap-6">
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-6 md:grid-cols-2">
           <div class="subtle-panel">
             <p class="workspace-label">Transaction</p>
             <p class="mt-2 text-sm font-medium text-slate-900">{{ selectedPayment.id }}</p>

@@ -28,7 +28,7 @@ public sealed class UpdateUserHandler(
         user.FirstName = request.Request.FirstName.Trim();
         user.LastName = request.Request.LastName.Trim();
         user.IsActive = request.Request.IsActive;
-        user.UpdatedAt = DateTime.UtcNow;
+        user.SetCustomerLink(ParseCustomerId(request.Request.CustomerId), DateTime.UtcNow);
 
         var updateResult = await userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
@@ -45,10 +45,14 @@ public sealed class UpdateUserHandler(
             user.Email ?? string.Empty,
             user.FirstName,
             user.LastName,
+            user.CustomerId?.ToString(),
             roles,
             permissions,
             user.IsActive,
             user.CreatedAt,
             user.UpdatedAt);
     }
+
+    private static Guid? ParseCustomerId(string? customerId)
+        => string.IsNullOrWhiteSpace(customerId) ? null : Guid.Parse(customerId);
 }

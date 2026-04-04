@@ -9,4 +9,7 @@ public class OrderModel : ModelBase
     public AddressModel? ShippingAddress { get; set; }
     public List<OrderLineModel> Lines { get; set; } = [];
     public Guid CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+    public string? CustomerPhone { get; set; }
 }

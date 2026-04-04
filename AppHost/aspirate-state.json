@@ -1,0 +1,21 @@
+{
+  "projectPath": ".",
+  "outputPath": "aspirate-output",
+  "namespace": "dddsample",
+  "containerRegistry": "ghcr.io",
+  "containerImageTags": [
+    "latest"
+  ],
+  "imagePullPolicy": "IfNotPresent",
+  "containerBuilder": "docker",
+  "containerRepositoryPrefix": "dddsample",
+  "outputFormat": "kustomize",
+  "parameters": [
+    "sql-password=051093@Galvin",
+    "mongodb-password=identity_password"
+  ],
+  "disableSecrets": true,
+  "privateRegistryEmail": "aspir8@aka.ms",
+  "includeDashboard": true,
+  "useCustomNamespace": true
+}

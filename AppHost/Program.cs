@@ -5,11 +5,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var sqlPassword = builder.AddParameter("sql-password", secret: true);
 var mongoUserName = builder.AddParameter("mongodb-username", "identity_user", publishValueAsDefault: true);
 var mongoPassword = builder.AddParameter("mongodb-password", secret: true);
-var rabbitMqUserName = builder.AddParameter("rabbitmq-username", "guest", publishValueAsDefault: true);
-var rabbitMqPassword = builder.AddParameter("rabbitmq-password", secret: true);
 
 var sqlServer = builder.AddSqlServer("sqlserver", sqlPassword, port: 1433);
-
 var catalogDatabase = sqlServer.AddDatabase("catalog-db", "CatalogAPI");
 var orderingDatabase = sqlServer.AddDatabase("ordering-db", "OrderingAPI");
 var paymentDatabase = sqlServer.AddDatabase("payment-db", "PaymentAPI");
@@ -19,9 +16,9 @@ var mongoDb = builder.AddMongoDB("mongodb", port: 27017, userName: mongoUserName
 var identityDatabase = mongoDb.AddDatabase("identity-db", "identitydb");
 
 var redis = builder.AddRedis("redis", port: 6379);
-var rabbitMq = builder.AddRabbitMQ("rabbitmq", rabbitMqUserName, rabbitMqPassword, port: 5672)
+var kafka = builder.AddKafka("kafka", port: 9092)
     .WithDataVolume()
-    .WithManagementPlugin(port: 15672);
+    .WithKafkaUI();
 
 var catalogApi = builder.AddProject<Projects.CatalogAPI>("catalog-api", options =>
     {
@@ -33,13 +30,13 @@ var catalogApi = builder.AddProject<Projects.CatalogAPI>("catalog-api", options 
     .WithEnvironment("ASPNETCORE_PREVENTHOSTINGSTARTUP", "true")
     .WithEnvironment("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", string.Empty)
     .WithEnvironment("Hosting__Restful__Http", "5100")
+    .WithEnvironment("Kafka__BootstrapServers", kafka.Resource.ConnectionStringExpression)
     .WithHttpEndpoint(targetPort: 5100, port: 5100, name: "http", isProxied: false)
     .WithReference(catalogDatabase, "Default")
     .WithReference(redis, "Redis")
-    .WithReference(rabbitMq, "RabbitMq")
     .WaitFor(catalogDatabase)
     .WaitFor(redis)
-    .WaitFor(rabbitMq);
+    .WaitFor(kafka);
 
 var orderingApi = builder.AddProject<Projects.OrderingAPI>("ordering-api", options =>
     {
@@ -51,14 +48,14 @@ var orderingApi = builder.AddProject<Projects.OrderingAPI>("ordering-api", optio
     .WithEnvironment("ASPNETCORE_PREVENTHOSTINGSTARTUP", "true")
     .WithEnvironment("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", string.Empty)
     .WithEnvironment("Hosting__Restful__Http", "5104")
+    .WithEnvironment("Kafka__BootstrapServers", kafka.Resource.ConnectionStringExpression)
     .WithHttpEndpoint(targetPort: 5104, port: 5104, name: "http", isProxied: false)
     .WithReference(orderingDatabase, "Default")
     .WithReference(redis, "Redis")
-    .WithReference(rabbitMq, "RabbitMq")
     .WithReference(catalogApi)
     .WaitFor(orderingDatabase)
     .WaitFor(redis)
-    .WaitFor(rabbitMq)
+    .WaitFor(kafka)
     .WaitFor(catalogApi);
 
 var paymentApi = builder.AddProject<Projects.PaymentAPI>("payment-api", options =>
@@ -70,14 +67,14 @@ var paymentApi = builder.AddProject<Projects.PaymentAPI>("payment-api", options 
     .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
     .WithEnvironment("ASPNETCORE_PREVENTHOSTINGSTARTUP", "true")
     .WithEnvironment("ASPNETCORE_HOSTINGSTARTUPASSEMBLIES", string.Empty)
+    .WithEnvironment("Kafka__BootstrapServers", kafka.Resource.ConnectionStringExpression)
     .WithHttpEndpoint(targetPort: 5012, port: 5012, name: "http", isProxied: false)
     .WithReference(paymentDatabase, "Default")
     .WithReference(redis, "Redis")
-    .WithReference(rabbitMq, "RabbitMq")
     .WithReference(orderingApi)
     .WaitFor(paymentDatabase)
     .WaitFor(redis)
-    .WaitFor(rabbitMq)
+    .WaitFor(kafka)
     .WaitFor(orderingApi);
 
 var identityApi = builder.AddProject<Projects.IdentityAPI>("identity-api", options =>
@@ -109,6 +106,7 @@ builder.AddNpmApp("web-app", @"..\WebApp", "dev")
     .WaitFor(identityApi);
 
 await builder.Build().RunAsync();
+
 static void EnsureNodeJsOnPath()
 {
     var existingPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;

@@ -6,4 +6,5 @@ public sealed record UpdateUserRequest(
     string Email,
     string FirstName,
     string LastName,
-    bool IsActive);
+    bool IsActive,
+    string? CustomerId = null);

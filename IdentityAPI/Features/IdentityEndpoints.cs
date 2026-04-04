@@ -32,14 +32,17 @@ public static class IdentityEndpoints
         var roleReads = app.MapGroup("/api/Roles")
             .WithTags("Roles")
             .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Roles.View });
-        var roleWrites = app.MapGroup("/api/Roles")
+        var roleCreates = app.MapGroup("/api/Roles")
             .WithTags("Roles")
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Roles.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Roles.Create });
+        var roleUpdates = app.MapGroup("/api/Roles")
+            .WithTags("Roles")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Roles.Update });
 
         GetRolesEndpoint.Map(roleReads);
-        CreateRoleEndpoint.Map(roleWrites);
-        AssignRoleEndpoint.Map(roleWrites);
-        UpdateRolePermissionsEndpoint.Map(roleWrites);
+        CreateRoleEndpoint.Map(roleCreates);
+        AssignRoleEndpoint.Map(roleUpdates);
+        UpdateRolePermissionsEndpoint.Map(roleUpdates);
 
         var currentUser = app.MapGroup("/api/Users")
             .WithTags("Users")
@@ -49,15 +52,21 @@ public static class IdentityEndpoints
         var userReads = app.MapGroup("/api/Users")
             .WithTags("Users")
             .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Users.View });
-        var userWrites = app.MapGroup("/api/Users")
+        var userCreates = app.MapGroup("/api/Users")
             .WithTags("Users")
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Users.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Users.Create });
+        var userUpdates = app.MapGroup("/api/Users")
+            .WithTags("Users")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Users.Update });
+        var userDeletes = app.MapGroup("/api/Users")
+            .WithTags("Users")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Users.Delete });
 
         GetUsersEndpoint.Map(userReads);
         GetUserEndpoint.Map(userReads);
-        CreateUserEndpoint.Map(userWrites);
-        UpdateUserEndpoint.Map(userWrites);
-        DeleteUserEndpoint.Map(userWrites);
+        CreateUserEndpoint.Map(userCreates);
+        UpdateUserEndpoint.Map(userUpdates);
+        DeleteUserEndpoint.Map(userDeletes);
 
         return app;
     }

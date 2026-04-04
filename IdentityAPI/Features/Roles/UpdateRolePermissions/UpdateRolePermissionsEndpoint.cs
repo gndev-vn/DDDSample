@@ -32,6 +32,7 @@ public static class UpdateRolePermissionsEndpoint
             .Produces<ApiResponse<object>>(StatusCodes.Status401Unauthorized)
             .Produces<ApiResponse<object>>(StatusCodes.Status403Forbidden)
             .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Shared.Authentication.Permissions.Roles.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Shared.Authentication.Permissions.Roles.Update });
     }
 }
+

@@ -15,5 +15,6 @@ public record UserInfo(
     string FirstName,
     string LastName,
     IEnumerable<string> Roles,
-    IEnumerable<string> Permissions
+    IEnumerable<string> Permissions,
+    string? CustomerId = null
 );

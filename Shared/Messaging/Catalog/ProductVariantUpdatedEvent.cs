@@ -1,8 +1,9 @@
 using Wolverine.Attributes;
+using Shared.Messaging;
 
 namespace Shared.Messaging.Catalog;
 
-[Topic("catalog.product-variant.updated")]
+[Topic(KafkaTopics.Catalog.ProductVariantUpdated)]
 public sealed class ProductVariantUpdatedEvent
 {
     public Guid Id { get; set; }

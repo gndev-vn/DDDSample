@@ -16,9 +16,13 @@ public class CreateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
 {
     public async ValueTask<OrderModel> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
     {
+        var customer = await ResolveCustomerAsync(command.CustomerId, cancellationToken);
         var normalizedSkuMap = await ResolveProductCacheMapAsync(command.Lines, cancellationToken);
         var newOrder = Order.Create(
-            command.CustomerId,
+            customer.Id,
+            customer.DisplayName,
+            customer.Email,
+            customer.PhoneNumber,
             command.Lines.Select(line => ToOrderLine(line, normalizedSkuMap)).ToList(),
             command.ShippingAddress.Adapt<Address>(),
             command.BillingAddress?.Adapt<Address>());
@@ -26,6 +30,21 @@ public class CreateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
         await dbContext.Orders.AddAsync(newOrder, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return ToOrderModel(newOrder, normalizedSkuMap);
+    }
+
+    private async Task<Customer> ResolveCustomerAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        var customer = await dbContext.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == customerId, cancellationToken)
+            ?? throw new NotFoundException("Customer", customerId);
+
+        if (!customer.IsActive)
+        {
+            throw new BusinessRuleException($"Customer '{customer.DisplayName}' is inactive.");
+        }
+
+        return customer;
     }
 
     private async Task<Dictionary<string, ProductCache>> ResolveProductCacheMapAsync(IEnumerable<OrderLineModel> lines, CancellationToken cancellationToken)
@@ -76,6 +95,9 @@ public class CreateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
         {
             Id = order.Id,
             CustomerId = order.CustomerId,
+            CustomerName = order.CustomerName,
+            CustomerEmail = order.CustomerEmail,
+            CustomerPhone = order.CustomerPhone,
             Status = order.Status,
             ShippingAddress = order.ShippingAddress == null ? null : new AddressModel(
                 order.ShippingAddress.Line1,

@@ -37,6 +37,11 @@ public class JwtTokenService(IOptions<JwtSettings> jwtSettings)
             new("lastname", user.LastName)
         };
 
+        if (user.CustomerId.HasValue)
+        {
+            claims.Add(new Claim(ApplicationClaimTypes.CustomerId, user.CustomerId.Value.ToString()));
+        }
+
         claims.AddRange(resolvedRoles.Select(role => new Claim(ClaimTypes.Role, role)));
         claims.AddRange(resolvedPermissions.Select(permission => new Claim(PermissionClaimTypes.Permission, permission)));
 

@@ -9,14 +9,5 @@ spec:
     app: identity-api
   ports:
   - name: http
-    port: 8080
-    targetPort: 8080
-  - name: https
-    port: 8443
-    targetPort: 8443
-  - name: rest
-    port: 9088
-    targetPort: 9088
-  - name: grpc
-    port: 9089
-    targetPort: 9089
+    port: 5108
+    targetPort: 5108

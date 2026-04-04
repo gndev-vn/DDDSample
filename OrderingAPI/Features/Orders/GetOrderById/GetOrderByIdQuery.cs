@@ -19,6 +19,9 @@ public class GetOrderByIdQueryHandler(AppDbContext dbContext) : IRequestHandler<
                 Id = o.Id,
                 Status = o.Status,
                 CustomerId = o.CustomerId,
+                CustomerName = o.CustomerName,
+                CustomerEmail = o.CustomerEmail,
+                CustomerPhone = o.CustomerPhone,
                 ShippingAddress = o.ShippingAddress == null ? null : new AddressModel(
                     o.ShippingAddress.Line1,
                     string.IsNullOrWhiteSpace(o.ShippingAddress.Line2) ? null : o.ShippingAddress.Line2,
@@ -36,6 +39,6 @@ public class GetOrderByIdQueryHandler(AppDbContext dbContext) : IRequestHandler<
                     Currency = l.Total.Currency
                 }).ToList()
             })
-            .FirstOrDefaultAsync(cancellationToken: cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

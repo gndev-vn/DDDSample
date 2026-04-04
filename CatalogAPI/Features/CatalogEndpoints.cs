@@ -27,51 +27,69 @@ public static class CatalogEndpoints
         var categoryReads = app.MapGroup("/api/Categories")
             .WithTags("Categories")
             .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Categories.View });
-        var categoryWrites = app.MapGroup("/api/Categories")
+        var categoryCreates = app.MapGroup("/api/Categories")
             .WithTags("Categories")
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Categories.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Categories.Create });
+        var categoryUpdates = app.MapGroup("/api/Categories")
+            .WithTags("Categories")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Categories.Update });
+        var categoryDeletes = app.MapGroup("/api/Categories")
+            .WithTags("Categories")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Categories.Delete });
 
         GetCategoriesEndpoint.Map(categoryReads);
         GetCategoryByIdEndpoint.Map(categoryReads);
-        CreateCategoryEndpoint.Map(categoryWrites);
-        UpdateCategoryEndpoint.Map(categoryWrites);
-        DeleteCategoryEndpoint.Map(categoryWrites);
+        CreateCategoryEndpoint.Map(categoryCreates);
+        UpdateCategoryEndpoint.Map(categoryUpdates);
+        DeleteCategoryEndpoint.Map(categoryDeletes);
 
         var productReads = app.MapGroup("/api/Products")
             .WithTags("Products")
             .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Products.View });
-        var productWrites = app.MapGroup("/api/Products")
+        var productCreates = app.MapGroup("/api/Products")
             .WithTags("Products")
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Products.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Products.Create });
+        var productUpdates = app.MapGroup("/api/Products")
+            .WithTags("Products")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Products.Update });
+        var productDeletes = app.MapGroup("/api/Products")
+            .WithTags("Products")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Products.Delete });
 
         GetProductsEndpoint.Map(productReads);
         GetProductByIdEndpoint.Map(productReads);
-        CreateProductEndpoint.Map(productWrites);
-        UpdateProductEndpoint.Map(productWrites);
-        DeleteProductEndpoint.Map(productWrites);
+        CreateProductEndpoint.Map(productCreates);
+        UpdateProductEndpoint.Map(productUpdates);
+        DeleteProductEndpoint.Map(productDeletes);
 
         var variantReads = app.MapGroup("/api/ProductVariants")
             .WithTags("Product Variants")
             .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.View });
-        var variantWrites = app.MapGroup("/api/ProductVariants")
+        var variantCreates = app.MapGroup("/api/ProductVariants")
             .WithTags("Product Variants")
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.Create });
+        var variantUpdates = app.MapGroup("/api/ProductVariants")
+            .WithTags("Product Variants")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.Update });
+        var variantDeletes = app.MapGroup("/api/ProductVariants")
+            .WithTags("Product Variants")
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.Delete });
 
         GetProductVariantsEndpoint.Map(variantReads);
         GetProductVariantByIdEndpoint.Map(variantReads);
-        CreateProductVariantEndpoint.Map(variantWrites);
-        UpdateProductVariantEndpoint.Map(variantWrites);
-        DeleteProductVariantEndpoint.Map(variantWrites);
+        CreateProductVariantEndpoint.Map(variantCreates);
+        UpdateProductVariantEndpoint.Map(variantUpdates);
+        DeleteProductVariantEndpoint.Map(variantDeletes);
 
         var attributeReads = app.MapGroup("/api/ProductAttributes")
             .WithTags("Product Attributes")
             .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.View });
-        var attributeWrites = app.MapGroup("/api/ProductAttributes")
+        var attributeCreates = app.MapGroup("/api/ProductAttributes")
             .WithTags("Product Attributes")
-            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.Manage });
+            .RequireAuthorization(new AuthorizeAttribute { Policy = Permissions.Variants.Create });
 
         GetProductAttributesEndpoint.Map(attributeReads);
-        CreateProductAttributeEndpoint.Map(attributeWrites);
+        CreateProductAttributeEndpoint.Map(attributeCreates);
 
         return app;
     }

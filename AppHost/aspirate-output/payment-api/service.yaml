@@ -9,14 +9,5 @@ spec:
     app: payment-api
   ports:
   - name: http
-    port: 8080
-    targetPort: 8080
-  - name: https
-    port: 8443
-    targetPort: 8443
-  - name: rest
-    port: 9092
-    targetPort: 9092
-  - name: grpc
-    port: 9093
-    targetPort: 9093
+    port: 5012
+    targetPort: 5012

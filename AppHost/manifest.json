@@ -1,0 +1,359 @@
+{
+  "resources": {
+    "sql-password": {
+      "type": "parameter.v0",
+      "value": "{sql-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "mongodb-username": {
+      "type": "parameter.v0",
+      "value": "{mongodb-username.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "default": {
+            "value": "identity_user"
+          }
+        }
+      }
+    },
+    "mongodb-password": {
+      "type": "parameter.v0",
+      "value": "{mongodb-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "sqlserver": {
+      "type": "container.v0",
+      "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sql-password.value};TrustServerCertificate=true",
+      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "env": {
+        "ACCEPT_EULA": "Y",
+        "MSSQL_SA_PASSWORD": "{sql-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 1433
+        }
+      }
+    },
+    "catalog-db": {
+      "type": "value.v0",
+      "connectionString": "{sqlserver.connectionString};Initial Catalog=CatalogAPI"
+    },
+    "ordering-db": {
+      "type": "value.v0",
+      "connectionString": "{sqlserver.connectionString};Initial Catalog=OrderingAPI"
+    },
+    "payment-db": {
+      "type": "value.v0",
+      "connectionString": "{sqlserver.connectionString};Initial Catalog=PaymentAPI"
+    },
+    "mongodb": {
+      "type": "container.v0",
+      "connectionString": "mongodb://{mongodb-username-uri-encoded.value}:{mongodb-password-uri-encoded.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
+      "image": "docker.io/library/mongo:8.2",
+      "volumes": [
+        {
+          "name": "apphost-feed4158f1-mongodb-data",
+          "target": "/data/db",
+          "readOnly": false
+        }
+      ],
+      "env": {
+        "MONGO_INITDB_ROOT_USERNAME": "{mongodb-username.value}",
+        "MONGO_INITDB_ROOT_PASSWORD": "{mongodb-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 27017
+        }
+      }
+    },
+    "identity-db": {
+      "type": "value.v0",
+      "connectionString": "mongodb://{mongodb-username-uri-encoded.value}:{mongodb-password-uri-encoded.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/identitydb?authSource=admin\u0026authMechanism=SCRAM-SHA-256"
+    },
+    "redis": {
+      "type": "container.v0",
+      "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}{cond-redis-bindings-tcp-tlsenabled-d148d83a.connectionString}",
+      "image": "docker.io/library/redis:8.6",
+      "entrypoint": "/bin/sh",
+      "args": [
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD"
+      ],
+      "env": {
+        "REDIS_PASSWORD": "{redis-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "redis",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "kafka": {
+      "type": "container.v0",
+      "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
+      "image": "docker.io/confluentinc/confluent-local:8.1.1",
+      "volumes": [
+        {
+          "name": "apphost-feed4158f1-kafka-data",
+          "target": "/var/lib/kafka/data",
+          "readOnly": false
+        }
+      ],
+      "env": {
+        "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
+        "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
+        "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}",
+        "KAFKA_LOG_DIRS": "/var/lib/kafka/data"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 9092
+        },
+        "internal": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 9093
+        }
+      }
+    },
+    "catalog-api": {
+      "type": "project.v0",
+      "path": "../CatalogAPI/CatalogAPI.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{catalog-api.bindings.http.targetPort}",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "Hosting__Restful__Http": "5100",
+        "Kafka__BootstrapServers": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
+        "ConnectionStrings__Default": "{catalog-db.connectionString}",
+        "DEFAULT_HOST": "{sqlserver.bindings.tcp.host}",
+        "DEFAULT_PORT": "{sqlserver.bindings.tcp.port}",
+        "DEFAULT_USERNAME": "sa",
+        "DEFAULT_PASSWORD": "{sql-password.value}",
+        "DEFAULT_URI": "mssql://sa:{sql-password.value}@{sqlserver.bindings.tcp.host}:{sqlserver.bindings.tcp.port}/CatalogAPI",
+        "DEFAULT_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sqlserver.bindings.tcp.host}:{sqlserver.bindings.tcp.port};databaseName=CatalogAPI;trustServerCertificate=true",
+        "DEFAULT_DATABASENAME": "CatalogAPI",
+        "ConnectionStrings__Redis": "{redis.connectionString}",
+        "REDIS_HOST": "{redis.bindings.tcp.host}",
+        "REDIS_PORT": "{redis.bindings.tcp.port}",
+        "REDIS_PASSWORD": "{redis-password.value}",
+        "REDIS_URI": "{redis.bindings.tcp.scheme}://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 5100
+        }
+      }
+    },
+    "ordering-api": {
+      "type": "project.v0",
+      "path": "../OrderingAPI/OrderingAPI.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{ordering-api.bindings.http.targetPort}",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "Hosting__Restful__Http": "5104",
+        "Kafka__BootstrapServers": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
+        "ConnectionStrings__Default": "{ordering-db.connectionString}",
+        "DEFAULT_HOST": "{sqlserver.bindings.tcp.host}",
+        "DEFAULT_PORT": "{sqlserver.bindings.tcp.port}",
+        "DEFAULT_USERNAME": "sa",
+        "DEFAULT_PASSWORD": "{sql-password.value}",
+        "DEFAULT_URI": "mssql://sa:{sql-password.value}@{sqlserver.bindings.tcp.host}:{sqlserver.bindings.tcp.port}/OrderingAPI",
+        "DEFAULT_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sqlserver.bindings.tcp.host}:{sqlserver.bindings.tcp.port};databaseName=OrderingAPI;trustServerCertificate=true",
+        "DEFAULT_DATABASENAME": "OrderingAPI",
+        "ConnectionStrings__Redis": "{redis.connectionString}",
+        "REDIS_HOST": "{redis.bindings.tcp.host}",
+        "REDIS_PORT": "{redis.bindings.tcp.port}",
+        "REDIS_PASSWORD": "{redis-password.value}",
+        "REDIS_URI": "{redis.bindings.tcp.scheme}://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+        "CATALOG_API_HTTP": "{catalog-api.bindings.http.url}",
+        "services__catalog-api__http__0": "{catalog-api.bindings.http.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 5104
+        }
+      }
+    },
+    "payment-api": {
+      "type": "project.v0",
+      "path": "../PaymentAPI/PaymentAPI.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{payment-api.bindings.http.targetPort}",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "Kafka__BootstrapServers": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
+        "ConnectionStrings__Default": "{payment-db.connectionString}",
+        "DEFAULT_HOST": "{sqlserver.bindings.tcp.host}",
+        "DEFAULT_PORT": "{sqlserver.bindings.tcp.port}",
+        "DEFAULT_USERNAME": "sa",
+        "DEFAULT_PASSWORD": "{sql-password.value}",
+        "DEFAULT_URI": "mssql://sa:{sql-password.value}@{sqlserver.bindings.tcp.host}:{sqlserver.bindings.tcp.port}/PaymentAPI",
+        "DEFAULT_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sqlserver.bindings.tcp.host}:{sqlserver.bindings.tcp.port};databaseName=PaymentAPI;trustServerCertificate=true",
+        "DEFAULT_DATABASENAME": "PaymentAPI",
+        "ConnectionStrings__Redis": "{redis.connectionString}",
+        "REDIS_HOST": "{redis.bindings.tcp.host}",
+        "REDIS_PORT": "{redis.bindings.tcp.port}",
+        "REDIS_PASSWORD": "{redis-password.value}",
+        "REDIS_URI": "{redis.bindings.tcp.scheme}://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+        "ORDERING_API_HTTP": "{ordering-api.bindings.http.url}",
+        "services__ordering-api__http__0": "{ordering-api.bindings.http.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 5012
+        }
+      }
+    },
+    "identity-api": {
+      "type": "project.v0",
+      "path": "../IdentityAPI/IdentityAPI.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{identity-api.bindings.http.targetPort}",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "Hosting__Restful__Http": "5108",
+        "ConnectionStrings__MongoDB": "{identity-db.connectionString}",
+        "MONGODB_HOST": "{mongodb.bindings.tcp.host}",
+        "MONGODB_PORT": "{mongodb.bindings.tcp.port}",
+        "MONGODB_USERNAME": "{mongodb-username.value}",
+        "MONGODB_PASSWORD": "{mongodb-password.value}",
+        "MONGODB_AUTHENTICATIONDATABASE": "admin",
+        "MONGODB_AUTHENTICATIONMECHANISM": "SCRAM-SHA-256",
+        "MONGODB_URI": "mongodb://{mongodb-username-uri-encoded.value}:{mongodb-password-uri-encoded.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/identitydb?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
+        "MONGODB_DATABASENAME": "identitydb",
+        "ConnectionStrings__Redis": "{redis.connectionString}",
+        "REDIS_HOST": "{redis.bindings.tcp.host}",
+        "REDIS_PORT": "{redis.bindings.tcp.port}",
+        "REDIS_PASSWORD": "{redis-password.value}",
+        "REDIS_URI": "{redis.bindings.tcp.scheme}://:{redis-password-uri-encoded.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 5108
+        }
+      }
+    },
+    "web-app": {
+      "type": "executable.v0",
+      "workingDirectory": "../WebApp",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "PORT": "{web-app.bindings.http.targetPort}",
+        "CATALOG_API_URL": "{catalog-api.bindings.http.url}",
+        "ORDERING_API_URL": "{ordering-api.bindings.http.url}",
+        "PAYMENT_API_URL": "{payment-api.bindings.http.url}",
+        "IDENTITY_API_URL": "{identity-api.bindings.http.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 5173,
+          "external": true
+        }
+      }
+    },
+    "redis-password": {
+      "type": "parameter.v0",
+      "value": "{redis-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "redis-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{redis-password.value}",
+      "filter": "uri"
+    },
+    "mongodb-username-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{mongodb-username.value}",
+      "filter": "uri"
+    },
+    "mongodb-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{mongodb-password.value}",
+      "filter": "uri"
+    },
+    "sql-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{sql-password.value}",
+      "filter": "uri"
+    },
+    "cond-redis-bindings-tcp-tlsenabled-d148d83a": {
+      "type": "value.v0",
+      "connectionString": ""
+    }
+  }
+}

@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using OrderingAPI.Domain;
 using Shared.Enums;
 using Shared.Messaging.Payment;
+using Wolverine.Attributes;
+using OrderingAPI.Domain;
 
 namespace OrderingAPI.Features.Orders.Integration;
 
+[ScheduleRetry(typeof(DbUpdateException), 5, 15, 30)]
+[RetryNow(typeof(TimeoutException), 50, 100, 250)]
 public class PaymentCompletedEventHandler
 {
     public static async Task HandleAsync(PaymentCompletedEvent @event, AppDbContext dbContext,
@@ -34,3 +37,4 @@ public class PaymentCompletedEventHandler
             @event.PaymentId);
     }
 }
+

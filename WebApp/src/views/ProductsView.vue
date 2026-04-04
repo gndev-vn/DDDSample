@@ -148,7 +148,7 @@ const selectedProductAttributeCount = computed(() => {
                   <div class="flex flex-wrap gap-2">
                     <button
                       class="icon-button"
-                      :disabled="!admin.canManageVariants.value"
+                      :disabled="!admin.canCreateVariants.value"
                       title="Add variant"
                       aria-label="Add variant"
                       @click.stop="admin.openVariantDialog(product)"
@@ -171,7 +171,7 @@ const selectedProductAttributeCount = computed(() => {
                       @click.stop="admin.deleteProduct(product)"
                     >
                       <span v-if="admin.deleting.value === product.id" class="button-spinner" aria-hidden="true" />
-                      <span v-else class="icon-glyph">🗑</span>
+                      <span v-else class="icon-glyph">✕</span>
                     </button>
                   </div>
                 </td>
@@ -209,13 +209,13 @@ const selectedProductAttributeCount = computed(() => {
                       </button>
                       <button
                         class="icon-button icon-button-danger"
-                        :disabled="admin.deleting.value === variant.id || !admin.canManageVariants.value"
+                        :disabled="admin.deleting.value === variant.id || !admin.canDeleteVariants.value"
                         title="Delete variant"
                         aria-label="Delete variant"
                         @click.stop="admin.deleteVariant(variant)"
                       >
                         <span v-if="admin.deleting.value === variant.id" class="button-spinner" aria-hidden="true" />
-                        <span v-else class="icon-glyph">🗑</span>
+                        <span v-else class="icon-glyph">✕</span>
                       </button>
                     </div>
                   </td>
@@ -285,7 +285,7 @@ const selectedProductAttributeCount = computed(() => {
               </div>
               <button
                 class="btn-secondary"
-                :disabled="!admin.canManageVariants.value"
+                :disabled="!admin.canCreateVariants.value"
                 @click="admin.openVariantDialog(admin.selectedProduct.value ?? undefined)"
               >
                 <span class="button-icon" aria-hidden="true">＋</span>
@@ -326,13 +326,13 @@ const selectedProductAttributeCount = computed(() => {
                         </button>
                         <button
                           class="icon-button icon-button-danger"
-                          :disabled="admin.deleting.value === variant.id || !admin.canManageVariants.value"
+                          :disabled="admin.deleting.value === variant.id || !admin.canDeleteVariants.value"
                           title="Delete variant"
                           aria-label="Delete variant"
                           @click="admin.deleteVariant(variant)"
                         >
                           <span v-if="admin.deleting.value === variant.id" class="button-spinner" aria-hidden="true" />
-                          <span v-else class="icon-glyph">🗑</span>
+                          <span v-else class="icon-glyph">✕</span>
                         </button>
                       </div>
                     </td>
@@ -374,17 +374,17 @@ const selectedProductAttributeCount = computed(() => {
           <div class="flex flex-wrap gap-2">
             <button
               class="btn-primary"
-              :disabled="admin.saving.value || !admin.canManageProducts.value || !admin.productCanSave.value"
+              :disabled="admin.saving.value || !(admin.productForm.id ? admin.canUpdateProducts.value : admin.canCreateProducts.value) || !admin.productCanSave.value"
               @click="admin.saveProduct"
             >
               <span v-if="admin.saving.value" class="button-spinner" aria-hidden="true" />
-              <span v-else class="button-icon" aria-hidden="true">💾</span>
+              <span v-else class="button-icon" aria-hidden="true">✓</span>
               <span>{{ admin.saving.value ? 'Saving...' : admin.productForm.id ? 'Save product' : 'Create product' }}</span>
             </button>
             <button
               v-if="admin.selectedProduct.value"
               class="btn-danger"
-              :disabled="admin.deleting.value === admin.selectedProduct.value.id || !admin.canManageProducts.value"
+              :disabled="admin.deleting.value === admin.selectedProduct.value.id || !admin.canDeleteProducts.value"
               @click="admin.deleteProduct(admin.selectedProduct.value)"
             >
               Delete product
@@ -449,19 +449,13 @@ const selectedProductAttributeCount = computed(() => {
     >
       <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.95fr)]">
         <div class="space-y-4">
-          <label>
-            <span class="field-label">Parent product</span>
-            <select v-model="admin.variantForm.parentId" class="select-input">
-              <option value="">Select a product</option>
-              <option v-for="product in admin.products.value" :key="product.id" :value="product.id">
-                {{ product.name }}
-              </option>
-            </select>
-          </label>
-          <div class="rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
-            <span class="field-label">Product context</span>
+          <div v-if="admin.selectedProduct.value || admin.productForm.name" class="subtle-panel">
+            <span class="field-label">Assigned to current product</span>
             <p class="mt-2 font-medium text-slate-900">
-              {{ admin.products.value.find((product) => product.id === admin.variantForm.parentId)?.name || admin.productForm.name || 'Select a product' }}
+              {{ admin.selectedProduct.value?.name || admin.productForm.name || 'Current draft product' }}
+            </p>
+            <p class="mt-2 text-sm text-slate-600">
+              This variant stays attached to the product you are creating or editing here.
             </p>
           </div>
           <label>
@@ -492,9 +486,9 @@ const selectedProductAttributeCount = computed(() => {
           v-model="admin.variantForm.attributes"
           v-model:newDefinitionName="admin.newAttributeName.value"
           :definitions="admin.attributeDefinitions.value"
-          :disabled="admin.saving.value || !admin.canManageVariants.value"
+          :disabled="admin.saving.value || !(admin.variantForm.id ? admin.canUpdateVariants.value : admin.canCreateVariants.value)"
           :creating-definition="admin.creatingAttribute.value"
-          :can-manage-definitions="admin.canManageVariants.value"
+          :can-manage-definitions="admin.canCreateVariants.value"
           @create-definition="admin.createAttributeDefinition"
         />
       </div>
@@ -502,11 +496,11 @@ const selectedProductAttributeCount = computed(() => {
       <div class="mt-6 flex flex-wrap gap-2">
         <button
           class="btn-primary"
-          :disabled="admin.saving.value || !admin.canManageVariants.value || !admin.variantCanSave.value"
+          :disabled="admin.saving.value || !(admin.variantForm.id ? admin.canUpdateVariants.value : admin.canCreateVariants.value) || !admin.variantCanSave.value"
           @click="admin.saveVariant"
         >
           <span v-if="admin.saving.value" class="button-spinner" aria-hidden="true" />
-          <span v-else class="button-icon" aria-hidden="true">💾</span>
+          <span v-else class="button-icon" aria-hidden="true">✓</span>
           <span>
             {{ admin.saving.value ? 'Saving...' : admin.variantForm.id || admin.editingDraftVariantId.value ? 'Save variant' : 'Add variant' }}
           </span>
@@ -514,7 +508,7 @@ const selectedProductAttributeCount = computed(() => {
         <button
           v-if="admin.selectedVariant.value"
           class="btn-danger"
-          :disabled="admin.deleting.value === admin.selectedVariant.value.id || !admin.canManageVariants.value"
+          :disabled="admin.deleting.value === admin.selectedVariant.value.id || !admin.canDeleteVariants.value"
           @click="admin.deleteVariant(admin.selectedVariant.value)"
         >
           Delete variant
@@ -523,3 +517,6 @@ const selectedProductAttributeCount = computed(() => {
     </EntityDialog>
   </section>
 </template>
+
+
+

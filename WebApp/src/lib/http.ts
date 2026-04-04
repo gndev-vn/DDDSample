@@ -34,21 +34,69 @@ function flattenErrorBag(payload: unknown): string[] {
   }
 
   const record = payload as Record<string, unknown>;
+  const details = new Set<string>();
+
+  if (typeof record.detail === 'string' && record.detail.trim()) {
+    details.add(record.detail.trim());
+  }
+
   if (Array.isArray(record.errors)) {
-    return record.errors.filter((item): item is string => typeof item === 'string');
+    for (const item of record.errors) {
+      if (typeof item === 'string' && item.trim()) {
+        details.add(item.trim());
+      }
+    }
+
+    return [...details];
   }
 
   if (!record.errors || typeof record.errors !== 'object') {
-    return [];
+    return [...details];
   }
 
-  return Object.values(record.errors as Record<string, unknown>).flatMap((value) => {
+  for (const value of Object.values(record.errors as Record<string, unknown>)) {
     if (Array.isArray(value)) {
-      return value.filter((item): item is string => typeof item === 'string');
+      for (const item of value) {
+        if (typeof item === 'string' && item.trim()) {
+          details.add(item.trim());
+        }
+      }
+
+      continue;
     }
 
-    return typeof value === 'string' ? [value] : [];
-  });
+    if (typeof value === 'string' && value.trim()) {
+      details.add(value.trim());
+    }
+  }
+
+  return [...details];
+}
+
+function isGenericMessage(message: string) {
+  const normalized = message.trim().toLowerCase();
+  return normalized === 'operation failed'
+    || normalized === 'invalid request'
+    || normalized === 'an error occurred while processing your request';
+}
+
+function buildErrorMessage(payload: unknown, status: number, details: string[]) {
+  const record = payload as { message?: string; title?: string; detail?: string } | undefined;
+  const message = record?.message ?? record?.title ?? record?.detail ?? `Request failed with status ${status}`;
+
+  if (!details.length) {
+    return message;
+  }
+
+  if (isGenericMessage(message) || message === `Request failed with status ${status}`) {
+    return details.join(' ');
+  }
+
+  if (details.includes(message)) {
+    return message;
+  }
+
+  return `${message}: ${details[0]}`;
 }
 
 export async function apiRequest<T>(
@@ -80,16 +128,14 @@ export async function apiRequest<T>(
     : undefined;
 
   if (!response.ok) {
-    const message =
-      (payload as { message?: string; title?: string } | undefined)?.message ??
-      (payload as { title?: string } | undefined)?.title ??
-      `Request failed with status ${response.status}`;
+    const details = flattenErrorBag(payload);
+    const message = buildErrorMessage(payload, response.status, details);
 
     if (response.status === 401 && options.token) {
       window.dispatchEvent(new CustomEvent('dddsample:auth-expired'));
     }
 
-    throw new ApiError(message, response.status, flattenErrorBag(payload));
+    throw new ApiError(message, response.status, details);
   }
 
   if (payload) {
