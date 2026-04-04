@@ -151,9 +151,10 @@ public class UpdateOrderCommandHandler(AppDbContext dbContext) : IRequestHandler
                     Sku = line.Sku.Value,
                     Quantity = line.Quantity.Value,
                     UnitPrice = line.Total.Amount,
-                    Currency = line.Total.Currency
+                    Currency = line.Total.Currency,
                 };
-            }).ToList()
+            }).ToList(),
         };
     }
 }
+

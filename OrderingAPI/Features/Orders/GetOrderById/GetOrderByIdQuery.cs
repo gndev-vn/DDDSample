@@ -36,9 +36,10 @@ public class GetOrderByIdQueryHandler(AppDbContext dbContext) : IRequestHandler<
                     Sku = l.Sku.Value,
                     Quantity = l.Quantity.Value,
                     UnitPrice = l.Total.Amount,
-                    Currency = l.Total.Currency
-                }).ToList()
+                    Currency = l.Total.Currency,
+                }).ToList(),
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
 }
+

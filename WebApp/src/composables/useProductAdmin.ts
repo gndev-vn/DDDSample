@@ -21,7 +21,7 @@ type PendingVariantDraft = {
   name: string;
   sku: string;
   description: string;
-  overridePrice: number;
+  overridePrice: number | null;
   currency: string;
   attributes: ProductVariantAttributeValueRequest[];
 };
@@ -76,7 +76,7 @@ export function useProductAdmin() {
     name: '',
     sku: '',
     description: '',
-    overridePrice: 0,
+    overridePrice: null as number | null,
     currency: 'USD',
     attributes: [] as ProductVariantAttributeValueRequest[],
   });
@@ -167,7 +167,7 @@ export function useProductAdmin() {
     const baseIsValid = Boolean(
       variantForm.name.trim() &&
       variantForm.sku.trim() &&
-      variantForm.currency.trim() &&
+      currentVariantCurrency().trim() &&
       hasValues,
     );
     const targetProductId = variantForm.parentId || productForm.id || selectedProductId.value;
@@ -204,7 +204,7 @@ export function useProductAdmin() {
         sku: variantForm.sku.trim(),
         description: variantForm.description.trim(),
         overridePrice: variantForm.overridePrice,
-        currency: variantForm.currency.trim(),
+        currency: currentVariantCurrency().trim(),
       }) !== JSON.stringify({
         parentId: selectedVariant.value.parentId,
         name: selectedVariant.value.name.trim(),
@@ -227,6 +227,21 @@ export function useProductAdmin() {
     error.value = failure;
   }
 
+  function currentVariantCurrency() {
+    return products.value.find((product) => product.id === (variantForm.parentId || productForm.id || selectedProductId.value))?.currency
+      ?? variantForm.currency
+      ?? productForm.currency
+      ?? 'USD';
+  }
+
+  function effectiveVariantPrice(variant: Pick<ProductVariantResponse, 'parentId' | 'overridePrice'>) {
+    return variant.overridePrice ?? products.value.find((product) => product.id === variant.parentId)?.basePrice ?? 0;
+  }
+
+  function setVariantOverridePrice(value: string) {
+    variantForm.overridePrice = value === '' ? null : Number(value);
+  }
+
   function resetProductForm() {
     productForm.id = '';
     productForm.name = '';
@@ -243,8 +258,8 @@ export function useProductAdmin() {
     variantForm.name = '';
     variantForm.sku = '';
     variantForm.description = '';
-    variantForm.overridePrice = 0;
-    variantForm.currency = 'USD';
+    variantForm.overridePrice = null;
+    variantForm.currency = products.value.find((product) => product.id === (parentId || selectedProductId.value || productForm.id))?.currency ?? productForm.currency;
     variantForm.attributes = [];
     editingDraftVariantId.value = null;
   }
@@ -495,6 +510,7 @@ export function useProductAdmin() {
     try {
       const targetProductId = variantForm.parentId || productForm.id || selectedProductId.value;
       const attributes = cloneVariantAttributeValues(variantForm.attributes);
+      const currency = currentVariantCurrency();
 
       if (!targetProductId) {
         if (editingDraftVariantId.value) {
@@ -506,7 +522,7 @@ export function useProductAdmin() {
                   sku: variantForm.sku,
                   description: variantForm.description,
                   overridePrice: variantForm.overridePrice,
-                  currency: variantForm.currency,
+                  currency: currency,
                   attributes,
                 }
               : draft,
@@ -522,7 +538,7 @@ export function useProductAdmin() {
               sku: variantForm.sku,
               description: variantForm.description,
               overridePrice: variantForm.overridePrice,
-              currency: variantForm.currency,
+              currency: currency,
               attributes,
             },
           ];
@@ -543,7 +559,7 @@ export function useProductAdmin() {
           sku: variantForm.sku,
           description: variantForm.description,
           overridePrice: variantForm.overridePrice,
-          currency: variantForm.currency,
+          currency: currency,
           attributes,
         });
         uiStore.pushToast('Variant updated successfully.', 'success');
@@ -555,7 +571,7 @@ export function useProductAdmin() {
           sku: variantForm.sku,
           description: variantForm.description,
           overridePrice: variantForm.overridePrice,
-          currency: variantForm.currency,
+          currency: currency,
           attributes,
         });
         uiStore.pushToast('Variant created successfully.', 'success');
@@ -714,6 +730,8 @@ export function useProductAdmin() {
     filteredProducts,
     productCanSave,
     variantCanSave,
+    currentVariantCurrency,
+    effectiveVariantPrice,
     createAttributeDefinition,
     openProductDialog,
     openVariantDialog,
@@ -730,4 +748,6 @@ export function useProductAdmin() {
     deleteVariant,
   };
 }
+
+
 

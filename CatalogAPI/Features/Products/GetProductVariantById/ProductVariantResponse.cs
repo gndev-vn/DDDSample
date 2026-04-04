@@ -23,7 +23,7 @@ public class ProductVariantResponse : ModelBase
 
     public string Currency { get; set; } = string.Empty;
 
-    public decimal OverridePrice { get; set; }
+    public decimal? OverridePrice { get; set; }
 
     public bool IsActive { get; set; }
 

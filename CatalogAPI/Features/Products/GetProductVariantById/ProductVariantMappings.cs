@@ -13,8 +13,8 @@ public static class ProductVariantMappings
             Name = x.Name,
             Sku = x.Sku,
             Description = x.Description,
-            OverridePrice = x.OverridePrice != null ? x.OverridePrice.Amount : 0,
-            Currency = x.OverridePrice != null ? x.OverridePrice.Currency : string.Empty,
+            OverridePrice = x.OverridePrice != null ? x.OverridePrice.Amount : null,
+            Currency = x.OverridePrice != null ? x.OverridePrice.Currency : x.Product.BasePrice.Currency,
             IsActive = x.IsActive,
             Attributes = x.Attributes
                 .Select(attribute => new ProductVariantAttributeResponse
@@ -26,7 +26,7 @@ public static class ProductVariantMappings
                 .ToList(),
         };
 
-    public static ProductVariantResponse ToResponse(ProductVariant variant)
+    public static ProductVariantResponse ToResponse(ProductVariant variant, string productCurrency)
     {
         return new ProductVariantResponse
         {
@@ -35,8 +35,8 @@ public static class ProductVariantMappings
             Name = variant.Name,
             Sku = variant.Sku,
             Description = variant.Description,
-            OverridePrice = variant.OverridePrice?.Amount ?? 0,
-            Currency = variant.OverridePrice?.Currency ?? string.Empty,
+            OverridePrice = variant.OverridePrice?.Amount,
+            Currency = variant.OverridePrice?.Currency ?? productCurrency,
             IsActive = variant.IsActive,
             Attributes = variant.Attributes
                 .Select(attribute => new ProductVariantAttributeResponse

@@ -1,4 +1,5 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { catalogApi } from '../api/catalog';
 import { orderingApi } from '../api/ordering';
 import { orderStatusLabel } from '../lib/formatters';
@@ -11,7 +12,7 @@ import type {
   CustomerModel,
   OrderLineModel,
   OrderModel,
-  ProductCacheModel,
+  ProductResponse,
   ProductVariantResponse,
 } from '../types/contracts';
 
@@ -31,6 +32,8 @@ type SearchableOption = {
 export function useOrdersAdmin() {
   const authStore = useAuthStore();
   const uiStore = useUiStore();
+  const route = useRoute();
+  const router = useRouter();
 
   const loading = ref(true);
   const submitting = ref(false);
@@ -41,9 +44,9 @@ export function useOrdersAdmin() {
   const error = ref<string | null>(null);
   const success = ref<string | null>(null);
   const orders = ref<OrderModel[]>([]);
+  const products = ref<ProductResponse[]>([]);
   const variants = ref<ProductVariantResponse[]>([]);
   const customers = ref<CustomerModel[]>([]);
-  const cachedProducts = reactive<Record<string, ProductCacheModel[]>>({});
   const selectedOrderId = ref('');
   const isOrderDialogOpen = ref(false);
   const isCreateOrderDialogOpen = ref(false);
@@ -91,11 +94,15 @@ export function useOrdersAdmin() {
   });
 
   const selectedOrder = computed(() => orders.value.find((order) => order.id === selectedOrderId.value) ?? null);
+  const customerFilterId = computed(() => (typeof route.query.customerId === 'string' ? route.query.customerId : '').trim());
+  const customerFilter = computed(() => customers.value.find((customer) => customer.id === customerFilterId.value) ?? null);
   const canViewOrders = computed(() => authStore.hasPermission(appPermissions.orders.view));
   const canCreateOrders = computed(() => authStore.hasPermission(appPermissions.orders.create));
   const canUpdateOrders = computed(() => authStore.hasPermission(appPermissions.orders.update));
   const canDeleteOrders = computed(() => authStore.hasPermission(appPermissions.orders.delete));
   const canManageOrders = computed(() => canCreateOrders.value || canUpdateOrders.value || canDeleteOrders.value);
+
+  const activeVariants = computed(() => variants.value.filter((variant) => variant.isActive));
 
   const customerOptions = computed<SearchableOption[]>(() => {
     const optionMap = new Map<string, SearchableOption>();
@@ -108,10 +115,10 @@ export function useOrdersAdmin() {
       optionMap.set(customer.id, {
         value: customer.id,
         label: customer.displayName,
-        description: [customer.email, customer.phoneNumber, customer.isActive ? null : 'Inactive']
+        description: [customer.email, customer.phoneNumber, customer.address, customer.isActive ? null : 'Inactive']
           .filter(Boolean)
           .join(' · '),
-        keywords: [customer.email, customer.phoneNumber ?? ''],
+        keywords: [customer.email, customer.phoneNumber ?? '', customer.address ?? ''],
       });
     }
 
@@ -124,7 +131,7 @@ export function useOrdersAdmin() {
         value: order.customerId,
         label: order.customerName || `Customer ${order.customerId.slice(0, 8)}`,
         description: [order.customerEmail, order.customerPhone].filter(Boolean).join(' · '),
-        keywords: [order.customerEmail, order.customerPhone ?? ''],
+        keywords: [order.customerEmail, order.customerPhone ?? '', order.customerId],
       });
     }
 
@@ -132,11 +139,11 @@ export function useOrdersAdmin() {
   });
 
   const variantOptions = computed<SearchableOption[]>(() =>
-    variants.value.map((variant) => ({
+    activeVariants.value.map((variant) => ({
       value: variant.id,
       label: variant.name,
-      description: `${variant.sku} · ${variant.currency} ${variant.overridePrice.toFixed(2)}`,
-      keywords: [variant.sku],
+      description: `${variant.sku} · ${variantPriceLabel(variant)}`,
+      keywords: [variant.sku, products.value.find((product) => product.id === variant.parentId)?.name ?? ''],
     })),
   );
 
@@ -149,6 +156,7 @@ export function useOrdersAdmin() {
     return orders.value.filter((order) =>
       [
         order.id,
+        order.customerId,
         order.customerName,
         order.customerEmail,
         order.customerPhone ?? '',
@@ -177,27 +185,9 @@ export function useOrdersAdmin() {
     return JSON.stringify({
       customerId: editForm.customerId.trim(),
       shippingAddress: normalizeAddress(editForm.shippingAddress),
-      lines: editForm.lines.map((line) => ({
-        id: line.id,
-        productId: line.productId,
-        name: line.name.trim(),
-        sku: line.sku.trim(),
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        currency: line.currency.trim(),
-      })),
     }) !== JSON.stringify({
       customerId: selectedOrder.value.customerId.trim(),
       shippingAddress: normalizeAddress(selectedOrder.value.shippingAddress),
-      lines: selectedOrder.value.lines.map((line) => ({
-        id: line.id,
-        productId: line.productId,
-        name: line.name.trim(),
-        sku: line.sku.trim(),
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        currency: line.currency.trim(),
-      })),
     });
   });
 
@@ -227,7 +217,7 @@ export function useOrdersAdmin() {
     return lines.map((line) => ({ ...line }));
   }
 
-  function createDraftLine(variantId = variants.value[0]?.id ?? ''): CreateOrderLineDraft {
+  function createDraftLine(variantId = activeVariants.value[0]?.id ?? ''): CreateOrderLineDraft {
     return {
       id: crypto.randomUUID(),
       variantId,
@@ -236,11 +226,48 @@ export function useOrdersAdmin() {
   }
 
   function variantForCreateLine(variantId: string) {
-    return variants.value.find((variant) => variant.id === variantId) ?? null;
+    return activeVariants.value.find((variant) => variant.id === variantId) ?? null;
   }
 
-  function variantForOrderLine(productId: string) {
-    return variants.value.find((variant) => variant.id === productId) ?? null;
+  function productForVariant(variant: ProductVariantResponse | null) {
+    if (!variant) {
+      return null;
+    }
+
+    return products.value.find((product) => product.id === variant.parentId) ?? null;
+  }
+
+  function variantUnitPrice(variant: ProductVariantResponse | null) {
+    if (!variant) {
+      return 0;
+    }
+
+    return variant.overridePrice ?? productForVariant(variant)?.basePrice ?? 0;
+  }
+
+  function variantCurrency(variant: ProductVariantResponse | null) {
+    if (!variant) {
+      return 'USD';
+    }
+
+    return variant.currency || productForVariant(variant)?.currency || 'USD';
+  }
+
+  function variantPriceLabel(variant: ProductVariantResponse | null) {
+    if (!variant) {
+      return 'USD 0.00';
+    }
+
+    const price = variantUnitPrice(variant).toFixed(2);
+    if (variant.overridePrice == null) {
+      return `${variantCurrency(variant)} ${price} · uses product price`;
+    }
+
+    return `${variantCurrency(variant)} ${price}`;
+  }
+
+  function lineTotal(line: OrderLineModel) {
+    return line.unitPrice * line.quantity;
   }
 
   function setOutcome(message: string | null, failure: string | null = null) {
@@ -281,6 +308,10 @@ export function useOrdersAdmin() {
     isCreateOrderDialogOpen.value = true;
   }
 
+  async function clearCustomerFilter() {
+    await router.push({ name: 'orders' });
+  }
+
   function addCreateLine() {
     createForm.lines.push(createDraftLine());
   }
@@ -298,45 +329,10 @@ export function useOrdersAdmin() {
     createForm.lines = createForm.lines.map((line) => (line.id === lineId ? { ...line, variantId } : line));
   }
 
-  function addEditLine() {
-    editForm.lines.push({
-      id: crypto.randomUUID(),
-      productId: '',
-      name: '',
-      sku: '',
-      quantity: 1,
-      unitPrice: 0,
-      currency: 'USD',
-    });
-  }
-
-  function removeEditLine(lineId: string) {
-    editForm.lines = editForm.lines.filter((line) => line.id !== lineId);
-  }
-
-  function selectEditLineVariant(lineId: string, variantId: string) {
-    const variant = variantForOrderLine(variantId);
-    if (!variant) {
-      return;
-    }
-
-    editForm.lines = editForm.lines.map((line) =>
-      line.id === lineId
-        ? {
-            ...line,
-            productId: variant.id,
-            name: variant.name,
-            sku: variant.sku,
-            unitPrice: variant.overridePrice,
-            currency: variant.currency,
-          }
-        : line,
-    );
-  }
-
   async function refresh() {
     if (!authStore.token || !canViewOrders.value) {
       orders.value = [];
+      products.value = [];
       variants.value = [];
       customers.value = [];
       selectedOrderId.value = '';
@@ -349,13 +345,15 @@ export function useOrdersAdmin() {
     setOutcome(null, null);
 
     try {
-      const [orderResult, variantResult, customerResult] = await Promise.all([
-        orderingApi.getOrders(authStore.token),
+      const [orderResult, productResult, variantResult, customerResult] = await Promise.all([
+        orderingApi.getOrders(authStore.token, customerFilterId.value || undefined),
+        catalogApi.getProducts(authStore.token),
         catalogApi.getProductVariants(authStore.token),
         orderingApi.getCustomers(authStore.token),
       ]);
 
       orders.value = orderResult;
+      products.value = productResult;
       variants.value = variantResult.filter((variant) => variant.isActive);
       customers.value = customerResult;
 
@@ -409,8 +407,8 @@ export function useOrdersAdmin() {
             name: variant.name,
             sku: variant.sku,
             quantity: line.quantity,
-            unitPrice: variant.overridePrice,
-            currency: variant.currency,
+            unitPrice: variantUnitPrice(variant),
+            currency: variantCurrency(variant),
           };
         }),
       };
@@ -552,24 +550,28 @@ export function useOrdersAdmin() {
     }
   }
 
-  async function loadOrderCache(orderId: string) {
-    if (!authStore.token || cachedProducts[orderId]) {
-      return;
-    }
-
-    try {
-      cachedProducts[orderId] = await orderingApi.getProductsInOrder(orderId, authStore.token);
-    } catch (cause) {
-      setOutcome(null, cause instanceof Error ? cause.message : 'Could not load cached products for the order.');
-    }
-  }
-
   watch(selectedOrder, (order) => {
     applySelectedOrder(order);
-    if (order) {
-      void loadOrderCache(order.id);
-    }
   });
+
+  watch(
+    () => [authStore.token, authStore.user?.id, canViewOrders.value, customerFilterId.value] as const,
+    async ([token, , canView]) => {
+      if (token && canView) {
+        await refresh();
+        return;
+      }
+
+      orders.value = [];
+      products.value = [];
+      variants.value = [];
+      customers.value = [];
+      selectedOrderId.value = '';
+      applySelectedOrder(null);
+      loading.value = false;
+    },
+    { immediate: true },
+  );
 
   onMounted(() => {
     void refresh();
@@ -585,33 +587,33 @@ export function useOrdersAdmin() {
     error,
     success,
     orders,
-    customerOptions,
-    variantOptions,
-    cachedProducts,
-    selectedOrderId,
+    customers,
+    selectedOrder,
     isOrderDialogOpen,
     isCreateOrderDialogOpen,
     orderSearch,
+    customerFilter,
     createForm,
     editForm,
-    selectedOrder,
+    customerOptions,
+    variantOptions,
+    filteredOrders,
+    canManageOrders,
     canCreateOrders,
     canUpdateOrders,
     canDeleteOrders,
-    canManageOrders,
-    filteredOrders,
     createOrderCanSubmit,
     hasOrderChanges,
     variantForCreateLine,
-    variantForOrderLine,
+    variantUnitPrice,
+    variantCurrency,
+    lineTotal,
     openOrderDialog,
     openCreateOrderDialog,
+    clearCustomerFilter,
     addCreateLine,
     removeCreateLine,
     selectCreateLineVariant,
-    addEditLine,
-    removeEditLine,
-    selectEditLineVariant,
     refresh,
     submitOrder,
     saveOrder,

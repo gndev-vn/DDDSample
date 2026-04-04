@@ -10,8 +10,8 @@ import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
 import type {
   ProductAttributeDefinitionModel,
-  ProductVariantAttributeValueRequest,
   ProductResponse,
+  ProductVariantAttributeValueRequest,
   ProductVariantResponse,
 } from '../types/contracts';
 
@@ -46,7 +46,7 @@ export function useVariantAdmin() {
     name: '',
     sku: '',
     description: '',
-    overridePrice: 0,
+    overridePrice: null as number | null,
     currency: 'USD',
     attributes: [] as ProductVariantAttributeValueRequest[],
   });
@@ -59,9 +59,9 @@ export function useVariantAdmin() {
   const canViewCurrentPage = computed(() => canViewVariants.value);
   const canManageCurrentPage = computed(() => canManageVariants.value);
 
-  const selectedVariant = computed(() =>
-    variants.value.find((variant) => variant.id === selectedVariantId.value) ?? null,
-  );
+  const selectedVariant = computed(() => variants.value.find((variant) => variant.id === selectedVariantId.value) ?? null);
+  const selectedParentProduct = computed(() => products.value.find((product) => product.id === variantForm.parentId) ?? null);
+  const effectiveCurrency = computed(() => selectedParentProduct.value?.currency || variantForm.currency || 'USD');
 
   const filteredVariants = computed(() => {
     const search = catalogSearch.value.trim().toLowerCase();
@@ -91,7 +91,7 @@ export function useVariantAdmin() {
       variantForm.parentId.trim() &&
       variantForm.name.trim() &&
       variantForm.sku.trim() &&
-      variantForm.currency.trim() &&
+      effectiveCurrency.value.trim() &&
       hasValues,
     );
     if (!variantForm.id) {
@@ -108,7 +108,7 @@ export function useVariantAdmin() {
       sku: variantForm.sku.trim(),
       description: variantForm.description.trim(),
       overridePrice: variantForm.overridePrice,
-      currency: variantForm.currency.trim(),
+      currency: effectiveCurrency.value.trim(),
     }) !== JSON.stringify({
       parentId: selectedVariant.value.parentId,
       name: selectedVariant.value.name.trim(),
@@ -130,9 +130,21 @@ export function useVariantAdmin() {
     variantForm.name = '';
     variantForm.sku = '';
     variantForm.description = '';
-    variantForm.overridePrice = 0;
-    variantForm.currency = 'USD';
+    variantForm.overridePrice = null;
+    variantForm.currency = products.value.find((product) => product.id === parentId)?.currency ?? 'USD';
     variantForm.attributes = [];
+  }
+
+  function effectiveVariantPrice(variant: ProductVariantResponse) {
+    return variant.overridePrice ?? products.value.find((product) => product.id === variant.parentId)?.basePrice ?? 0;
+  }
+
+  function setOverridePrice(value: string) {
+    variantForm.overridePrice = value === '' ? null : Number(value);
+  }
+
+  function variantUsesProductPrice(variant: ProductVariantResponse) {
+    return variant.overridePrice == null;
   }
 
   async function createAttributeDefinition() {
@@ -222,6 +234,7 @@ export function useVariantAdmin() {
 
     try {
       const attributes = cloneVariantAttributeValues(variantForm.attributes);
+      const currency = effectiveCurrency.value;
 
       if (variantForm.id) {
         await catalogApi.updateProductVariant(authStore.token, {
@@ -231,7 +244,7 @@ export function useVariantAdmin() {
           sku: variantForm.sku,
           description: variantForm.description,
           overridePrice: variantForm.overridePrice,
-          currency: variantForm.currency,
+          currency,
           attributes,
         });
         uiStore.pushToast('Variant updated successfully.', 'success');
@@ -243,7 +256,7 @@ export function useVariantAdmin() {
           sku: variantForm.sku,
           description: variantForm.description,
           overridePrice: variantForm.overridePrice,
-          currency: variantForm.currency,
+          currency,
           attributes,
         });
         uiStore.pushToast('Variant created successfully.', 'success');
@@ -312,6 +325,15 @@ export function useVariantAdmin() {
     variantForm.attributes = mapVariantAttributesToValues(variant.attributes);
   });
 
+  watch(
+    () => variantForm.parentId,
+    (parentId) => {
+      if (parentId && variantForm.overridePrice == null) {
+        variantForm.currency = products.value.find((product) => product.id === parentId)?.currency ?? variantForm.currency;
+      }
+    },
+  );
+
   onMounted(() => {
     void refresh();
   });
@@ -339,6 +361,9 @@ export function useVariantAdmin() {
     canManageVariants,
     filteredVariants,
     variantCanSave,
+    effectiveCurrency,
+    effectiveVariantPrice,
+    variantUsesProductPrice,
     createAttributeDefinition,
     openVariantDialog,
     openExistingVariantDialog,
@@ -347,3 +372,4 @@ export function useVariantAdmin() {
     deleteVariant,
   };
 }
+

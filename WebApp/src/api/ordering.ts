@@ -43,8 +43,9 @@ export const orderingApi = {
     });
   },
 
-  async getOrders(token?: string | null): Promise<OrderModel[]> {
-    const response = await apiRequest<OrderModel[]>('ordering', '/api/Orders', { token });
+  async getOrders(token?: string | null, customerId?: string): Promise<OrderModel[]> {
+    const query = customerId ? `?customerId=${encodeURIComponent(customerId)}` : '';
+    const response = await apiRequest<OrderModel[]>('ordering', '/api/Orders' + query, { token });
     return response.data ?? [];
   },
 

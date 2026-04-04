@@ -27,6 +27,7 @@ const {
   hasCustomerChanges,
   openCustomerDialog,
   openCreateCustomerDialog,
+  viewCustomerOrders,
   refreshCustomers,
   handleCreateCustomer,
   handleSaveCustomer,
@@ -45,7 +46,7 @@ const {
       </div>
 
       <div class="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
-        <input v-model="customerSearch" class="toolbar-search" placeholder="Search customers by name, email, or phone" />
+        <input v-model="customerSearch" class="toolbar-search" placeholder="Search customers by name, email, phone, or address" />
         <button class="btn-primary" :disabled="!canCreateCustomers" @click="openCreateCustomerDialog">
           <span class="button-icon" aria-hidden="true">＋</span>
           <span>New customer</span>
@@ -94,8 +95,8 @@ const {
             <tr>
               <th class="px-5 py-4">Customer</th>
               <th class="px-5 py-4">Contact</th>
+              <th class="px-5 py-4">Address</th>
               <th class="px-5 py-4">Status</th>
-              <th class="px-5 py-4">Orders</th>
               <th class="px-5 py-4">Actions</th>
             </tr>
           </thead>
@@ -109,10 +110,10 @@ const {
                 <div>{{ customer.email }}</div>
                 <div v-if="customer.phoneNumber" class="mt-1 text-xs text-slate-500">{{ customer.phoneNumber }}</div>
               </td>
+              <td class="px-5 py-4 text-slate-600">{{ customer.address || 'No address saved' }}</td>
               <td class="px-5 py-4">
                 <StatusBadge :label="customer.isActive ? 'Active' : 'Inactive'" :tone="customer.isActive ? 'success' : 'warning'" />
               </td>
-              <td class="px-5 py-4 text-slate-600">{{ customer.orderCount }}</td>
               <td class="px-5 py-4">
                 <div class="flex flex-wrap gap-2">
                   <button class="icon-button" aria-label="Edit customer" title="Edit customer" @click="openCustomerDialog(customer)">
@@ -139,14 +140,16 @@ const {
         <label class="md:col-span-2"><span class="field-label">Display name</span><input v-model="editCustomerForm.displayName" class="text-input" /></label>
         <label><span class="field-label">Email</span><input v-model="editCustomerForm.email" class="text-input" type="email" /></label>
         <label><span class="field-label">Phone number</span><input v-model="editCustomerForm.phoneNumber" class="text-input" /></label>
+        <label class="md:col-span-2"><span class="field-label">Address</span><input v-model="editCustomerForm.address" class="text-input" /></label>
         <label class="md:col-span-2 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
           <input v-model="editCustomerForm.isActive" type="checkbox" />
-          Customer can be selected for new orders
+          Customer is active
         </label>
-        <div v-if="selectedCustomer" class="md:col-span-2 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-600">
-          Existing orders linked to this customer: <span class="font-semibold text-slate-900">{{ selectedCustomer.orderCount }}</span>
-        </div>
-        <div class="md:col-span-2 flex flex-wrap gap-3">
+        <div class="md:col-span-2 flex flex-wrap justify-end gap-3">
+          <button v-if="selectedCustomer" class="btn-secondary" @click="viewCustomerOrders(selectedCustomer.id)">
+            <span class="button-icon" aria-hidden="true">↗</span>
+            <span>View orders</span>
+          </button>
           <button class="btn-primary" :disabled="savingCustomer || !canUpdateCustomers || !hasCustomerChanges" @click="handleSaveCustomer">
             <span v-if="savingCustomer" class="button-spinner" aria-hidden="true" />
             <span v-else class="button-icon" aria-hidden="true">✓</span>
@@ -166,15 +169,18 @@ const {
         <label class="md:col-span-2"><span class="field-label">Display name</span><input v-model="createCustomerForm.displayName" class="text-input" /></label>
         <label><span class="field-label">Email</span><input v-model="createCustomerForm.email" class="text-input" type="email" /></label>
         <label><span class="field-label">Phone number</span><input v-model="createCustomerForm.phoneNumber" class="text-input" /></label>
+        <label class="md:col-span-2"><span class="field-label">Address</span><input v-model="createCustomerForm.address" class="text-input" /></label>
         <label class="md:col-span-2 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
           <input v-model="createCustomerForm.isActive" type="checkbox" />
-          Customer can be selected for new orders
+          Customer is active
         </label>
-        <button class="btn-primary md:col-span-2" :disabled="creatingCustomer || !canCreateCustomers" @click="handleCreateCustomer">
-          <span v-if="creatingCustomer" class="button-spinner" aria-hidden="true" />
-          <span v-else class="button-icon" aria-hidden="true">✓</span>
-          <span>{{ creatingCustomer ? 'Creating customer...' : 'Create customer' }}</span>
-        </button>
+        <div class="md:col-span-2 flex justify-end">
+          <button class="btn-primary" :disabled="creatingCustomer || !canCreateCustomers" @click="handleCreateCustomer">
+            <span v-if="creatingCustomer" class="button-spinner" aria-hidden="true" />
+            <span v-else class="button-icon" aria-hidden="true">✓</span>
+            <span>{{ creatingCustomer ? 'Creating customer...' : 'Create customer' }}</span>
+          </button>
+        </div>
       </div>
     </EntityDialog>
   </section>

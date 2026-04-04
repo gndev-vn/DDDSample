@@ -15,33 +15,32 @@ const {
   error,
   success,
   orders,
-  variantOptions,
-  customerOptions,
-  cachedProducts,
-  selectedOrderId,
+  selectedOrder,
   isOrderDialogOpen,
   isCreateOrderDialogOpen,
   orderSearch,
+  customerFilter,
   createForm,
   editForm,
-  selectedOrder,
+  customerOptions,
+  variantOptions,
+  filteredOrders,
+  canManageOrders,
   canCreateOrders,
   canUpdateOrders,
   canDeleteOrders,
-  canManageOrders,
-  filteredOrders,
   createOrderCanSubmit,
   hasOrderChanges,
   variantForCreateLine,
-  variantForOrderLine,
+  variantUnitPrice,
+  variantCurrency,
+  lineTotal,
   openOrderDialog,
   openCreateOrderDialog,
+  clearCustomerFilter,
   addCreateLine,
   removeCreateLine,
   selectCreateLineVariant,
-  addEditLine,
-  removeEditLine,
-  selectEditLineVariant,
   refresh,
   submitOrder,
   saveOrder,
@@ -54,14 +53,14 @@ const {
   <section class="space-y-6">
     <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
-        <h3 class="section-title">Order administration</h3>
+        <h3 class="section-title">Orders</h3>
         <p class="mt-2 text-sm leading-6 text-slate-600">
-          Production order operations with real customer records and a multi-variant order builder.
+          Review order state, update shipping details, and create new orders from sellable variants.
         </p>
       </div>
 
       <div class="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
-        <input v-model="orderSearch" class="toolbar-search" placeholder="Search orders, customer, email, SKU..." />
+        <input v-model="orderSearch" class="toolbar-search" placeholder="Search orders, customers, SKUs, or product ids" />
         <button class="btn-primary" :disabled="!canCreateOrders" @click="openCreateOrderDialog">
           <span class="button-icon" aria-hidden="true">＋</span>
           <span>New order</span>
@@ -72,6 +71,14 @@ const {
           <span>{{ loading ? 'Refreshing...' : 'Reload orders' }}</span>
         </button>
       </div>
+    </div>
+
+    <div v-if="customerFilter" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+      <div>
+        Showing orders for <span class="font-semibold">{{ customerFilter.displayName }}</span>
+        <span class="text-brand-700">· {{ customerFilter.email }}</span>
+      </div>
+      <button class="btn-secondary" @click="clearCustomerFilter">Show all orders</button>
     </div>
 
     <div v-if="!canManageOrders" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -93,9 +100,9 @@ const {
         <table class="data-table">
           <thead>
             <tr>
-              <th class="px-4 py-4">Order ID</th>
+              <th class="px-4 py-4">Order</th>
               <th class="px-4 py-4">Customer</th>
-              <th class="px-4 py-4">Lines</th>
+              <th class="px-4 py-4">Items</th>
               <th class="px-4 py-4">Status</th>
               <th class="px-4 py-4">Actions</th>
             </tr>
@@ -103,9 +110,9 @@ const {
           <tbody>
             <tr v-for="order in filteredOrders" :key="order.id">
               <td class="px-4 py-4">
-                <button class="text-left font-semibold text-slate-900" @click="openOrderDialog(order)">{{ order.id }}</button>
+                <div class="font-medium text-slate-900">{{ order.id }}</div>
               </td>
-              <td class="px-4 py-4 text-slate-600">
+              <td class="px-4 py-4">
                 <div class="font-medium text-slate-900">{{ order.customerName }}</div>
                 <div class="mt-1 text-xs text-slate-500">{{ order.customerEmail }}</div>
               </td>
@@ -143,99 +150,83 @@ const {
     </article>
 
     <EntityDialog :open="isOrderDialogOpen" title="Order details" description="Review and update the selected order." @close="isOrderDialogOpen = false">
-      <div v-if="selectedOrder" class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div class="grid gap-6">
-          <label>
-            <span class="field-label">Customer</span>
-            <SearchableSelect
-              :model-value="editForm.customerId"
-              :options="customerOptions"
-              placeholder="Search customers by name, email, or phone"
-              empty-label="No matching customers."
-              :disabled="!canUpdateOrders"
-              @update:model-value="editForm.customerId = $event"
-            />
-          </label>
+      <div v-if="selectedOrder" class="space-y-6">
+        <label>
+          <span class="field-label">Customer</span>
+          <SearchableSelect
+            :model-value="editForm.customerId"
+            :options="customerOptions"
+            placeholder="Search customers by name, email, phone, or address"
+            empty-label="No matching customers."
+            :disabled="!canUpdateOrders"
+            @update:model-value="editForm.customerId = $event"
+          />
+        </label>
 
-          <div class="rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-600">
-            Snapshot on this order: <span class="font-semibold text-slate-900">{{ selectedOrder.customerName }}</span>
-            <span class="mx-2 text-slate-300">·</span>
-            <span>{{ selectedOrder.customerEmail }}</span>
+        <div class="rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-600">
+          Snapshot on this order: <span class="font-semibold text-slate-900">{{ selectedOrder.customerName }}</span>
+          <span class="mx-2 text-slate-300">·</span>
+          <span>{{ selectedOrder.customerEmail }}</span>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <label class="md:col-span-2"><span class="field-label">Shipping line 1</span><input v-model="editForm.shippingAddress.line1" class="text-input" /></label>
+          <label><span class="field-label">Shipping line 2</span><input v-model="editForm.shippingAddress.line2" class="text-input" /></label>
+          <label><span class="field-label">City</span><input v-model="editForm.shippingAddress.city" class="text-input" /></label>
+          <label><span class="field-label">Province</span><input v-model="editForm.shippingAddress.province" class="text-input" /></label>
+          <label><span class="field-label">District</span><input v-model="editForm.shippingAddress.district" class="text-input" /></label>
+          <label><span class="field-label">Ward</span><input v-model="editForm.shippingAddress.ward" class="text-input" /></label>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <span class="field-label mb-0">Line items</span>
+            <span class="text-sm text-slate-500">Read-only order snapshot</span>
           </div>
 
-          <div class="grid gap-4 md:grid-cols-2">
-            <label class="md:col-span-2"><span class="field-label">Shipping line 1</span><input v-model="editForm.shippingAddress.line1" class="text-input" /></label>
-            <label><span class="field-label">Shipping line 2</span><input v-model="editForm.shippingAddress.line2" class="text-input" /></label>
-            <label><span class="field-label">City</span><input v-model="editForm.shippingAddress.city" class="text-input" /></label>
-            <label><span class="field-label">Province</span><input v-model="editForm.shippingAddress.province" class="text-input" /></label>
-            <label><span class="field-label">District</span><input v-model="editForm.shippingAddress.district" class="text-input" /></label>
-            <label><span class="field-label">Ward</span><input v-model="editForm.shippingAddress.ward" class="text-input" /></label>
-          </div>
-
-          <div>
-            <div class="mb-3 flex items-center justify-between gap-3">
-              <span class="field-label mb-0">Line items</span>
-              <button class="btn-secondary" :disabled="!canUpdateOrders" @click="addEditLine">
-                <span class="button-icon" aria-hidden="true">＋</span>
-                <span>Add line</span>
-              </button>
-            </div>
-
-            <div class="space-y-3">
-              <div v-for="line in editForm.lines" :key="line.id" class="subtle-panel">
-                <div class="grid gap-6 md:grid-cols-2">
-                  <label>
-                    <span class="field-label">Product</span>
-                    <SearchableSelect
-                      :model-value="line.productId"
-                      :options="variantOptions"
-                      placeholder="Search variants by name or SKU"
-                      empty-label="No matching variants."
-                      :disabled="!canUpdateOrders"
-                      @update:model-value="selectEditLineVariant(line.id, $event)"
-                    />
-                  </label>
-                  <label><span class="field-label">Name</span><input v-model="line.name" class="text-input" /></label>
-                  <label><span class="field-label">SKU</span><input v-model="line.sku" class="text-input" /></label>
-                  <label><span class="field-label">Currency</span><input v-model="line.currency" class="text-input" /></label>
-                  <label><span class="field-label">Quantity</span><input v-model.number="line.quantity" class="text-input" type="number" min="1" /></label>
-                  <label><span class="field-label">Unit price</span><input v-model.number="line.unitPrice" class="text-input" type="number" min="0" step="0.01" /></label>
+          <div v-if="editForm.lines.length" class="space-y-3">
+            <article v-for="line in editForm.lines" :key="line.id" class="subtle-panel space-y-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h5 class="text-base font-semibold text-slate-900">{{ line.name || 'Unnamed line item' }}</h5>
+                  <p class="mt-1 font-mono text-xs uppercase tracking-[0.16em] text-slate-500">{{ line.sku }}</p>
                 </div>
-
-                <div v-if="variantForOrderLine(line.productId)" class="mt-4 rounded-2xl bg-white px-4 py-3 text-sm text-slate-600">
-                  Selected variant: <span class="font-medium text-slate-900">{{ variantForOrderLine(line.productId)?.name }}</span>
-                  <span class="mx-2 text-slate-300">·</span>
-                  <span>{{ variantForOrderLine(line.productId)?.sku }}</span>
-                </div>
-
-                <button class="btn-danger mt-4" :disabled="!canUpdateOrders" @click="removeEditLine(line.id)">
-                  <span class="button-icon" aria-hidden="true">−</span>
-                  <span>Remove line</span>
-                </button>
+                <StatusBadge label="Locked" tone="neutral" />
               </div>
-            </div>
+
+              <div class="grid gap-4 md:grid-cols-4">
+                <div>
+                  <span class="field-label">Product</span>
+                  <p class="mt-2 text-sm font-medium text-slate-900">{{ line.name }}</p>
+                </div>
+                <div>
+                  <span class="field-label">Quantity</span>
+                  <p class="mt-2 text-sm font-medium text-slate-900">{{ line.quantity }}</p>
+                </div>
+                <div>
+                  <span class="field-label">Unit price</span>
+                  <p class="mt-2 text-sm font-medium text-slate-900">{{ formatCurrency(line.unitPrice, line.currency) }}</p>
+                </div>
+                <div>
+                  <span class="field-label">Line total</span>
+                  <p class="mt-2 text-sm font-medium text-slate-900">{{ formatCurrency(lineTotal(line), line.currency) }}</p>
+                </div>
+              </div>
+            </article>
           </div>
 
+          <p v-else class="rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-500">
+            No line items are stored on this order.
+          </p>
+        </div>
+
+        <div class="flex justify-end">
           <button class="btn-primary" :disabled="saving || !canUpdateOrders || !hasOrderChanges" @click="saveOrder">
             <span v-if="saving" class="button-spinner" aria-hidden="true" />
             <span v-else class="button-icon" aria-hidden="true">✓</span>
             <span>{{ saving ? 'Saving order...' : 'Save order changes' }}</span>
           </button>
         </div>
-
-        <aside class="subtle-panel">
-          <h5 class="text-sm font-semibold text-slate-900">Cached product snapshot</h5>
-          <div v-if="selectedOrderId && cachedProducts[selectedOrderId]?.length" class="mt-4 space-y-3">
-            <div v-for="product in cachedProducts[selectedOrderId]" :key="product.id" class="rounded-2xl bg-white p-4">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="font-semibold text-slate-900">{{ product.name }}</p>
-                <p class="text-sm text-slate-700">{{ formatCurrency(product.currentPrice, product.currency) }}</p>
-              </div>
-              <p class="mt-2 text-xs uppercase tracking-[0.16em] text-slate-500">{{ product.sku }}</p>
-            </div>
-          </div>
-          <p v-else class="mt-4 text-sm text-slate-500">No cached product snapshot is available for this order yet.</p>
-        </aside>
       </div>
     </EntityDialog>
 
@@ -247,7 +238,7 @@ const {
             <SearchableSelect
               :model-value="createForm.customerId"
               :options="customerOptions"
-              placeholder="Search customers by name, email, or phone"
+              placeholder="Search customers by name, email, phone, or address"
               empty-label="No matching customers."
               :disabled="!canCreateOrders"
               @update:model-value="createForm.customerId = $event"
@@ -302,7 +293,7 @@ const {
                   <div>
                     <span class="field-label">Unit price</span>
                     <p class="mt-2 font-medium text-brand-700">
-                      {{ formatCurrency(variantForCreateLine(line.variantId)?.overridePrice ?? 0, variantForCreateLine(line.variantId)?.currency ?? 'USD') }}
+                      {{ formatCurrency(variantUnitPrice(variantForCreateLine(line.variantId)), variantCurrency(variantForCreateLine(line.variantId))) }}
                     </p>
                   </div>
                 </div>
@@ -335,11 +326,13 @@ const {
             <label><span class="field-label">Ward</span><input v-model="createForm.billingAddress.ward" class="text-input" /></label>
           </div>
 
-          <button class="btn-primary" :disabled="submitting || !canCreateOrders || !createOrderCanSubmit" @click="submitOrder">
-            <span v-if="submitting" class="button-spinner" aria-hidden="true" />
-            <span v-else class="button-icon" aria-hidden="true">✓</span>
-            <span>{{ submitting ? 'Creating order...' : 'Create order' }}</span>
-          </button>
+          <div class="flex justify-end">
+            <button class="btn-primary" :disabled="submitting || !canCreateOrders || !createOrderCanSubmit" @click="submitOrder">
+              <span v-if="submitting" class="button-spinner" aria-hidden="true" />
+              <span v-else class="button-icon" aria-hidden="true">✓</span>
+              <span>{{ submitting ? 'Creating order...' : 'Create order' }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </EntityDialog>

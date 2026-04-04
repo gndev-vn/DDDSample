@@ -12,6 +12,7 @@ export interface CustomerModel {
   displayName: string;
   email: string;
   phoneNumber?: string | null;
+  address?: string | null;
   isActive: boolean;
   orderCount: number;
 }
@@ -20,6 +21,7 @@ export interface CreateCustomerRequest {
   displayName: string;
   email: string;
   phoneNumber?: string | null;
+  address?: string | null;
   isActive: boolean;
 }
 
@@ -28,6 +30,7 @@ export interface UpdateCustomerRequest {
   displayName: string;
   email: string;
   phoneNumber?: string | null;
+  address?: string | null;
   isActive: boolean;
 }
 

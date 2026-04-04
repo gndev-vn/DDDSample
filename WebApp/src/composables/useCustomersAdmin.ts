@@ -1,4 +1,5 @@
 import { computed, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { orderingApi } from '../api/ordering';
 import { appPermissions } from '../lib/permissions';
 import { useAuthStore } from '../stores/auth';
@@ -8,6 +9,7 @@ import type { CreateCustomerRequest, CustomerModel, UpdateCustomerRequest } from
 export function useCustomersAdmin() {
   const authStore = useAuthStore();
   const uiStore = useUiStore();
+  const router = useRouter();
 
   const loading = ref(false);
   const creatingCustomer = ref(false);
@@ -25,6 +27,7 @@ export function useCustomersAdmin() {
     displayName: '',
     email: '',
     phoneNumber: '',
+    address: '',
     isActive: true,
   });
 
@@ -33,6 +36,7 @@ export function useCustomersAdmin() {
     displayName: '',
     email: '',
     phoneNumber: '',
+    address: '',
     isActive: true,
   });
 
@@ -50,7 +54,7 @@ export function useCustomersAdmin() {
     }
 
     return customers.value.filter((customer) =>
-      [customer.displayName, customer.email, customer.phoneNumber ?? '', customer.isActive ? 'active' : 'inactive']
+      [customer.displayName, customer.email, customer.phoneNumber ?? '', customer.address ?? '', customer.isActive ? 'active' : 'inactive']
         .join(' ')
         .toLowerCase()
         .includes(search),
@@ -69,11 +73,13 @@ export function useCustomersAdmin() {
       displayName: editCustomerForm.displayName.trim(),
       email: editCustomerForm.email.trim(),
       phoneNumber: editCustomerForm.phoneNumber?.trim() ?? '',
+      address: editCustomerForm.address?.trim() ?? '',
       isActive: editCustomerForm.isActive,
     }) !== JSON.stringify({
       displayName: selectedCustomer.value.displayName.trim(),
       email: selectedCustomer.value.email.trim(),
       phoneNumber: selectedCustomer.value.phoneNumber?.trim() ?? '',
+      address: selectedCustomer.value.address?.trim() ?? '',
       isActive: selectedCustomer.value.isActive,
     });
   });
@@ -89,6 +95,7 @@ export function useCustomersAdmin() {
       editCustomerForm.displayName = '';
       editCustomerForm.email = '';
       editCustomerForm.phoneNumber = '';
+      editCustomerForm.address = '';
       editCustomerForm.isActive = true;
       return;
     }
@@ -97,6 +104,7 @@ export function useCustomersAdmin() {
     editCustomerForm.displayName = customer.displayName;
     editCustomerForm.email = customer.email;
     editCustomerForm.phoneNumber = customer.phoneNumber ?? '';
+    editCustomerForm.address = customer.address ?? '';
     editCustomerForm.isActive = customer.isActive;
   }
 
@@ -104,6 +112,7 @@ export function useCustomersAdmin() {
     createCustomerForm.displayName = '';
     createCustomerForm.email = '';
     createCustomerForm.phoneNumber = '';
+    createCustomerForm.address = '';
     createCustomerForm.isActive = true;
   }
 
@@ -115,6 +124,15 @@ export function useCustomersAdmin() {
   function openCreateCustomerDialog() {
     resetCreateCustomerForm();
     isCreateCustomerDialogOpen.value = true;
+  }
+
+  async function viewCustomerOrders(customerId: string) {
+    if (!customerId) {
+      return;
+    }
+
+    isCustomerDialogOpen.value = false;
+    await router.push({ name: 'orders', query: { customerId } });
   }
 
   async function refreshCustomers(preserveSelection = true) {
@@ -159,6 +177,7 @@ export function useCustomersAdmin() {
         displayName: createCustomerForm.displayName,
         email: createCustomerForm.email,
         phoneNumber: createCustomerForm.phoneNumber,
+        address: createCustomerForm.address,
         isActive: createCustomerForm.isActive,
       });
 
@@ -194,6 +213,7 @@ export function useCustomersAdmin() {
         displayName: editCustomerForm.displayName,
         email: editCustomerForm.email,
         phoneNumber: editCustomerForm.phoneNumber,
+        address: editCustomerForm.address,
         isActive: editCustomerForm.isActive,
       });
 
@@ -287,6 +307,7 @@ export function useCustomersAdmin() {
     hasCustomerChanges,
     openCustomerDialog,
     openCreateCustomerDialog,
+    viewCustomerOrders,
     refreshCustomers,
     handleCreateCustomer,
     handleSaveCustomer,

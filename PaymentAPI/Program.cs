@@ -48,6 +48,7 @@ var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?
 var kafkaBootstrapServers = builder.Configuration.GetKafkaBootstrapServers();
 var paymentOrderingGroup = builder.Configuration["Wolverine:PaymentOrderingGroup"] ?? throw new InvalidOperationException();
 var paymentTopicPartitions = builder.Configuration.GetValue<int?>("Wolverine:PaymentTopicPartitions") ?? 6;
+var orderingTopicPartitions = builder.Configuration.GetValue<int?>("Wolverine:OrderingTopicPartitions") ?? 6;
 var kafkaReplicationFactor = (short)(builder.Configuration.GetValue<int?>("Wolverine:KafkaReplicationFactor") ?? 1);
 var deadLetterTopic = builder.Configuration["Wolverine:DeadLetterTopic"] ?? "ddd.kafka.dead-letter";
 
@@ -86,13 +87,21 @@ builder.Host.UseWolverine(opts =>
         .AutoProvision(_ => { });
 
     opts.LocalQueue(localEventsQueue).MaximumParallelMessages(8);
-    opts.ListenToKafkaTopics(KafkaTopics.Ordering.PaymentWorkflowTopics)
-        .ConfigureConsumer(config =>
-        {
-            config.GroupId = paymentOrderingGroup;
-            config.AutoOffsetReset = AutoOffsetReset.Earliest;
-        })
-        .EnableNativeDeadLetterQueue();
+    foreach (var topic in KafkaTopics.Ordering.PaymentWorkflowTopics)
+    {
+        opts.ListenToKafkaTopic(topic)
+            .Specification(spec =>
+            {
+                spec.NumPartitions = orderingTopicPartitions;
+                spec.ReplicationFactor = kafkaReplicationFactor;
+            })
+            .ConfigureConsumer(config =>
+            {
+                config.GroupId = paymentOrderingGroup;
+                config.AutoOffsetReset = AutoOffsetReset.Earliest;
+            })
+            .EnableNativeDeadLetterQueue();
+    }
 
     opts.PublishAllMessages().ToKafkaTopics().Specification(spec =>
     {
@@ -123,3 +132,5 @@ await app.Services.MigrateSqlServerDbContextAsync<AppDbContext>();
 await app.StartAsync();
 await WolverineSqlServerDurabilityIndexingExtensions.EnsureWolverineSqlServerDurabilityIndexesAsync(sqlConnectionString, app.Logger);
 await app.WaitForShutdownAsync();
+
+

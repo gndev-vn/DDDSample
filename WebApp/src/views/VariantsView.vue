@@ -102,7 +102,10 @@ const summaryCards = computed(() => [
                 <td class="px-4 py-4 text-slate-600">
                   {{ variant.attributes.length ? summarizeVariantAttributes(variant.attributes, 2) : 'No attributes yet' }}
                 </td>
-                <td class="px-4 py-4 text-brand-700">{{ formatCurrency(variant.overridePrice, variant.currency) }}</td>
+                <td class="px-4 py-4 text-brand-700">
+                  {{ formatCurrency(admin.effectiveVariantPrice(variant), variant.currency) }}
+                  <span v-if="admin.variantUsesProductPrice(variant)" class="ml-2 text-xs text-slate-500">Uses product price</span>
+                </td>
                 <td class="px-4 py-4 text-slate-600">{{ variant.isActive ? 'Active' : 'Inactive' }}</td>
                 <td class="px-4 py-4">
                   <div class="flex flex-wrap gap-2">
@@ -179,13 +182,17 @@ const summaryCards = computed(() => [
           <div class="grid gap-4 md:grid-cols-2">
             <label>
               <span class="field-label">Override price</span>
-              <input v-model.number="admin.variantForm.overridePrice" class="text-input" type="number" min="0" step="0.01" />
+              <input :value="admin.variantForm.overridePrice ?? ''" class="text-input" type="number" min="0" step="0.01" placeholder="Leave empty to use product price" @input="admin.setOverridePrice($event.target.value)" />
             </label>
             <label>
               <span class="field-label">Currency</span>
-              <input v-model="admin.variantForm.currency" class="text-input" />
+              <input :value="admin.effectiveCurrency.value" class="text-input" disabled />
             </label>
           </div>
+          <p class="-mt-2 text-sm text-slate-500">
+            <span v-if="admin.variantForm.overridePrice == null">This variant will use the parent product price.</span>
+            <span v-else>Set an override only when this variant must sell at a different price.</span>
+          </p>
           <label>
             <span class="field-label">Description</span>
             <textarea v-model="admin.variantForm.description" class="text-area" />
@@ -203,7 +210,7 @@ const summaryCards = computed(() => [
         />
       </div>
 
-      <div class="mt-6 flex flex-wrap gap-2">
+      <div class="mt-6 flex flex-wrap justify-end gap-2">
         <button class="btn-primary" :disabled="admin.saving.value || !(admin.variantForm.id ? admin.canUpdateVariants.value : admin.canCreateVariants.value) || !admin.variantCanSave.value" @click="admin.saveVariant">
           <span v-if="admin.saving.value" class="button-spinner" aria-hidden="true" />
           <span v-else class="button-icon" aria-hidden="true">✓</span>
@@ -216,7 +223,5 @@ const summaryCards = computed(() => [
     </EntityDialog>
   </section>
 </template>
-
-
 
 

@@ -9,5 +9,6 @@ public sealed class CreateCustomerRequestValidator : AbstractValidator<CreateCus
         RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(320);
         RuleFor(x => x.PhoneNumber).MaximumLength(32);
+        RuleFor(x => x.Address).MaximumLength(500);
     }
 }

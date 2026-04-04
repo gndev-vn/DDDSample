@@ -5,7 +5,7 @@ using Shared.Exceptions;
 
 namespace OrderingAPI.Features.Customers.UpdateCustomer;
 
-public sealed record UpdateCustomerCommand(Guid Id, string DisplayName, string Email, string? PhoneNumber, bool IsActive) : IRequest<CustomerModel>;
+public sealed record UpdateCustomerCommand(Guid Id, string DisplayName, string Email, string? PhoneNumber, bool IsActive, string? Address = null) : IRequest<CustomerModel>;
 
 public sealed class UpdateCustomerCommandHandler(AppDbContext dbContext) : IRequestHandler<UpdateCustomerCommand, CustomerModel>
 {
@@ -21,7 +21,7 @@ public sealed class UpdateCustomerCommandHandler(AppDbContext dbContext) : IRequ
             throw new BusinessRuleException($"Customer email '{normalizedEmail}' is already in use.");
         }
 
-        customer.Update(command.DisplayName, normalizedEmail, command.PhoneNumber, command.IsActive);
+        customer.Update(command.DisplayName, normalizedEmail, command.PhoneNumber, command.IsActive, command.Address);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new CustomerModel
@@ -30,8 +30,9 @@ public sealed class UpdateCustomerCommandHandler(AppDbContext dbContext) : IRequ
             DisplayName = customer.DisplayName,
             Email = customer.Email,
             PhoneNumber = customer.PhoneNumber,
+            Address = customer.Address,
             IsActive = customer.IsActive,
-            OrderCount = await dbContext.Orders.CountAsync(order => order.CustomerId == customer.Id, cancellationToken)
+            OrderCount = await dbContext.Orders.CountAsync(order => order.CustomerId == customer.Id, cancellationToken),
         };
     }
 }

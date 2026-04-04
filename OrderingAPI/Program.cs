@@ -56,6 +56,8 @@ var sqlConnectionString = builder.Configuration.GetConnectionString("Default") ?
 var kafkaBootstrapServers = builder.Configuration.GetKafkaBootstrapServers();
 var deadLetterTopic = builder.Configuration["Wolverine:DeadLetterTopic"] ?? "ddd.kafka.dead-letter";
 var orderingTopicPartitions = builder.Configuration.GetValue<int?>("Wolverine:OrderingTopicPartitions") ?? 6;
+var catalogTopicPartitions = builder.Configuration.GetValue<int?>("Wolverine:CatalogTopicPartitions") ?? 6;
+var paymentTopicPartitions = builder.Configuration.GetValue<int?>("Wolverine:PaymentTopicPartitions") ?? 6;
 var kafkaReplicationFactor = (short)(builder.Configuration.GetValue<int?>("Wolverine:KafkaReplicationFactor") ?? 1);
 var orderingCatalogGroup = builder.Configuration["Wolverine:OrderingCatalogGroup"] ?? throw new InvalidOperationException();
 var orderingPaymentGroup = builder.Configuration["Wolverine:OrderingPaymentGroup"] ?? throw new InvalidOperationException();
@@ -104,21 +106,37 @@ builder.Host.UseWolverine(opts =>
         spec.ReplicationFactor = kafkaReplicationFactor;
     });
 
-    opts.ListenToKafkaTopics(KafkaTopics.Catalog.OrderingProjectionTopics)
-        .ConfigureConsumer(config =>
-        {
-            config.GroupId = orderingCatalogGroup;
-            config.AutoOffsetReset = AutoOffsetReset.Earliest;
-        })
-        .EnableNativeDeadLetterQueue();
+    foreach (var topic in KafkaTopics.Catalog.OrderingProjectionTopics)
+    {
+        opts.ListenToKafkaTopic(topic)
+            .Specification(spec =>
+            {
+                spec.NumPartitions = catalogTopicPartitions;
+                spec.ReplicationFactor = kafkaReplicationFactor;
+            })
+            .ConfigureConsumer(config =>
+            {
+                config.GroupId = orderingCatalogGroup;
+                config.AutoOffsetReset = AutoOffsetReset.Earliest;
+            })
+            .EnableNativeDeadLetterQueue();
+    }
 
-    opts.ListenToKafkaTopics(KafkaTopics.Payment.OrderingWorkflowTopics)
-        .ConfigureConsumer(config =>
-        {
-            config.GroupId = orderingPaymentGroup;
-            config.AutoOffsetReset = AutoOffsetReset.Earliest;
-        })
-        .EnableNativeDeadLetterQueue();
+    foreach (var topic in KafkaTopics.Payment.OrderingWorkflowTopics)
+    {
+        opts.ListenToKafkaTopic(topic)
+            .Specification(spec =>
+            {
+                spec.NumPartitions = paymentTopicPartitions;
+                spec.ReplicationFactor = kafkaReplicationFactor;
+            })
+            .ConfigureConsumer(config =>
+            {
+                config.GroupId = orderingPaymentGroup;
+                config.AutoOffsetReset = AutoOffsetReset.Earliest;
+            })
+            .EnableNativeDeadLetterQueue();
+    }
 
     opts.PersistMessagesWithSqlServer(sqlConnectionString, schema: "wolverine");
     opts.UseEntityFrameworkCoreTransactions();
@@ -155,3 +173,5 @@ await using (var scope = app.Services.CreateAsyncScope())
 await app.StartAsync();
 await WolverineSqlServerDurabilityIndexingExtensions.EnsureWolverineSqlServerDurabilityIndexesAsync(sqlConnectionString, app.Logger);
 await app.WaitForShutdownAsync();
+
+

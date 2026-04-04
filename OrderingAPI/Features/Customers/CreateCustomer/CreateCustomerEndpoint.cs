@@ -19,7 +19,9 @@ public static class CreateCustomerEndpoint
                     CancellationToken cancellationToken) =>
                 {
                     await validator.ValidateAndThrowAsync(request, cancellationToken);
-                    var result = await mediator.Send(new CreateCustomerCommand(request.DisplayName, request.Email, request.PhoneNumber, request.IsActive), cancellationToken);
+                    var result = await mediator.Send(
+                        new CreateCustomerCommand(request.DisplayName, request.Email, request.PhoneNumber, request.IsActive, request.Address),
+                        cancellationToken);
                     return TypedResults.Created($"/api/Customers/{result.Id}", ApiResponse.Success(result, "Customer created successfully"));
                 })
             .WithName("CreateCustomer")

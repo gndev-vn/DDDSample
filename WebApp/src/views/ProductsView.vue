@@ -145,7 +145,7 @@ const selectedProductAttributeCount = computed(() => {
                 <td class="px-4 py-4 text-slate-600">{{ admin.variantsForProduct(product.id).length }}</td>
                 <td class="px-4 py-4 text-slate-600">{{ product.isActive ? 'Active' : 'Inactive' }}</td>
                 <td class="px-4 py-4">
-                  <div class="flex flex-wrap gap-2">
+                  <div class="flex flex-wrap justify-end gap-2">
                     <button
                       class="icon-button"
                       :disabled="!admin.canCreateVariants.value"
@@ -192,13 +192,13 @@ const selectedProductAttributeCount = computed(() => {
                     </div>
                   </td>
                   <td class="px-4 py-4 text-slate-500">Variant of {{ product.name }}</td>
-                  <td class="px-4 py-4 text-brand-700">{{ formatCurrency(variant.overridePrice, variant.currency) }}</td>
+                  <td class="px-4 py-4 text-brand-700">{{ formatCurrency(admin.effectiveVariantPrice(variant), variant.currency) }}</td>
                   <td class="px-4 py-4 text-slate-600">
                     {{ variant.attributes.length ? summarizeVariantAttributes(variant.attributes, 2) : 'No attributes yet' }}
                   </td>
                   <td class="px-4 py-4 text-slate-600">{{ variant.isActive ? 'Active' : 'Inactive' }}</td>
                   <td class="px-4 py-4">
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap justify-end gap-2">
                       <button
                         class="icon-button"
                         title="Edit variant"
@@ -318,9 +318,9 @@ const selectedProductAttributeCount = computed(() => {
                     <td class="px-4 py-4 text-slate-600">
                       {{ variant.attributes.length ? summarizeVariantAttributes(variant.attributes, 3) : 'No attributes yet' }}
                     </td>
-                    <td class="px-4 py-4 text-brand-700">{{ formatCurrency(variant.overridePrice, variant.currency) }}</td>
+                    <td class="px-4 py-4 text-brand-700">{{ formatCurrency(admin.effectiveVariantPrice(variant), variant.currency) }}</td>
                     <td class="px-4 py-4">
-                      <div class="flex flex-wrap gap-2">
+                      <div class="flex flex-wrap justify-end gap-2">
                         <button class="icon-button" title="Edit variant" aria-label="Edit variant" @click="admin.openExistingVariantDialog(variant)">
                           <span class="icon-glyph">✎</span>
                         </button>
@@ -351,9 +351,9 @@ const selectedProductAttributeCount = computed(() => {
                     <td class="px-4 py-4 text-slate-600">
                       {{ draft.attributes.length ? draft.attributes.length + ' attribute assignment(s)' : 'No attributes yet' }}
                     </td>
-                    <td class="px-4 py-4 text-brand-700">{{ formatCurrency(draft.overridePrice, draft.currency) }}</td>
+                    <td class="px-4 py-4 text-brand-700">{{ formatCurrency(draft.overridePrice ?? admin.productForm.basePrice, draft.currency || admin.productForm.currency) }}</td>
                     <td class="px-4 py-4">
-                      <div class="flex flex-wrap gap-2">
+                      <div class="flex flex-wrap justify-end gap-2">
                         <button class="icon-button" title="Edit draft" aria-label="Edit draft variant" @click="admin.openDraftVariantDialog(draft.id)">
                           <span class="icon-glyph">✎</span>
                         </button>
@@ -371,7 +371,7 @@ const selectedProductAttributeCount = computed(() => {
             </div>
           </div>
 
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap justify-end gap-2">
             <button
               class="btn-primary"
               :disabled="admin.saving.value || !(admin.productForm.id ? admin.canUpdateProducts.value : admin.canCreateProducts.value) || !admin.productCanSave.value"
@@ -469,13 +469,17 @@ const selectedProductAttributeCount = computed(() => {
           <div class="grid gap-4 md:grid-cols-2">
             <label>
               <span class="field-label">Override price</span>
-              <input v-model.number="admin.variantForm.overridePrice" class="text-input" type="number" min="0" step="0.01" />
+              <input :value="admin.variantForm.overridePrice ?? ''" class="text-input" type="number" min="0" step="0.01" placeholder="Leave empty to use product price" @input="admin.setVariantOverridePrice($event.target.value)" />
             </label>
             <label>
               <span class="field-label">Currency</span>
-              <input v-model="admin.variantForm.currency" class="text-input" />
+              <input :value="admin.currentVariantCurrency()" class="text-input" disabled />
             </label>
           </div>
+          <p class="-mt-2 text-sm text-slate-500">
+            <span v-if="admin.variantForm.overridePrice == null">This variant will use the current product price.</span>
+            <span v-else>Set an override only when this variant must sell at a different price.</span>
+          </p>
           <label>
             <span class="field-label">Description</span>
             <textarea v-model="admin.variantForm.description" class="text-area" />
@@ -517,6 +521,9 @@ const selectedProductAttributeCount = computed(() => {
     </EntityDialog>
   </section>
 </template>
+
+
+
 
 
 

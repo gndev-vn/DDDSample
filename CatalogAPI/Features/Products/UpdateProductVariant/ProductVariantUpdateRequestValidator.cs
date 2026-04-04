@@ -19,7 +19,8 @@ public sealed class ProductVariantUpdateRequestValidator : AbstractValidator<Pro
         RuleFor(x => x.ParentId)
             .NotEmpty();
         RuleFor(x => x.OverridePrice)
-            .GreaterThanOrEqualTo(0);
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.OverridePrice.HasValue);
         RuleFor(x => x.Currency)
             .NotEmpty()
             .Length(3);

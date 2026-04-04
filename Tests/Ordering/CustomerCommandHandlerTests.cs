@@ -36,7 +36,7 @@ public sealed class CustomerCommandHandlerTests : IDisposable
         await using var dbContext = NewContext();
         var handler = new CreateCustomerCommandHandler(dbContext);
 
-        var result = await handler.Handle(new CreateCustomerCommand("Alex Nguyen", "alex@example.com", "+84 901 000 111", true), CancellationToken.None);
+        var result = await handler.Handle(new CreateCustomerCommand("Alex Nguyen", "alex@example.com", "+84 901 000 111", true, "123 Main Street"), CancellationToken.None);
 
         await using var assertContext = NewContext();
         var customer = await assertContext.Customers.SingleAsync(item => item.Id == result.Id);
@@ -49,7 +49,7 @@ public sealed class CustomerCommandHandlerTests : IDisposable
     [Fact]
     public async Task UpdateCustomer_ChangesEditableFields()
     {
-        var customer = Customer.Create(Guid.NewGuid(), "Jamie Tran", "jamie@example.com", null, true);
+        var customer = Customer.Create(Guid.NewGuid(), "Jamie Tran", "jamie@example.com", null, true, "Old address");
         await using (var seedContext = NewContext())
         {
             seedContext.Customers.Add(customer);
@@ -59,7 +59,7 @@ public sealed class CustomerCommandHandlerTests : IDisposable
         await using var dbContext = NewContext();
         var handler = new UpdateCustomerCommandHandler(dbContext);
 
-        var result = await handler.Handle(new UpdateCustomerCommand(customer.Id, "Jamie T.", "jamie.t@example.com", "+84 902 000 222", false), CancellationToken.None);
+        var result = await handler.Handle(new UpdateCustomerCommand(customer.Id, "Jamie T.", "jamie.t@example.com", "+84 902 000 222", false, "45 Updated Avenue"), CancellationToken.None);
 
         Assert.Equal("Jamie T.", result.DisplayName);
         Assert.Equal("jamie.t@example.com", result.Email);
@@ -92,3 +92,5 @@ public sealed class CustomerCommandHandlerTests : IDisposable
         await Assert.ThrowsAsync<BusinessRuleException>(() => handler.Handle(new DeleteCustomerCommand(customer.Id), CancellationToken.None).AsTask());
     }
 }
+
+

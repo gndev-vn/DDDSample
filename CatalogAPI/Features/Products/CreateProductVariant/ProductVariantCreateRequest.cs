@@ -7,6 +7,6 @@ public sealed record ProductVariantCreateRequest(
     string Sku,
     string Description,
     Guid ParentId,
-    decimal OverridePrice,
+    decimal? OverridePrice,
     string Currency,
     List<ProductVariantAttributeValueRequest> Attributes);

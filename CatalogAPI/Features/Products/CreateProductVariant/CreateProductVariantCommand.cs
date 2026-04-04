@@ -23,8 +23,8 @@ public sealed class CreateProductVariantCommandHandler(AppDbContext dbContext)
         }
 
         var resolvedAttributes = await ResolveAttributes(command.Model.Attributes, cancellationToken);
-        var overridePrice = command.Model.OverridePrice > 0
-            ? new Money(command.Model.OverridePrice, command.Model.Currency)
+        var overridePrice = command.Model.OverridePrice.HasValue
+            ? new Money(command.Model.OverridePrice.Value, command.Model.Currency)
             : null;
 
         var productVariant = product.AddVariant(
@@ -36,7 +36,7 @@ public sealed class CreateProductVariantCommandHandler(AppDbContext dbContext)
 
         dbContext.ProductVariants.Add(productVariant);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return ProductVariantMappings.ToResponse(productVariant);
+        return ProductVariantMappings.ToResponse(productVariant, product.BasePrice.Currency);
     }
 
     private async Task<List<VariantAttribute>> ResolveAttributes(

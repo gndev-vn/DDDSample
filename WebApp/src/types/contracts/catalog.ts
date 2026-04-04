@@ -43,7 +43,7 @@ export interface ProductVariantResponse {
   sku: string;
   description: string;
   currency: string;
-  overridePrice: number;
+  overridePrice: number | null;
   isActive: boolean;
   attributes: ProductVariantAttributeModel[];
 }
@@ -92,7 +92,7 @@ export interface ProductVariantCreateRequest {
   sku: string;
   description: string;
   parentId: string;
-  overridePrice: number;
+  overridePrice: number | null;
   currency: string;
   attributes: ProductVariantAttributeValueRequest[];
 }
@@ -103,7 +103,7 @@ export interface ProductVariantUpdateRequest {
   sku: string;
   description: string;
   parentId: string;
-  overridePrice: number;
+  overridePrice: number | null;
   currency: string;
   attributes: ProductVariantAttributeValueRequest[];
 }

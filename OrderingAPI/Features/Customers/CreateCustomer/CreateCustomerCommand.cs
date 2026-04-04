@@ -6,7 +6,7 @@ using Shared.Exceptions;
 
 namespace OrderingAPI.Features.Customers.CreateCustomer;
 
-public sealed record CreateCustomerCommand(string DisplayName, string Email, string? PhoneNumber, bool IsActive) : IRequest<CustomerModel>;
+public sealed record CreateCustomerCommand(string DisplayName, string Email, string? PhoneNumber, bool IsActive, string? Address = null) : IRequest<CustomerModel>;
 
 public sealed class CreateCustomerCommandHandler(AppDbContext dbContext) : IRequestHandler<CreateCustomerCommand, CustomerModel>
 {
@@ -19,7 +19,7 @@ public sealed class CreateCustomerCommandHandler(AppDbContext dbContext) : IRequ
             throw new BusinessRuleException($"Customer email '{normalizedEmail}' is already in use.");
         }
 
-        var customer = Customer.Create(command.DisplayName, normalizedEmail, command.PhoneNumber, command.IsActive);
+        var customer = Customer.Create(command.DisplayName, normalizedEmail, command.PhoneNumber, command.IsActive, command.Address);
         await dbContext.Customers.AddAsync(customer, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -29,8 +29,9 @@ public sealed class CreateCustomerCommandHandler(AppDbContext dbContext) : IRequ
             DisplayName = customer.DisplayName,
             Email = customer.Email,
             PhoneNumber = customer.PhoneNumber,
+            Address = customer.Address,
             IsActive = customer.IsActive,
-            OrderCount = 0
+            OrderCount = 0,
         };
     }
 }

@@ -5,14 +5,19 @@ using Shared.Models;
 
 namespace OrderingAPI.Features.Orders.GetOrders;
 
-public record GetOrdersQuery : IRequest<List<OrderingAPI.Features.Orders.GetOrderById.OrderModel>>;
+public sealed record GetOrdersQuery(Guid? CustomerId = null) : IRequest<List<OrderingAPI.Features.Orders.GetOrderById.OrderModel>>;
 
 public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<GetOrdersQuery, List<OrderingAPI.Features.Orders.GetOrderById.OrderModel>>
 {
     public async ValueTask<List<OrderingAPI.Features.Orders.GetOrderById.OrderModel>> Handle(GetOrdersQuery request, CancellationToken cancellationToken)
     {
-        return await dbContext.Orders
-            .AsNoTracking()
+        var orders = dbContext.Orders.AsNoTracking();
+        if (request.CustomerId.HasValue)
+        {
+            orders = orders.Where(order => order.CustomerId == request.CustomerId.Value);
+        }
+
+        return await orders
             .Select(o => new OrderingAPI.Features.Orders.GetOrderById.OrderModel
             {
                 Id = o.Id,
@@ -35,9 +40,10 @@ public class GetOrdersQueryHandler(AppDbContext dbContext) : IRequestHandler<Get
                     Sku = l.Sku.Value,
                     Quantity = l.Quantity.Value,
                     UnitPrice = l.Total.Amount,
-                    Currency = l.Total.Currency
-                }).ToList()
+                    Currency = l.Total.Currency,
+                }).ToList(),
             })
             .ToListAsync(cancellationToken);
     }
 }
+

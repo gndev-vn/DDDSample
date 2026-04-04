@@ -25,7 +25,9 @@ public static class UpdateCustomerEndpoint
                     }
 
                     await validator.ValidateAndThrowAsync(request, cancellationToken);
-                    var result = await mediator.Send(new UpdateCustomerCommand(request.Id, request.DisplayName, request.Email, request.PhoneNumber, request.IsActive), cancellationToken);
+                    var result = await mediator.Send(
+                        new UpdateCustomerCommand(request.Id, request.DisplayName, request.Email, request.PhoneNumber, request.IsActive, request.Address),
+                        cancellationToken);
                     return TypedResults.Ok(ApiResponse.Success(result, "Customer updated successfully"));
                 })
             .WithName("UpdateCustomer")
