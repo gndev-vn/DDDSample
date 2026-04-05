@@ -58,7 +58,6 @@ const {
           Review order state, update shipping details, and create new orders from sellable variants.
         </p>
       </div>
-
       <div class="flex w-full flex-wrap gap-3 md:w-auto md:justify-end">
         <input v-model="orderSearch" class="toolbar-search" placeholder="Search orders, customers, SKUs, or product ids" />
         <button class="btn-primary" :disabled="!canCreateOrders" @click="openCreateOrderDialog">
@@ -231,108 +230,115 @@ const {
     </EntityDialog>
 
     <EntityDialog :open="isCreateOrderDialogOpen" title="New order" description="Create a new order with one or more product variants." width-class="max-w-6xl" @close="isCreateOrderDialogOpen = false">
-      <div class="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-        <div class="space-y-4">
-          <label>
-            <span class="field-label">Customer</span>
-            <SearchableSelect
-              :model-value="createForm.customerId"
-              :options="customerOptions"
-              placeholder="Search customers by name, email, phone, or address"
-              empty-label="No matching customers."
-              :disabled="!canCreateOrders"
-              @update:model-value="createForm.customerId = $event"
-            />
-          </label>
+      <div class="space-y-6">
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+          <div class="section-panel space-y-4">
+            <label>
+              <span class="field-label">Customer</span>
+              <SearchableSelect
+                :model-value="createForm.customerId"
+                :options="customerOptions"
+                placeholder="Search customers by name, email, phone, or address"
+                empty-label="No matching customers."
+                :disabled="!canCreateOrders"
+                @update:model-value="createForm.customerId = $event"
+              />
+            </label>
 
-          <div class="rounded-[24px] bg-[var(--color-surface-low)] p-5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p class="workspace-label">Order lines</p>
-                <h4 class="mt-2 section-title">Variants in this order</h4>
+            <div class="rounded-[24px] bg-[var(--color-surface-low)] p-5">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p class="workspace-label">Order lines</p>
+                  <h4 class="mt-2 section-title">Variants in this order</h4>
+                </div>
+                <button class="btn-secondary" :disabled="!canCreateOrders" @click="addCreateLine">
+                  <span class="button-icon" aria-hidden="true">＋</span>
+                  <span>Add variant</span>
+                </button>
               </div>
-              <button class="btn-secondary" :disabled="!canCreateOrders" @click="addCreateLine">
-                <span class="button-icon" aria-hidden="true">＋</span>
-                <span>Add variant</span>
-              </button>
+
+              <div v-if="!createForm.lines.length" class="mt-4 rounded-2xl border border-dashed border-[var(--color-border-strong)] bg-white px-5 py-10 text-center">
+                <p class="text-sm font-medium text-[var(--color-ink)]">No variants added yet.</p>
+                <p class="mt-2 text-sm text-[var(--color-ink-muted)]">Start by selecting a customer, then add the first variant line for this order.</p>
+              </div>
+
+              <div v-else class="mt-4 space-y-3">
+                <article v-for="line in createForm.lines" :key="line.id" class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                  <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_120px_auto] md:items-end">
+                    <label>
+                      <span class="field-label">Variant</span>
+                      <SearchableSelect
+                        :model-value="line.variantId"
+                        :options="variantOptions"
+                        placeholder="Search variants by name or SKU"
+                        empty-label="No matching variants."
+                        :disabled="!canCreateOrders"
+                        @update:model-value="selectCreateLineVariant(line.id, $event)"
+                      />
+                    </label>
+                    <label>
+                      <span class="field-label">Quantity</span>
+                      <input v-model.number="line.quantity" class="text-input" min="1" type="number" />
+                    </label>
+                    <button class="btn-danger" :disabled="!canCreateOrders" @click="removeCreateLine(line.id)">
+                      <span class="button-icon" aria-hidden="true">−</span>
+                      <span>Remove</span>
+                    </button>
+                  </div>
+
+                  <div v-if="variantForCreateLine(line.variantId)" class="mt-4 grid gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700 md:grid-cols-3">
+                    <div>
+                      <span class="field-label">Variant</span>
+                      <p class="mt-2 font-medium text-slate-900">{{ variantForCreateLine(line.variantId)?.name }}</p>
+                    </div>
+                    <div>
+                      <span class="field-label">SKU</span>
+                      <p class="mt-2 font-medium text-slate-900">{{ variantForCreateLine(line.variantId)?.sku }}</p>
+                    </div>
+                    <div>
+                      <span class="field-label">Unit price</span>
+                      <p class="mt-2 font-medium text-brand-700">
+                        {{ formatCurrency(variantUnitPrice(variantForCreateLine(line.variantId)), variantCurrency(variantForCreateLine(line.variantId))) }}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-panel space-y-4">
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="md:col-span-2"><span class="field-label">Shipping line 1</span><input v-model="createForm.shippingAddress.line1" class="text-input" /></label>
+              <label><span class="field-label">Shipping line 2</span><input v-model="createForm.shippingAddress.line2" class="text-input" /></label>
+              <label><span class="field-label">City</span><input v-model="createForm.shippingAddress.city" class="text-input" /></label>
+              <label><span class="field-label">Province</span><input v-model="createForm.shippingAddress.province" class="text-input" /></label>
+              <label><span class="field-label">District</span><input v-model="createForm.shippingAddress.district" class="text-input" /></label>
+              <label><span class="field-label">Ward</span><input v-model="createForm.shippingAddress.ward" class="text-input" /></label>
             </div>
 
-            <div class="mt-4 space-y-3">
-              <article v-for="line in createForm.lines" :key="line.id" class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-                <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_120px_auto] md:items-end">
-                  <label>
-                    <span class="field-label">Variant</span>
-                    <SearchableSelect
-                      :model-value="line.variantId"
-                      :options="variantOptions"
-                      placeholder="Search variants by name or SKU"
-                      empty-label="No matching variants."
-                      :disabled="!canCreateOrders"
-                      @update:model-value="selectCreateLineVariant(line.id, $event)"
-                    />
-                  </label>
-                  <label>
-                    <span class="field-label">Quantity</span>
-                    <input v-model.number="line.quantity" class="text-input" min="1" type="number" />
-                  </label>
-                  <button class="btn-danger" :disabled="!canCreateOrders" @click="removeCreateLine(line.id)">
-                    <span class="button-icon" aria-hidden="true">−</span>
-                    <span>Remove</span>
-                  </button>
-                </div>
+            <label class="flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
+              <input v-model="createForm.billingSameAsShipping" type="checkbox" />
+              Billing address is the same as shipping
+            </label>
 
-                <div v-if="variantForCreateLine(line.variantId)" class="mt-4 grid gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700 md:grid-cols-3">
-                  <div>
-                    <span class="field-label">Variant</span>
-                    <p class="mt-2 font-medium text-slate-900">{{ variantForCreateLine(line.variantId)?.name }}</p>
-                  </div>
-                  <div>
-                    <span class="field-label">SKU</span>
-                    <p class="mt-2 font-medium text-slate-900">{{ variantForCreateLine(line.variantId)?.sku }}</p>
-                  </div>
-                  <div>
-                    <span class="field-label">Unit price</span>
-                    <p class="mt-2 font-medium text-brand-700">
-                      {{ formatCurrency(variantUnitPrice(variantForCreateLine(line.variantId)), variantCurrency(variantForCreateLine(line.variantId))) }}
-                    </p>
-                  </div>
-                </div>
-              </article>
+            <div v-if="!createForm.billingSameAsShipping" class="grid gap-4 md:grid-cols-2">
+              <label class="md:col-span-2"><span class="field-label">Billing line 1</span><input v-model="createForm.billingAddress.line1" class="text-input" /></label>
+              <label><span class="field-label">Billing line 2</span><input v-model="createForm.billingAddress.line2" class="text-input" /></label>
+              <label><span class="field-label">City</span><input v-model="createForm.billingAddress.city" class="text-input" /></label>
+              <label><span class="field-label">Province</span><input v-model="createForm.billingAddress.province" class="text-input" /></label>
+              <label><span class="field-label">District</span><input v-model="createForm.billingAddress.district" class="text-input" /></label>
+              <label><span class="field-label">Ward</span><input v-model="createForm.billingAddress.ward" class="text-input" /></label>
             </div>
           </div>
         </div>
 
-        <div class="space-y-4">
-          <div class="grid gap-4 md:grid-cols-2">
-            <label class="md:col-span-2"><span class="field-label">Shipping line 1</span><input v-model="createForm.shippingAddress.line1" class="text-input" /></label>
-            <label><span class="field-label">Shipping line 2</span><input v-model="createForm.shippingAddress.line2" class="text-input" /></label>
-            <label><span class="field-label">City</span><input v-model="createForm.shippingAddress.city" class="text-input" /></label>
-            <label><span class="field-label">Province</span><input v-model="createForm.shippingAddress.province" class="text-input" /></label>
-            <label><span class="field-label">District</span><input v-model="createForm.shippingAddress.district" class="text-input" /></label>
-            <label><span class="field-label">Ward</span><input v-model="createForm.shippingAddress.ward" class="text-input" /></label>
-          </div>
-
-          <label class="flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
-            <input v-model="createForm.billingSameAsShipping" type="checkbox" />
-            Billing address is the same as shipping
-          </label>
-
-          <div v-if="!createForm.billingSameAsShipping" class="grid gap-4 md:grid-cols-2">
-            <label class="md:col-span-2"><span class="field-label">Billing line 1</span><input v-model="createForm.billingAddress.line1" class="text-input" /></label>
-            <label><span class="field-label">Billing line 2</span><input v-model="createForm.billingAddress.line2" class="text-input" /></label>
-            <label><span class="field-label">City</span><input v-model="createForm.billingAddress.city" class="text-input" /></label>
-            <label><span class="field-label">Province</span><input v-model="createForm.billingAddress.province" class="text-input" /></label>
-            <label><span class="field-label">District</span><input v-model="createForm.billingAddress.district" class="text-input" /></label>
-            <label><span class="field-label">Ward</span><input v-model="createForm.billingAddress.ward" class="text-input" /></label>
-          </div>
-
-          <div class="flex justify-end">
-            <button class="btn-primary" :disabled="submitting || !canCreateOrders || !createOrderCanSubmit" @click="submitOrder">
-              <span v-if="submitting" class="button-spinner" aria-hidden="true" />
-              <span v-else class="button-icon" aria-hidden="true">✓</span>
-              <span>{{ submitting ? 'Creating order...' : 'Create order' }}</span>
-            </button>
-          </div>
+        <div class="flex justify-end">
+          <button class="btn-primary" :disabled="submitting || !canCreateOrders || !createOrderCanSubmit" @click="submitOrder">
+            <span v-if="submitting" class="button-spinner" aria-hidden="true" />
+            <span v-else class="button-icon" aria-hidden="true">✓</span>
+            <span>{{ submitting ? 'Creating order...' : 'Create order' }}</span>
+          </button>
         </div>
       </div>
     </EntityDialog>

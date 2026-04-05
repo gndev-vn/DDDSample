@@ -151,7 +151,7 @@ const {
         <div class="grid gap-4 md:grid-cols-3">
           <div class="subtle-panel"><p class="workspace-label">Created</p><p class="mt-2 text-sm font-medium text-slate-900">{{ formatDate(selectedUser.createdAt) }}</p></div>
           <div class="subtle-panel"><p class="workspace-label">Last updated</p><p class="mt-2 text-sm font-medium text-slate-900">{{ formatDate(selectedUser.updatedAt) }}</p></div>
-          <label class="flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700"><input v-model="editUserForm.isActive" type="checkbox" />Keep account active</label>
+          <label class="flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700"><input v-model="editUserForm.isActive" type="checkbox" />Active?</label>
         </div>
 
         <div>
@@ -165,7 +165,7 @@ const {
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <button class="btn-primary" :disabled="savingUser || !assignedRoles.length || !canUpdateUsers || !hasUserChanges" @click="handleSaveUser"><span v-if="savingUser" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">✓</span><span>{{ savingUser ? 'Saving changes...' : 'Save user changes' }}</span></button>
+          <button class="btn-primary" :disabled="savingUser || !canUpdateUsers || !hasUserChanges" @click="handleSaveUser"><span v-if="savingUser" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">✓</span><span>{{ savingUser ? 'Saving changes...' : 'Save user changes' }}</span></button>
           <button class="btn-danger" :disabled="deletingUserId === selectedUser.id || !canDeleteUsers" @click="handleDeleteUser(selectedUser)"><span v-if="deletingUserId === selectedUser.id" class="button-spinner" aria-hidden="true" /><span v-else class="button-icon" aria-hidden="true">✕</span><span>{{ deletingUserId === selectedUser.id ? 'Deleting...' : 'Delete user' }}</span></button>
         </div>
       </div>
@@ -183,7 +183,7 @@ const {
           <SearchableSelect v-model="createUserForm.customerId" :options="customerOptions" placeholder="Search customers to enable storefront login..." empty-label="No customers available." />
           <p class="text-xs text-slate-500">Choose a customer to create a customer-side login account tied to that customer record.</p>
         </div>
-        <label class="md:col-span-2 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700"><input v-model="createUserForm.isActive" type="checkbox" />Create account as active</label>
+        <label class="md:col-span-2 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700"><input v-model="createUserForm.isActive" type="checkbox" />Active?</label>
         <div class="md:col-span-2">
           <span class="field-label">Initial roles</span>
           <div class="grid gap-3 md:grid-cols-2">
@@ -198,3 +198,5 @@ const {
     </EntityDialog>
   </section>
 </template>
+
+

@@ -14,7 +14,7 @@ const uiStore = useUiStore();
 
 <template>
   <div v-if="!authStore.initialized" class="flex min-h-screen items-center justify-center bg-[var(--color-page)] px-4">
-    <div class="rounded-[28px] bg-white px-8 py-8 text-center shadow-[0_30px_80px_rgba(15,23,42,0.24)]">
+    <div class="rounded-[28px] border border-[var(--color-border)] bg-white px-8 py-8 text-center shadow-[0_30px_80px_rgba(15,23,42,0.18)]">
       <p class="workspace-label text-brand-700">DDDSample</p>
       <h2 class="mt-3 text-2xl font-semibold text-slate-950">Restoring session</h2>
       <p class="mt-3 text-sm text-slate-600">Loading your operator workspace...</p>
@@ -26,18 +26,24 @@ const uiStore = useUiStore();
 
   <template v-else-if="authStore.isAuthenticated">
     <AppShell>
-      <RouterView />
+      <RouterView v-slot="{ Component, route }">
+        <Transition name="route-fade" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </Transition>
+      </RouterView>
     </AppShell>
     <div v-if="uiStore.pageLoading" class="page-loading-overlay" aria-hidden="true">
       <div class="page-loading-bar" />
     </div>
     <GlobalLoginDialog />
     <ConfirmDialog />
-    <ToastHost />
   </template>
 
   <template v-else>
-    <LoginPage />
-    <ToastHost />
+    <Transition name="route-fade" mode="out-in">
+      <LoginPage key="login-page" />
+    </Transition>
   </template>
+
+  <ToastHost />
 </template>

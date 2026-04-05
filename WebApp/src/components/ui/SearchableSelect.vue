@@ -104,23 +104,25 @@ onBeforeUnmount(() => {
       @input="handleInput"
     />
 
-    <div
-      v-if="isOpen && !disabled"
-      class="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl"
-    >
-      <button
-        v-for="option in filteredOptions"
-        :key="option.value"
-        class="flex w-full flex-col rounded-2xl px-3 py-2 text-left transition hover:bg-slate-50"
-        type="button"
-        @click="chooseOption(option)"
+    <Transition name="select-menu">
+      <div
+        v-if="isOpen && !disabled"
+        class="select-menu absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.16)]"
       >
-        <span class="text-sm font-medium text-slate-900">{{ option.label }}</span>
-        <span v-if="option.description" class="mt-1 text-xs text-slate-500">{{ option.description }}</span>
-      </button>
+        <button
+          v-for="option in filteredOptions"
+          :key="option.value"
+          class="flex w-full flex-col rounded-2xl px-3 py-2 text-left transition hover:bg-[var(--color-surface-low)]"
+          type="button"
+          @click="chooseOption(option)"
+        >
+          <span class="text-sm font-medium text-slate-950">{{ option.label }}</span>
+          <span v-if="option.description" class="mt-1 text-xs text-slate-600">{{ option.description }}</span>
+        </button>
 
-      <p v-if="!filteredOptions.length" class="px-3 py-2 text-sm text-slate-500">{{ emptyLabel }}</p>
-    </div>
+        <p v-if="!filteredOptions.length" class="px-3 py-2 text-sm text-slate-600">{{ emptyLabel }}</p>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -132,5 +134,16 @@ onBeforeUnmount(() => {
 
 .searchable-select-input {
   width: 100%;
+}
+
+.select-menu-enter-active,
+.select-menu-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.select-menu-enter-from,
+.select-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
 }
 </style>

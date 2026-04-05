@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useUiStore } from '../stores/ui';
 import AuthView from '../views/AuthView.vue';
+import AttributesView from '../views/AttributesView.vue';
 import CategoriesView from '../views/CategoriesView.vue';
 import CustomersView from '../views/CustomersView.vue';
 import DashboardView from '../views/DashboardView.vue';
@@ -20,6 +21,7 @@ const router = createRouter({
     { path: '/categories', name: 'categories', component: CategoriesView, meta: { title: 'Categories' } },
     { path: '/products', name: 'products', component: ProductsView, meta: { title: 'Products' } },
     { path: '/variants', name: 'variants', component: VariantsView, meta: { title: 'Product variants' } },
+    { path: '/attributes', name: 'attributes', component: AttributesView, meta: { title: 'Attribute library' } },
     { path: '/catalog', redirect: { name: 'products' } },
     { path: '/identity', redirect: { name: 'users' } },
     { path: '/customers', name: 'customers', component: CustomersView, meta: { title: 'Customers' } },

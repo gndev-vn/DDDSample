@@ -8,16 +8,16 @@ const { toasts } = storeToRefs(uiStore);
 
 <template>
   <Teleport to="body">
-    <div class="pointer-events-none fixed inset-x-0 top-4 z-[70] flex justify-center px-4">
-      <div class="flex w-full max-w-xl flex-col gap-3">
+    <div class="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-full justify-end px-4 sm:bottom-6 sm:right-6">
+      <TransitionGroup name="toast-list" tag="div" class="flex w-full max-w-md flex-col gap-3">
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          class="pointer-events-auto flex items-start justify-between gap-4 rounded-[22px] border px-4 py-4 shadow-[0_20px_60px_rgba(15,23,42,0.16)]"
+          class="pointer-events-auto flex items-start justify-between gap-4 rounded-[22px] border px-4 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.18)] backdrop-blur-sm"
           :class="{
-            'border-emerald-200 bg-emerald-50 text-emerald-800': toast.tone === 'success',
-            'border-rose-200 bg-rose-50 text-rose-800': toast.tone === 'error',
-            'border-slate-200 bg-white text-slate-800': toast.tone === 'info',
+            'border-emerald-300 bg-emerald-50/95 text-emerald-950': toast.tone === 'success',
+            'border-rose-300 bg-rose-50/95 text-rose-950': toast.tone === 'error',
+            'border-[var(--color-border-strong)] bg-white/96 text-[var(--color-ink)]': toast.tone === 'info',
           }"
         >
           <p class="text-sm font-medium leading-6">{{ toast.message }}</p>
@@ -25,7 +25,24 @@ const { toasts } = storeToRefs(uiStore);
             Close
           </button>
         </div>
-      </div>
+      </TransitionGroup>
     </div>
   </Teleport>
 </template>
+
+<style scoped>
+.toast-list-enter-active,
+.toast-list-leave-active {
+  transition: all 0.24s ease;
+}
+
+.toast-list-enter-from,
+.toast-list-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+}
+
+.toast-list-move {
+  transition: transform 0.24s ease;
+}
+</style>

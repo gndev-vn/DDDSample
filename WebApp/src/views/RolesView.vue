@@ -186,7 +186,7 @@ onMounted(() => {
         <input v-model="roleSearch" class="toolbar-search" placeholder="Search roles or permissions..." />
         <button class="btn-secondary" :disabled="loading" @click="refreshRoles">
           <span v-if="loading" class="button-spinner" aria-hidden="true" />
-          <span v-else class="button-icon" aria-hidden="true">↻</span>
+          <span v-else class="button-icon" aria-hidden="true">&#8635;</span>
           <span>{{ loading ? 'Refreshing...' : 'Reload roles' }}</span>
         </button>
       </div>
@@ -204,7 +204,7 @@ onMounted(() => {
           <p class="mt-2 text-sm text-slate-600">{{ filteredRoles.length }} of {{ roles.length }} role definition(s).</p>
         </div>
         <button class="btn-primary" :disabled="!canCreateRoles" @click="openRoleDialog()">
-          <span class="button-icon" aria-hidden="true">＋</span>
+          <span class="button-icon" aria-hidden="true">+</span>
           <span>New role</span>
         </button>
       </div>
@@ -226,7 +226,7 @@ onMounted(() => {
               <td class="px-5 py-4 text-slate-600">{{ role.description || 'No description provided.' }}</td>
               <td class="px-5 py-4 text-slate-600">
                 <div class="flex flex-wrap gap-2">
-                  <span v-for="permission in permissionBadges(role)" :key="role.id + '-' + permission" class="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                  <span v-for="permission in permissionBadges(role)" :key="role.id + '-' + permission" class="permission-badge">
                     {{ permission }}
                   </span>
                 </div>
@@ -234,7 +234,7 @@ onMounted(() => {
               <td class="px-5 py-4 text-slate-600">{{ formatDate(role.createdAt) }}</td>
               <td class="px-5 py-4">
                 <button class="icon-button" :disabled="!canUpdateRoles" title="Edit permissions" aria-label="Edit role permissions" @click="openRoleDialog(role)">
-                  <span class="icon-glyph">✎</span>
+                  <span class="icon-glyph">&#9998;</span>
                 </button>
               </td>
             </tr>
@@ -288,10 +288,12 @@ onMounted(() => {
 
         <button class="btn-primary" :disabled="!canSaveRole" @click="saveRole">
           <span v-if="savingRole" class="button-spinner" aria-hidden="true" />
-          <span v-else class="button-icon" aria-hidden="true">✓</span>
+          <span v-else class="button-icon" aria-hidden="true">&#10003;</span>
           <span>{{ savingRole ? 'Saving role...' : editingRoleId ? 'Save permissions' : 'Create role' }}</span>
         </button>
       </div>
     </EntityDialog>
   </section>
 </template>
+
+

@@ -132,7 +132,7 @@ const summaryCards = computed(() => [
         </label>
         <label class="flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
           <input v-model="admin.categoryForm.isActive" type="checkbox" />
-          Keep category active
+          Active?
         </label>
         <div class="flex flex-wrap gap-2">
           <button class="btn-primary" :disabled="admin.saving.value || !(admin.categoryForm.id ? admin.canUpdateCategories.value : admin.canCreateCategories.value) || !admin.categoryCanSave.value" @click="admin.saveCategory">
@@ -148,6 +148,7 @@ const summaryCards = computed(() => [
     </EntityDialog>
   </section>
 </template>
+
 
 
 

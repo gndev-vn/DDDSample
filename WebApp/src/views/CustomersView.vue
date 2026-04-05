@@ -143,7 +143,7 @@ const {
         <label class="md:col-span-2"><span class="field-label">Address</span><input v-model="editCustomerForm.address" class="text-input" /></label>
         <label class="md:col-span-2 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
           <input v-model="editCustomerForm.isActive" type="checkbox" />
-          Customer is active
+          Active?
         </label>
         <div class="md:col-span-2 flex flex-wrap justify-end gap-3">
           <button v-if="selectedCustomer" class="btn-secondary" @click="viewCustomerOrders(selectedCustomer.id)">
@@ -172,7 +172,7 @@ const {
         <label class="md:col-span-2"><span class="field-label">Address</span><input v-model="createCustomerForm.address" class="text-input" /></label>
         <label class="md:col-span-2 flex items-center gap-3 rounded-2xl bg-[var(--color-surface-low)] px-4 py-3 text-sm text-slate-700">
           <input v-model="createCustomerForm.isActive" type="checkbox" />
-          Customer is active
+          Active?
         </label>
         <div class="md:col-span-2 flex justify-end">
           <button class="btn-primary" :disabled="creatingCustomer || !canCreateCustomers" @click="handleCreateCustomer">
@@ -185,3 +185,4 @@ const {
     </EntityDialog>
   </section>
 </template>
+

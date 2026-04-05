@@ -5,10 +5,10 @@ const props = defineProps<{
 }>();
 
 const toneClassMap: Record<NonNullable<typeof props.tone>, string> = {
-  neutral: 'bg-[var(--color-surface-high)] text-[var(--color-ink-muted)]',
-  success: 'bg-[#d3e4fe] text-[#314055]',
-  warning: 'bg-amber-100 text-amber-800',
-  danger: 'bg-[#f97386] text-[#6e0523]',
+  neutral: 'border border-[var(--color-border)] bg-white text-[var(--color-ink-muted)]',
+  success: 'border border-emerald-300 bg-emerald-50 text-emerald-900',
+  warning: 'border border-amber-300 bg-amber-50 text-amber-900',
+  danger: 'border border-rose-300 bg-rose-50 text-rose-900',
 };
 </script>
 

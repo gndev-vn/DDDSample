@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type {
   ProductAttributeDefinitionModel,
   ProductVariantAttributeValueRequest,
@@ -25,6 +25,9 @@ const emit = defineEmits<{
   'create-definition': [];
 }>();
 
+const root = ref<HTMLElement | null>(null);
+const isSearchOpen = ref(false);
+
 const availableDefinitions = computed(() =>
   props.definitions.filter((definition) =>
     !props.modelValue.some((attribute) => attribute.attributeId === definition.id),
@@ -34,7 +37,7 @@ const availableDefinitions = computed(() =>
 const searchedDefinitions = computed(() => {
   const search = props.newDefinitionName.trim().toLowerCase();
   if (!search) {
-    return availableDefinitions.value;
+    return [];
   }
 
   return availableDefinitions.value.filter((definition) => definition.name.toLowerCase().includes(search));
@@ -62,6 +65,7 @@ function addAttributeRow(attributeId: string) {
     { attributeId, value: '' },
   ]);
   emit('update:newDefinitionName', '');
+  isSearchOpen.value = false;
 }
 
 function updateAttribute(index: number, patch: Partial<ProductVariantAttributeValueRequest>) {
@@ -79,33 +83,38 @@ function removeAttribute(index: number) {
   updateRows(props.modelValue.filter((_, currentIndex) => currentIndex !== index));
 }
 
-function optionsFor(index: number) {
-  const usedIds = new Set(
-    props.modelValue
-      .filter((_, currentIndex) => currentIndex !== index)
-      .map((attribute) => attribute.attributeId),
-  );
-
-  return props.definitions.filter((definition) =>
-    !usedIds.has(definition.id) || definition.id === props.modelValue[index]?.attributeId,
-  );
-}
-
 function handleDefinitionNameInput(event: Event) {
   emit('update:newDefinitionName', (event.target as HTMLInputElement).value);
-}
-
-function handleAttributeDefinitionChange(index: number, event: Event) {
-  updateAttribute(index, { attributeId: (event.target as HTMLSelectElement).value });
+  isSearchOpen.value = true;
 }
 
 function handleAttributeValueInput(index: number, event: Event) {
   updateAttribute(index, { value: (event.target as HTMLInputElement).value });
 }
+
+function handleDocumentPointer(event: MouseEvent) {
+  if (!root.value?.contains(event.target as Node)) {
+    isSearchOpen.value = false;
+  }
+}
+
+function openSearch() {
+  if (!props.disabled) {
+    isSearchOpen.value = true;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleDocumentPointer);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleDocumentPointer);
+});
 </script>
 
 <template>
-  <section class="attribute-editor space-y-4">
+  <section ref="root" class="attribute-editor space-y-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h4 class="section-title">Attribute assignments</h4>
@@ -119,68 +128,76 @@ function handleAttributeValueInput(index: number, event: Event) {
     </div>
 
     <div class="attribute-library-panel space-y-3">
-      <div>
+      <div class="searchable-select">
         <input
           :value="newDefinitionName"
           class="text-input"
           :disabled="disabled"
           placeholder="Search or create an attribute, e.g. Material"
+          @focus="openSearch"
           @input="handleDefinitionNameInput"
         />
+
+        <Transition name="select-menu">
+          <div
+            v-if="isSearchOpen && !disabled"
+            class="select-menu absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.16)]"
+          >
+            <div v-if="searchedDefinitions.length" class="space-y-2">
+              <button
+                v-for="definition in searchedDefinitions"
+                :key="definition.id"
+                class="flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left transition hover:bg-[var(--color-surface-low)]"
+                :disabled="disabled"
+                type="button"
+                @click="addAttributeRow(definition.id)"
+              >
+                <div>
+                  <div class="font-medium text-slate-900">{{ definition.name }}</div>
+                  <div class="mt-1 text-xs text-slate-500">
+                    Used on {{ definition.usageCount }} variant{{ definition.usageCount === 1 ? '' : 's' }}
+                  </div>
+                </div>
+                <span class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">Add</span>
+              </button>
+            </div>
+
+            <button
+              v-else-if="canCreateDefinitionFromSearch"
+              class="flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left transition hover:bg-[var(--color-surface-low)]"
+              :disabled="creatingDefinition || !canManageDefinitions"
+              type="button"
+              @click="emit('create-definition')"
+            >
+              <div>
+                <div class="font-medium text-slate-900">Create {{ newDefinitionName.trim() }}</div>
+                <div class="mt-1 text-xs text-slate-500">No matching attribute definition exists yet.</div>
+              </div>
+              <span v-if="creatingDefinition" class="button-spinner" aria-hidden="true" />
+              <span v-else class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">Create</span>
+            </button>
+
+            <p v-else-if="newDefinitionName.trim().length" class="px-3 py-2 text-sm text-[var(--color-ink-muted)]">
+              That attribute is already assigned to this variant.
+            </p>
+
+            <p v-else class="px-3 py-2 text-sm text-[var(--color-ink-muted)]">
+              Search the attribute library to add an assignment.
+            </p>
+          </div>
+        </Transition>
       </div>
 
-      <div v-if="searchedDefinitions.length" class="space-y-2 rounded-2xl bg-white p-2 ring-1 ring-slate-100">
-        <button
-          v-for="definition in searchedDefinitions"
-          :key="definition.id"
-          class="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition hover:bg-slate-50"
-          :disabled="disabled"
-          type="button"
-          @click="addAttributeRow(definition.id)"
-        >
-          <span class="font-medium text-slate-900">{{ definition.name }}</span>
-          <span class="text-xs text-slate-500">Add</span>
-        </button>
-      </div>
-
-      <button
-        v-else-if="canCreateDefinitionFromSearch"
-        class="btn-secondary"
-        :disabled="disabled || creatingDefinition || !canManageDefinitions"
-        @click="emit('create-definition')"
-      >
-        <span v-if="creatingDefinition" class="button-spinner" aria-hidden="true" />
-        <span v-else class="button-icon" aria-hidden="true">＋</span>
-        <span>{{ creatingDefinition ? 'Creating...' : `Create attribute "${newDefinitionName.trim()}"` }}</span>
-      </button>
-
-      <p v-else-if="newDefinitionName.trim().length" class="text-sm text-[var(--color-ink-muted)]">
-        That attribute is already assigned to this variant.
-      </p>
-
-      <div v-if="definitions.length" class="flex flex-wrap gap-2">
-        <span v-for="definition in definitions" :key="definition.id" class="attribute-chip attribute-chip-neutral">
-          {{ definition.name }}
-          <span class="text-xs text-slate-500">{{ definition.usageCount }}</span>
-        </span>
-      </div>
-      <p v-else class="text-sm text-[var(--color-ink-muted)]">
+      <p v-if="!definitions.length" class="text-sm text-[var(--color-ink-muted)]">
         Start the library with the core attributes you reuse across many variants.
       </p>
     </div>
 
     <div v-if="definitions.length && modelValue.length" class="space-y-3">
       <div v-for="(attribute, index) in modelValue" :key="index" class="attribute-row">
-        <select
-          class="select-input"
-          :disabled="disabled"
-          :value="attribute.attributeId"
-          @change="handleAttributeDefinitionChange(index, $event)"
-        >
-          <option v-for="definition in optionsFor(index)" :key="definition.id" :value="definition.id">
-            {{ definition.name }}
-          </option>
-        </select>
+        <div class="attribute-pill">
+          {{ resolveAttributeName(attribute.attributeId, definitions) }}
+        </div>
         <input
           class="text-input"
           :disabled="disabled"
@@ -202,3 +219,20 @@ function handleAttributeValueInput(index: number, event: Event) {
   </section>
 </template>
 
+<style scoped>
+.searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.select-menu-enter-active,
+.select-menu-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.select-menu-enter-from,
+.select-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+</style>

@@ -217,7 +217,7 @@ export function useOrdersAdmin() {
     return lines.map((line) => ({ ...line }));
   }
 
-  function createDraftLine(variantId = activeVariants.value[0]?.id ?? ''): CreateOrderLineDraft {
+  function createDraftLine(variantId = ''): CreateOrderLineDraft {
     return {
       id: crypto.randomUUID(),
       variantId,
@@ -276,8 +276,8 @@ export function useOrdersAdmin() {
   }
 
   function resetCreateForm() {
-    createForm.customerId = customers.value.find((customer) => customer.isActive)?.id ?? '';
-    createForm.lines = [createDraftLine()];
+    createForm.customerId = '';
+    createForm.lines = [];
     createForm.shippingAddress = cloneAddress();
     createForm.billingSameAsShipping = true;
     createForm.billingAddress = cloneAddress();
@@ -317,10 +317,6 @@ export function useOrdersAdmin() {
   }
 
   function removeCreateLine(lineId: string) {
-    if (createForm.lines.length === 1) {
-      createForm.lines = [createDraftLine()];
-      return;
-    }
 
     createForm.lines = createForm.lines.filter((line) => line.id !== lineId);
   }
@@ -361,9 +357,6 @@ export function useOrdersAdmin() {
         resetCreateForm();
       }
 
-      if (selectedOrderId.value && !orders.value.some((order) => order.id === selectedOrderId.value)) {
-        selectedOrderId.value = '';
-      }
 
       applySelectedOrder(orders.value.find((order) => order.id === selectedOrderId.value) ?? null);
     } catch (cause) {
@@ -621,3 +614,5 @@ export function useOrdersAdmin() {
     deleteOrder,
   };
 }
+
+
